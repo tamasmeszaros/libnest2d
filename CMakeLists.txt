@@ -14,7 +14,12 @@ option(BINPACK2D_UNITTESTS "If enabled, googletest framework will be downloaded
 set(BINPACK2D_TEST_LIBRARIES "" CACHE STRING
     "Libraries needed to compile the test executable for binpack2d.")
 
-set(BINPACK2D_SRCFILES binpack2d.cpp binpack2d.hpp)
+set(BINPACK2D_SRCFILES binpack2d.cpp
+    binpack2d.hpp
+    geometries.hpp
+    geometries.hpp
+    geometries_io.hpp
+    )
 
 add_library(binpack2d STATIC ${BINPACK2D_SRCFILES})
 

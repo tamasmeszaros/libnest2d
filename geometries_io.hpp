@@ -7,8 +7,9 @@
 
 namespace binpack2d {
 
-inline std::ostream& operator<<(std::ostream& stream, Shape& sh) {
-    stream << sh.toString() << std::endl;
+template<class RawShape>
+std::ostream& operator<<(std::ostream& stream, Shape<RawShape>& sh) {
+    stream << sh.toString() << "\n";
     return stream;
 }
 

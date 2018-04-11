@@ -8,58 +8,42 @@
 
 namespace binpack2d {
 
-class Item {
-    Shape shape_;
-
+template<class TShape>
+class DummyCoding {
 public:
-
-    void translate();
-    void rotate();
-
+    using Container = typename std::vector<TShape>;
 };
 
-using _Container = std::vector<Item>;
-
-class ItemStore: _Container {
-public:
-    using _Container::vector<Item>;
-
-    using _Container::begin;
-    using _Container::cbegin;
-    using _Container::end;
-    using _Container::cend;
-
-    using _Container::push_back;
-    using _Container::size;
-
-};
-
-class Packager {
-
-    class Impl; std::unique_ptr<Impl> impl_;
+template<class TShape, class Coding= DummyCoding<TShape> >
+class Arranger {
+    typename Coding::Container store_;
 
 public:
-
-    Packager();
-    ~Packager();
+    using Unit = typename TCoord< TPoint<TShape> >;
 
     struct Config {
-        unsigned long minObjectDistance;
+        Unit minObjectDistance;
     };
 
-    void arrange(ItemStore& items,
+    template<class TIterator>
+    void arrange(TIterator from,
+                 TIterator to,
                  const Rectangle& bin,
-                 const Config& config = {0} );
+                 Config config = Config());
 
-    void arrange(ItemStore& items,
-                 const Ellipse& bin,
-                 const Config& config = {0} );
+//    template<class TIterator>
+//    void arrange(TIterator from,
+//                 TIterator to,
+//                 TShape bin,
+//                 Config config = Config());
 
-    template<class TBin, class...Args> void arrange(ItemStore& items,
-                                        const TBin& bin,
-                                        Args...args)
+    template<class TIterator, class TBin, class...Args>
+    void arrange(TIterator from,
+                 TIterator to,
+                 const TBin& bin,
+                 Args...args)
     {
-        arrange(items, bin, Config{args...});
+        arrange(from, to, bin, Config{args...});
     }
 
 };

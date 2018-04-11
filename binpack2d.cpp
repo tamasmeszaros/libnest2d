@@ -3,20 +3,6 @@
 
 namespace binpack2d {
 
-class Packager::Impl {
-
-};
-
-
-Packager::Packager()
-{
-
-}
-
-Packager::~Packager()
-{
-
-}
 
 
 }

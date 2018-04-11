@@ -28,15 +28,7 @@ public:
 
     void y( Unit val ) /*noexcept*/ { y_ = val; }
 
-//    Point& operator+=(const Point& p) { x_ += p.x_; y_ += p.y_; return *this; }
-
-//    Point operator+(const Point& p) {
-//        Point rp(x(), y()); rp += p; return rp;
-//    }
-
-    // ...
 };
-
 
 class RawShape;
 using RawShapePtr = std::unique_ptr<RawShape>;

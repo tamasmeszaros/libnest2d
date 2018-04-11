@@ -32,7 +32,7 @@ else()
 endif()
 
 if(BINPACK2D_UNITTESTS)
-    add_subdirectory(GTest)
+    add_subdirectory(tests)
 endif()
 
 set(BINPACK2D_HEADERS ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)

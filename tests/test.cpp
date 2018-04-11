@@ -5,9 +5,6 @@
 #include <Binpack2D/geometries_io.hpp>
 #include <Binpack2DBridge/binpack2dbridge.hpp>
 
-#include <Point.hpp>
-#include <Polygon.hpp>
-
 
 // Simple test, does not use gmock
 TEST(BasicFunctionality, creationAndDestruction)

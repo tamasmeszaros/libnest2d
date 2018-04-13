@@ -4,4 +4,13 @@
 
 namespace binpack2d {
 
+Radians::operator Degrees()
+{
+    return *this * 180/Pi;
+}
+
+Radians::Radians(const Degrees &degs): Double( degs * Pi/180) {
+
+}
+
 }

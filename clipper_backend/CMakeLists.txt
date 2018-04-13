@@ -1,0 +1,38 @@
+#if(NOT TARGET clipper)
+
+    find_package(Clipper QUIET)
+
+    if(NOT CLIPPER_FOUND)
+        # Silently download and build the library in the build dir
+
+        if (CMAKE_VERSION VERSION_LESS 3.2)
+        set(UPDATE_DISCONNECTED_IF_AVAILABLE "")
+        else()
+            set(UPDATE_DISCONNECTED_IF_AVAILABLE "UPDATE_DISCONNECTED 1")
+        endif()
+
+        include(DownloadProject)
+        download_project(   PROJ                clipper_library
+                            SVN_REPOSITORY      https://svn.code.sf.net/p/polyclipping/code/trunk
+                            SOURCE_SUBDIR       cpp
+                            INSTALL_COMMAND     ""
+                            CONFIGURE_COMMAND   "" # Not working, I will just add the source files
+                            ${UPDATE_DISCONNECTED_IF_AVAILABLE}
+        )
+
+        # This is not working and I dont have time to fix it
+        # add_subdirectory(${clipper_library_SOURCE_DIR}/cpp
+        #                  ${clipper_library_BINARY_DIR}
+        # )
+
+        add_library(clipper_lib STATIC
+            ${clipper_library_SOURCE_DIR}/cpp/clipper.cpp
+            ${clipper_library_SOURCE_DIR}/cpp/clipper.hpp)
+
+
+        set(CLIPPER_INCLUDE_DIRS ${clipper_library_SOURCE_DIR}/cpp)
+
+    endif()
+#endif()
+
+set(CLIPPER_LIBRARIES clipper_lib PARENT_SCOPE)

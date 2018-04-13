@@ -31,8 +31,11 @@ else()
     include_directories(${GTEST_INCLUDE_DIRS} )
 endif()
 
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/..")
 add_executable(bp2d_tests test.cpp)
 target_link_libraries(bp2d_tests binpack2d
-    ${GTEST_LIBRARIES} ${BINPACK2D_TEST_LIBRARIES})
+    ${GTEST_LIBRARIES}
+#    ${BINPACK2D_TEST_LIBRARIES}
+)
 
 

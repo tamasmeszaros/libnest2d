@@ -1,0 +1,7 @@
+#ifndef BP2D_CONFIG_HPP
+#define BP2D_CONFIG_HPP
+
+#define BP2D_NOEXCEPT
+#define BP2D_CONSTEXPR
+
+#endif // BP2D_CONFIG_HPP

@@ -2,6 +2,8 @@
 #define GEOMETRIES_H
 
 #include <string>
+#include <vector>
+#include <tuple>
 
 #include "geometry_traits.hpp"
 
@@ -13,9 +15,12 @@ class Shape {
 public:
 
     Shape(const RawShape& sh): sh_(sh) {}
+
     Shape(RawShape&& sh): sh_(std::move(sh)) {}
 
     std::string toString() const { return ShapeLike::toString(sh_); }
+
+    Shape noFitPolygon() const { return Shape(); }
 
 };
 
@@ -24,7 +29,7 @@ class Rectangle {
     RawShape sh_;
 public:
 
-    using Unit = typename CoordType<RawShape>::Type;
+    using Unit = typename TCoord<RawShape>;
 
     Rectangle(Unit width, Unit height) {
         sh_ = ShapeLike::create(

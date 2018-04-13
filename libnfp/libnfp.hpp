@@ -11,7 +11,7 @@
 #include <exception>
 #include <random>
 
-#include <boost/multiprecision/gmp.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/number.hpp>
 #include <boost/geometry.hpp>
 #include <boost/geometry/util/math.hpp>
@@ -256,7 +256,7 @@ namespace numeric {
 
 namespace libnfp {
 
-typedef bm::number<bm::gmp_rational, bm::et_off> rational_t;
+typedef bm::number<bm::cpp_rational, bm::et_off> rational_t;
 #ifndef LIBNFP_USE_RATIONAL
 typedef LongDouble coord_t;
 #else

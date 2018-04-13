@@ -54,11 +54,6 @@ public:
     }
 
     template<class RawShape>
-    static RawShape noFitPolygon(const RawShape& sh) {
-        return RawShape();      // we can't do no fit polygon, cos we're dumb
-    }
-
-    template<class RawShape>
     static std::string toString(const RawShape& /*sh*/) {
         return "";
     }

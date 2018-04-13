@@ -31,12 +31,6 @@ public:
                  const Rectangle& bin,
                  Config config = Config());
 
-//    template<class TIterator>
-//    void arrange(TIterator from,
-//                 TIterator to,
-//                 TShape bin,
-//                 Config config = Config());
-
     template<class TIterator, class TBin, class...Args>
     void arrange(TIterator from,
                  TIterator to,

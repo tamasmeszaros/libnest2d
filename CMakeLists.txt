@@ -14,7 +14,7 @@ option(BINPACK2D_UNITTESTS "If enabled, googletest framework will be downloaded
 set(BINPACK2D_TEST_LIBRARIES "" CACHE STRING
     "Libraries needed to compile the test executable for binpack2d.")
 
-add_subdirectory(libnfp)
+#add_subdirectory(libnfp)
 
 set(BINPACK2D_SRCFILES binpack2d.cpp
     binpack2d.hpp
@@ -22,12 +22,14 @@ set(BINPACK2D_SRCFILES binpack2d.cpp
     geometries.hpp
     geometry_traits.hpp
     geometries_io.hpp
-    ${LIBNFP_SOURCES}
+#    ${LIBNFP_SOURCES}
     )
 
+#include_directories(${LIBNFP_INCLUDES})
 
-include_directories(${LIBNFP_INCLUDES})
-add_library(binpack2d STATIC ${BINPACK2D_SRCFILES} ${LIBNFP_LIBRARIES})
+add_library(binpack2d STATIC    ${BINPACK2D_SRCFILES}
+#                                ${LIBNFP_LIBRARIES}
+            )
 
 if(BINPACK2D_GEOMETRIES_TARGET STREQUAL "")
     message(STATUS "Binpack2D backend target is default")

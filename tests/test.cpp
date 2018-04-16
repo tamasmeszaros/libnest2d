@@ -29,19 +29,66 @@ TEST(BasicFunctionality, creationAndDestruction)
 {
     using namespace binpack2d;
 
-    Shape sh( { {0, 0}, {1, 0}, {1, 1}, {0, 1} } );
+    Shape sh = { {0, 0}, {1, 0}, {1, 1}, {0, 1} };
 
     ASSERT_EQ(sh.vertexCount(), 4);
 
+    Shape sh2 ({ {0, 0}, {1, 0}, {1, 1}, {0, 1} });
+
+    ASSERT_EQ(sh2.vertexCount(), 4);
+
+    // copy
+    Shape sh3 = sh2;
+
+    ASSERT_EQ(sh3.vertexCount(), 4);
+
+    sh2 = {};
+
+    ASSERT_EQ(sh2.vertexCount(), 0);
+    ASSERT_EQ(sh3.vertexCount(), 4);
+
+}
+
+TEST(GeometryAlgorithms, Area) {
+    using namespace binpack2d;
+
     Rectangle rect(10, 10);
 
-    double a = rect.area();
+    ASSERT_EQ(rect.area(), 100);
 
-    ASSERT_EQ(a, 100);
+    Rectangle rect2 = {100, 100};
+
+    ASSERT_EQ(rect2.area(), 10000);
+
+}
+
+TEST(GeometryAlgorithms, isPointInsidePolygon) {
+    using namespace binpack2d;
+
+    Rectangle rect(10, 10);
+
+    Point p = {1, 1};
+
+    ASSERT_TRUE(rect.isPointInside(p));
+
+    p = {11, 11};
+
+    ASSERT_FALSE(rect.isPointInside(p));
+
+
+    p = {11, 12};
+
+    ASSERT_FALSE(rect.isPointInside(p));
+
+
+    p = {3, 3};
+
+    ASSERT_TRUE(rect.isPointInside(p));
+
 }
 
 // Simple test, does not use gmock
-TEST(BasicFunctionality, arrangeRectangles)
+TEST(GeometryAlgorithms, arrangeRectangles)
 {
     using namespace binpack2d;
 
@@ -77,23 +124,32 @@ void arrangeRectangles() {
     using namespace binpack2d;
 
 
-    DummyArranger arr;
+    Point p1 = {0, 0};
+    Point p2 = {10, 10};
 
-    std::vector<Rectangle> rects = { {40, 40}, {10, 10}, {20, 20}  };
+    std::cout << PointLike::distance<Point>(p1, p2) << std::endl;
 
-    Rectangle bin = {100, 100};
+    Shape sh1 = { {0, 0}, {1, 0}, {1, 1}, {0, 1} };
+    Shape sh2 = { {0, 0}, {1, 0}, {1, 1}, {0, 1} };
 
-    for(auto& rect : rects) { std::cout << rect << std::endl; }
+    bool ret = Shape::intersects(sh1, sh2);
+    std::cout << ret << std::endl;
 
-    arr.arrange(rects.begin(), rects.end(), bin);
+//    DummyArranger arr;
+
+//    std::vector<Rectangle> rects = { {40, 40}, {10, 10}, {20, 20}  };
+
+//    Rectangle bin = {100, 100};
+
+//    for(auto& rect : rects) { std::cout << rect << std::endl; }
+
+//    arr.arrange(rects.begin(), rects.end(), bin);
 
 }
 
 
 int main(int argc, char **argv) {
-
 //    arrangeRectangles();
-
 //    return EXIT_SUCCESS;
 
   ::testing::InitGoogleTest(&argc, argv);

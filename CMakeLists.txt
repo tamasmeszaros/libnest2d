@@ -36,7 +36,8 @@ if((NOT BINPACK2D_GEOMETRIES_TARGET) OR (BINPACK2D_GEOMETRIES_TARGET STREQUAL ""
     set(BINPACK2D_GEOMETRIES_TARGET ${CLIPPER_LIBRARIES})
 
     list(APPEND BINPACK2D_SRCFILES clipper_backend/clipper_backend.cpp
-                                   clipper_backend/clipper_backend.hpp)
+                                   clipper_backend/clipper_backend.hpp
+                                   boost_alg.hpp)
 else()
     message(STATUS "Binpack2D backend target is: ${BINPACK2D_GEOMETRIES_TARGET}")
 endif()

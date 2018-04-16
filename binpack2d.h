@@ -5,9 +5,11 @@
 
 // The type of backend should be set conditionally by the cmake configuriation
 // for now we set it statically to clipper backend
-#include <clipper_backend/clipper_backend.hpp>
+#include "clipper_backend/clipper_backend.hpp"
 
 namespace binpack2d {
+
+using Point = PointImpl;
 
 using Shape = _Shape<PolygonImpl>;
 using Rectangle = _Rectangle<PolygonImpl>;

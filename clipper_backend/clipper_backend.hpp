@@ -46,6 +46,18 @@ TCoord<PointImpl> PointLike::y<PointImpl>(const PointImpl& p) {
     return p.Y;
 }
 
+// Tell binpack2d how to extract the X coord from a ClipperPoint object
+template<>
+TCoord<PointImpl>& PointLike::x<PointImpl>(PointImpl& p) {
+    return p.X;
+}
+
+// Tell binpack2d how to extract the Y coord from a ClipperPoint object
+template<>
+TCoord<PointImpl>& PointLike::y<PointImpl>(PointImpl& p) {
+    return p.Y;
+}
+
 // Tell binpack2d how to make string out of a ClipperPolygon object
 template<>
 double ShapeLike::area<PolygonImpl>(const PolygonImpl& sh) {
@@ -65,5 +77,8 @@ std::string ShapeLike::toString<PolygonImpl>(const PolygonImpl& sh) {
 }
 
 }
+
+// All other operators and algorithms is implemented with boost
+#include "../boost_alg.hpp"
 
 #endif // CLIPPER_BACKEND_HPP

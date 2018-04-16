@@ -27,12 +27,12 @@ class _Shape {
     RawShape sh_;
 public:
 
-//    Shape(const RawShape& sh): sh_(sh) {}
-
-//    template<class...Args>
-//    _Shape(Args...args): sh_(args...) {}
+    _Shape(const RawShape& sh): sh_(sh) {}
 
     _Shape(RawShape&& sh): sh_(std::move(sh)) {}
+
+    _Shape(const std::initializer_list< TPoint<RawShape> >& il):
+        sh_(ShapeLike::create<RawShape>(il)) {}
 
     std::string toString() const { return ShapeLike::toString(sh_); }
 
@@ -64,13 +64,28 @@ public:
         return ShapeLike::area(sh_);
     }
 
-    _Shape noFitPolygon() const { return _Shape(); }
-
     unsigned long vertexCount() const BP2D_NOEXCEPT {
         return cend() - cbegin();
     }
 
+    template<class RawShape>
+    inline static bool intersects(const _Shape<RawShape>& sh1,
+                           const _Shape<RawShape>& sh2) {
+        return ShapeLike::intersects<RawShape>(sh1.sh_, sh2.sh_);
+    }
+
+    bool isPointInside(const TPoint<RawShape>& p) {
+        return ShapeLike::isInside(p, sh_);
+    }
+
 };
+
+
+template<class RawShape>
+inline bool operator&( const _Shape<RawShape>& sh1,
+                       const _Shape<RawShape>& sh2) {
+    return _Shape<RawShape>::intersects(sh1, sh2);
+}
 
 template<class RawShape>
 class _Rectangle: public _Shape<RawShape> {
@@ -83,7 +98,8 @@ public:
         _Shape<RawShape>( ShapeLike::create<RawShape>( {{0, 0},
                                              {0, height},
                                              {width, height},
-                                             {width, 0}} ))
+                                             {width, 0},
+                                                        {0, 0}} ))
     {
     }
 };

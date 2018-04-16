@@ -65,7 +65,37 @@ public:
         return p.y();
     }
 
+    template<class RawPoint>
+    static TCoord<RawPoint>& x(RawPoint& p) {
+        return p.x();
+    }
+
+    template<class RawPoint>
+    static TCoord<RawPoint>& y(RawPoint& p) {
+        return p.y();
+    }
+
+    template<class RawPoint>
+    static double distance(const RawPoint& p1, const RawPoint& p2) {
+        TCoord<RawPoint>();
+    }
 };
+
+template<class RawPoint>
+TCoord<RawPoint> getX(const RawPoint& p) { return PointLike::x<RawPoint>(p); }
+
+template<class RawPoint>
+TCoord<RawPoint> getY(const RawPoint& p) { return PointLike::y<RawPoint>(p); }
+
+template<class RawPoint>
+void setX(RawPoint& p, const TCoord<RawPoint>& val) {
+    PointLike::x<RawPoint>(p) = val;
+}
+
+template<class RawPoint>
+void setY(RawPoint& p, const TCoord<RawPoint>& val) {
+    PointLike::y<RawPoint>(p) = val;
+}
 
 class TransformationLike{
 public:
@@ -81,6 +111,12 @@ public:
 
 class ShapeLike {
 public:
+
+    template<class RawShape>
+    static RawShape create( std::initializer_list< TPoint<RawShape> > il)
+    {
+        return RawShape(il);
+    }
 
     template<class RawShape>
     static TVertexIterator<RawShape> begin(RawShape& sh) {
@@ -102,15 +138,14 @@ public:
         return sh.cend();
     }
 
-
     template<class RawShape>
     static TPoint<RawShape>& point(RawShape& sh, unsigned long idx) {
         return *(begin(sh) + idx);
     }
 
     template<class RawShape>
-    static double area(const RawShape& /*sh*/) {
-        return 0;
+    static std::string toString(const RawShape& /*sh*/) {
+        return "";
     }
 
     template<class RawShape, class RawTransf>
@@ -122,14 +157,18 @@ public:
     }
 
     template<class RawShape>
-    static RawShape create( std::initializer_list< TPoint<RawShape> > il)
-    {
-        return RawShape(il);
+    static double area(const RawShape& /*sh*/) {
+        return 0;
     }
 
     template<class RawShape>
-    static std::string toString(const RawShape& /*sh*/) {
-        return "";
+    static bool intersects(const RawShape& /*sh*/, const RawShape& /*sh*/) {
+        return false;
+    }
+
+    template<class RawShape>
+    static bool isInside(const TPoint<RawShape>& point, const RawShape& shape) {
+        return false;
     }
 
 };

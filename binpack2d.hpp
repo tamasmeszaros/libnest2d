@@ -97,6 +97,17 @@ public:
 };
 
 
+template<class RawShape, class TBinShape>
+class _DummyPlacementStrategy {
+    TBinShape bin_;
+public:
+
+    _DummyPlacementStrategy(const TBinShape& bin): bin_(bin) {}
+
+    bool insertItem(_Item<RawShape>& item) { return true; }
+
+};
+
 template<class RawShape>
 class _DummySelectionStrategy {
     using Container = typename std::vector<_Item<RawShape>>;
@@ -110,17 +121,16 @@ public:
     using ItemRef = typename std::reference_wrapper<Item>;
     using ItemGroup = typename std::vector<ItemRef>;
 
+    template<class TBin>
+    using PlacementStrategy = typename _DummyPlacementStrategy<RawShape, TBin>;
+
     template<class TIterator>
     void addItems(TIterator first, TIterator last) {
 
         store_.clear();
         store_.reserve(last-first);
 
-        for(TIterator it = first; it != last; it++) {
-
-            store_.emplace_back(*it);
-        }
-//        std::copy(first, last, std::back_inserter(store_));
+        std::copy(first, last, std::back_inserter(store_));
 
         pos_ = 0;
 
@@ -129,7 +139,6 @@ public:
         };
 
         std::sort(store_.begin(), store_.end(), sortfunc);
-
     }
 
 
@@ -140,8 +149,9 @@ public:
 };
 
 
+
 template<class TShape,
-         class SelectionStrategy = _DummySelectionStrategy<TShape> >
+         class SelectionStrategy = _DummySelectionStrategy<TShape>>
 class _Arranger {
 
     SelectionStrategy sel_strategy_;
@@ -163,6 +173,9 @@ public:
                  Config config = Config()) {
 
         sel_strategy_.addItems(from, to);
+
+        auto placer = SelectionStrategy::PlacementStrategy<decltype(bin)>(bin);
+
     }
 
     template<class TIterator, class TBin, class...Args>

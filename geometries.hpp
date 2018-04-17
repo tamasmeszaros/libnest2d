@@ -68,9 +68,7 @@ public:
         return cend() - cbegin();
     }
 
-    template<class RawShape>
-    inline static bool intersects(const _Shape<RawShape>& sh1,
-                           const _Shape<RawShape>& sh2) {
+    inline static bool intersects(const _Shape& sh1, const _Shape& sh2) {
         return ShapeLike::intersects<RawShape>(sh1.sh_, sh2.sh_);
     }
 
@@ -92,7 +90,7 @@ class _Rectangle: public _Shape<RawShape> {
     RawShape sh_;
 public:
 
-    using Unit = typename TCoord<RawShape>;
+    using Unit =  TCoord<RawShape>;
 
     _Rectangle(Unit width, Unit height):
         _Shape<RawShape>( ShapeLike::create<RawShape>( {{0, 0},

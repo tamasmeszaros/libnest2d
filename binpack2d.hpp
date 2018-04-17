@@ -5,6 +5,7 @@
 #include <vector>
 #include <array>
 #include <cmath>
+#include <algorithm>
 
 #include "geometries.hpp"
 
@@ -88,7 +89,7 @@ public:
     void offset(Unit x, Unit y) { tr_.get(0, 0) += x; tr_.get(1, 1) += y; }
 
     void rotate(const Radians& /*rads*/) {
-        static_assert(false, "unimplemented");
+//        static_assert(false, "unimplemented");
     }
 
     double area() const { return shape_.area(); }
@@ -104,7 +105,7 @@ public:
 
     _DummyPlacementStrategy(const TBinShape& bin): bin_(bin) {}
 
-    bool insertItem(_Item<RawShape>& item) { return true; }
+    bool insertItem(_Item<RawShape>& /*item*/) { return true; }
 
 };
 
@@ -117,12 +118,12 @@ class _DummySelectionStrategy {
 
 public:
 
-    using Item = typename _Item<RawShape>;
+    using Item = _Item<RawShape>;
     using ItemRef = typename std::reference_wrapper<Item>;
     using ItemGroup = typename std::vector<ItemRef>;
 
     template<class TBin>
-    using PlacementStrategy = typename _DummyPlacementStrategy<RawShape, TBin>;
+    using PlacementStrategy = _DummyPlacementStrategy<RawShape, TBin>;
 
     template<class TIterator>
     void addItems(TIterator first, TIterator last) {
@@ -160,7 +161,7 @@ public:
 
     _Arranger() {}
 
-    using Unit = typename TCoord< TPoint<TShape> >;
+    using Unit = TCoord< TPoint<TShape> >;
 
     struct Config {
         Unit minObjectDistance;
@@ -174,7 +175,7 @@ public:
 
         sel_strategy_.addItems(from, to);
 
-        auto placer = SelectionStrategy::PlacementStrategy<decltype(bin)>(bin);
+        auto placer = SelectionStrategy::template PlacementStrategy<decltype(bin)>(bin);
 
     }
 

@@ -3,7 +3,7 @@
 
 #include <sstream>
 
-#include <Binpack2D/binpack2d.hpp>
+#include "../binpack2d.hpp"
 
 #include <clipper.hpp>
 
@@ -111,7 +111,7 @@ PolygonImpl ShapeLike::create( std::initializer_list< PointImpl > il)
 }
 
 template<>
-static THolesContainer<PolygonImpl>& ShapeLike::holes(PolygonImpl& sh) {
+THolesContainer<PolygonImpl>& ShapeLike::holes(PolygonImpl& sh) {
     return sh.Childs;
 }
 
@@ -123,6 +123,6 @@ const THolesContainer<PolygonImpl>& ShapeLike::holes(const PolygonImpl& sh) {
 }
 
 // All other operators and algorithms is implemented with boost
-//#include "../boost_alg.hpp"
+#include "../boost_alg.hpp"
 
 #endif // CLIPPER_BACKEND_HPP

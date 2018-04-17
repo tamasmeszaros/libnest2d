@@ -47,11 +47,11 @@ using TVertexConstIterator = typename VertexConstIteratorTypeOf<ShapeClass>::Typ
 
 template<class ShapeClass>
 struct TransformationTypeOf {
-    using Type = std::array< std::array< TCoord<ShapeClass>, 3> , 3>;
+    using Type = typename std::array< std::array< TCoord<ShapeClass>, 3> , 3>;
 };
 
 template<class ShapeClass>
-using TTransformation = typename TransformationTypeOf<ShapeClass>;
+using TTransformation = typename TransformationTypeOf<ShapeClass>::Type;
 
 class PointLike {
 public:
@@ -184,7 +184,7 @@ public:
     static RawShape& transform(RawShape& sh, const RawTransf& /*tr*/) {
         // auto vertex_it = ShapeLike::begin(sh);
         // implement ...
-        static_assert(false, "unimplemented");
+//        static_assert(false, "unimplemented");
         return sh;
     }
 

@@ -5,24 +5,24 @@
 #include <geometries_io.hpp>
 
 
-//TEST(BasicFunctionality, Angles)
-//{
+TEST(BasicFunctionality, Angles)
+{
 
-//    using namespace binpack2d;
+    using namespace binpack2d;
 
-//    Degrees deg(180);
-//    Radians rad(deg);
-//    Degrees deg2(rad);
+    Degrees deg(180);
+    Radians rad(deg);
+    Degrees deg2(rad);
 
-//    ASSERT_DOUBLE_EQ(rad, Pi);
-//    ASSERT_DOUBLE_EQ(deg, 180);
-//    ASSERT_DOUBLE_EQ(deg2, 180);
-//    ASSERT_DOUBLE_EQ(rad, (Radians) deg);
-//    ASSERT_DOUBLE_EQ( (Degrees) rad, deg);
+    ASSERT_DOUBLE_EQ(rad, Pi);
+    ASSERT_DOUBLE_EQ(deg, 180);
+    ASSERT_DOUBLE_EQ(deg2, 180);
+    ASSERT_DOUBLE_EQ(rad, (Radians) deg);
+    ASSERT_DOUBLE_EQ( (Degrees) rad, deg);
 
-//    ASSERT_TRUE(rad == deg);
+    ASSERT_TRUE(rad == deg);
 
-//}
+}
 
 //// Simple test, does not use gmock
 //TEST(BasicFunctionality, creationAndDestruction)
@@ -151,9 +151,9 @@ void arrangeRectangles() {
 
 
 int main(int argc, char **argv) {
-    arrangeRectangles();
-    return EXIT_SUCCESS;
+//    arrangeRectangles();
+//    return EXIT_SUCCESS;
 
-//  ::testing::InitGoogleTest(&argc, argv);
-//  return RUN_ALL_TESTS();
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }

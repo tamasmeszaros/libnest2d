@@ -26,19 +26,23 @@ set(BINPACK2D_SRCFILES binpack2d.cpp
     )
 
 if((NOT BINPACK2D_GEOMETRIES_TARGET) OR (BINPACK2D_GEOMETRIES_TARGET STREQUAL ""))
-    message(STATUS "Binpack2D backend target is default")
+    message(STATUS "Binpack2D backend is default")
+
+    if(NOT Boost_INCLUDE_DIRS_FOUND)
+        find_package(Boost REQUIRED)
+    endif()
+
     add_subdirectory(clipper_backend)
 
     set(BINPACK2D_GEOMETRIES_TARGET ${CLIPPER_LIBRARIES})
 
-    if(DEFINED CLIPPER_INCLUDE_DIRS)
-        message(STATUS "Clipper is: ${CLIPPER_INCLUDE_DIRS}")
-        include_directories(BEFORE ${CLIPPER_INCLUDE_DIRS})
-    endif()
+    include_directories(BEFORE ${CLIPPER_INCLUDE_DIRS})
+    include_directories(${Boost_INCLUDE_DIRS})
 
     list(APPEND BINPACK2D_SRCFILES clipper_backend/clipper_backend.cpp
                                    clipper_backend/clipper_backend.hpp
                                    boost_alg.hpp)
+
 else()
     message(STATUS "Binpack2D backend target is: ${BINPACK2D_GEOMETRIES_TARGET}")
 endif()

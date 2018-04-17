@@ -29,11 +29,12 @@ if((NOT BINPACK2D_GEOMETRIES_TARGET) OR (BINPACK2D_GEOMETRIES_TARGET STREQUAL ""
     message(STATUS "Binpack2D backend target is default")
     add_subdirectory(clipper_backend)
 
-    if(CLIPPER_INCLUDE_DIRS)
-        include_directories(${CLIPPER_INCLUDE_DIRS})
-    endif()
-
     set(BINPACK2D_GEOMETRIES_TARGET ${CLIPPER_LIBRARIES})
+
+    if(DEFINED CLIPPER_INCLUDE_DIRS)
+        message(STATUS "Clipper is: ${CLIPPER_INCLUDE_DIRS}")
+        include_directories(BEFORE ${CLIPPER_INCLUDE_DIRS})
+    endif()
 
     list(APPEND BINPACK2D_SRCFILES clipper_backend/clipper_backend.cpp
                                    clipper_backend/clipper_backend.hpp

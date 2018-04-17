@@ -3,18 +3,50 @@
 
 #include <boost/geometry.hpp>
 
+namespace {
+
+template<class PolyType>
+struct _PolyWrapper {
+    PolyType poly;
+
+    using TInterior = binpack2d::THolesContainer<PolyType>;
+
+    _PolyWrapper(const PolyType& p): poly(p) {}
+
+    TInterior& holes() { return binpack2d::ShapeLike::holes(poly); }
+    const TInterior& holes() const { return binpack2d::ShapeLike::holes(poly); }
+};
+
+using PolyWrapper = _PolyWrapper<binpack2d::PolygonImpl>;
+
+}
+
 namespace boost {
 
 using binpack2d::TCoord;
 using binpack2d::PointImpl;
 using binpack2d::PolygonImpl;
 
+//struct ConstPolyWrapper {
+//    const PolygonImpl& poly;
+
+//    using TInterior = binpack2d::HolesRange<PolygonImpl>::ContainerType;
+
+//    TInterior holes;
+
+//    ConstPolyWrapper(const PolygonImpl& p):
+//        poly(p),
+//        holes(binpack2d::ShapeLike::holes(p).first,
+//              binpack2d::ShapeLike::holes(p).last) {}
+//};
+
+
 namespace geometry {
 namespace traits {
 
 
 /* ************************************************************************** */
-/* Getting Boost know about aour point implementation *********************** */
+/* Getting Boost know about our point implementation ************************ */
 /* ************************************************************************** */
 
 template<> struct tag<PointImpl> {
@@ -58,7 +90,8 @@ struct access<PointImpl, 1 > {
 /* Getting Boost know about our polygon implementation ********************** */
 /* ************************************************************************** */
 
-// Boost would refer to ClipperLib::Path (alias PolygonImpl) as a multipolygon
+
+// Boost would refer to ClipperLib::Path (alias PolygonImpl) as a ring
 template<> struct tag<PolygonImpl> {
     using type = ring_tag;
 };
@@ -72,18 +105,55 @@ template<> struct closure<PolygonImpl> {
 };
 
 
+//template<> struct tag<PolyWrapper> {
+//    using type = polygon_tag;
+//};
+
+//template<> struct exterior_ring<PolyWrapper> {
+//    static inline PolygonImpl& get(PolyWrapper& pw) { return pw.poly; }
+//    static inline PolygonImpl const& get(PolyWrapper const& pw) {
+//        return pw.poly;
+//    }
+//};
+
+//template<> struct ring_const_type<PolyWrapper> {
+//    using type = const PolygonImpl;
+//};
+
+//template<> struct ring_mutable_type<PolyWrapper> {
+//    using type = PolygonImpl;
+//};
+
+//template<>
+//struct interior_rings<PolyWrapper> {
+
+//    static inline PolyWrapper::TInterior& get(PolyWrapper& pw) {
+//        return pw.holes();
+//    }
+
+//    static inline const PolyWrapper::TInterior& get(PolyWrapper const& pw) {
+//        return pw.holes();
+//    }
+//};
+
+//template<> struct interior_const_type<PolyWrapper> {
+//   using type = const PolyWrapper::TInterior;
+//};
+
+//template<> struct interior_mutable_type<PolyWrapper> {
+//   using type = PolyWrapper::TInterior;
+//};
+
 }   // traits
+
+
+
 }   // geometry
 
 template<>
 struct range_value<PolygonImpl> {
     using type = PointImpl;
 };
-
-//template<>
-//struct range_iterator<PolygonImpl> {
-//    using type = PolygonImpl::iterator;
-//};
 
 }   // boost
 
@@ -112,8 +182,12 @@ static bool ShapeLike::isInside<PolygonImpl>(const PointImpl& point,
 
     std::cout << message << std::endl;
 
+//    PolyWrapper pw = static_cast<PolyWrapper>(shape);
 
-    return boost::geometry::within(point, shape);
+//    return boost::geometry::within(point, shape);
+
+    return false;
+//    boost::geometry::traits::interior_const_type
 }
 
 }

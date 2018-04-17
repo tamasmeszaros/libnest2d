@@ -3,6 +3,7 @@
     find_package(Clipper QUIET)
 
     if(NOT CLIPPER_FOUND)
+        message(STATUS "clipper no found so download")
         # Silently download and build the library in the build dir
 
         if (CMAKE_VERSION VERSION_LESS 3.2)
@@ -30,7 +31,8 @@
             ${clipper_library_SOURCE_DIR}/cpp/clipper.hpp)
 
 
-        set(CLIPPER_INCLUDE_DIRS ${clipper_library_SOURCE_DIR}/cpp)
+        set(CLIPPER_INCLUDE_DIRS ${clipper_library_SOURCE_DIR}/cpp
+            PARENT_SCOPE)
 
     endif()
 #endif()

@@ -4,6 +4,7 @@
 #include <string>
 #include <type_traits>
 #include <array>
+#include <vector>
 
 namespace binpack2d {
 
@@ -109,6 +110,37 @@ public:
 
 };
 
+//template<class TIterator>
+//struct Range {
+//    TIterator first; TIterator last;
+//    Range() {}
+//    Range(TIterator b, TIterator e): first(b), last(e) {}
+//};
+
+//template<class RawShape>
+//struct HolesRange {
+//    using Type = typename Range< typename std::vector<RawShape>::iterator >;
+
+//    using ConstType =
+//        typename Range< typename std::vector<RawShape>::const_iterator >;
+
+//    using ContainerType = typename std::vector<RawShape>;
+//};
+
+//template<class RawShape>
+//using THolesRange = typename HolesRange<RawShape>::Type;
+
+//template<class RawShape>
+//using TConstHolesRange = typename HolesRange<RawShape>::CType;
+
+template<class RawShape>
+struct HolesContainer {
+    using Type = std::vector<RawShape>;
+};
+
+template<class RawShape>
+using THolesContainer = typename HolesContainer<RawShape>::Type;
+
 class ShapeLike {
 public:
 
@@ -171,8 +203,40 @@ public:
         return false;
     }
 
-};
+    template<class RawShape>
+    static THolesContainer<RawShape>& holes(RawShape& /*sh*/) {}
 
+    template<class RawShape>
+    static const THolesContainer<RawShape>& holes(const RawShape& /*sh*/) {}
+
+    template<class RawShape>
+    static RawShape& getHole(
+            typename THolesContainer<RawShape>::iterator it) {
+        return *it;
+    }
+
+    template<class RawShape>
+    static const RawShape& getHole(
+            typename THolesContainer<RawShape>::const_iterator it) {
+        return *it;
+    }
+
+//    template<class RawShape>
+//    static THolesRange<RawShape> holes(RawShape& /*sh*/) {
+//        return THolesRange<RawShape>();
+//    }
+
+//    template<class RawShape>
+//    static TConstHolesRange<RawShape> holes(const RawShape&) {
+//        return TConstHolesRange();
+//    }
+
+//    template<class RawShape>
+//    static size_t holesCount(const RawShape& sh) {
+//        return holes(sh).last - holes(sh).first;
+//    }
+
+};
 
 }
 

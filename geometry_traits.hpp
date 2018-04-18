@@ -6,6 +6,8 @@
 #include <array>
 #include <vector>
 
+#include "config.hpp"
+
 namespace binpack2d {
 
 /**
@@ -53,6 +55,18 @@ struct TransformationTypeOf {
 template<class ShapeClass>
 using TTransformation = typename TransformationTypeOf<ShapeClass>::Type;
 
+class TransformationLike{
+public:
+
+    template<class RawTransf>
+    static TCoord<RawTransf>& get(const RawTransf& tr,
+                                 unsigned long row,
+                                 unsigned long col ) {
+        return tr[col][row];
+    }
+
+};
+
 class PointLike {
 public:
 
@@ -98,41 +112,6 @@ void setY(RawPoint& p, const TCoord<RawPoint>& val) {
     PointLike::y<RawPoint>(p) = val;
 }
 
-class TransformationLike{
-public:
-
-    template<class RawTransf>
-    static TCoord<RawTransf>& get(const RawTransf& tr,
-                                 unsigned long row,
-                                 unsigned long col ) {
-        return tr[col][row];
-    }
-
-};
-
-//template<class TIterator>
-//struct Range {
-//    TIterator first; TIterator last;
-//    Range() {}
-//    Range(TIterator b, TIterator e): first(b), last(e) {}
-//};
-
-//template<class RawShape>
-//struct HolesRange {
-//    using Type = typename Range< typename std::vector<RawShape>::iterator >;
-
-//    using ConstType =
-//        typename Range< typename std::vector<RawShape>::const_iterator >;
-
-//    using ContainerType = typename std::vector<RawShape>;
-//};
-
-//template<class RawShape>
-//using THolesRange = typename HolesRange<RawShape>::Type;
-
-//template<class RawShape>
-//using TConstHolesRange = typename HolesRange<RawShape>::CType;
-
 template<class RawShape>
 struct HolesContainer {
     using Type = std::vector<RawShape>;
@@ -140,6 +119,14 @@ struct HolesContainer {
 
 template<class RawShape>
 using THolesContainer = typename HolesContainer<RawShape>::Type;
+
+template<class RawShape>
+struct CountourType {
+    using Type = RawShape;
+};
+
+template<class RawShape>
+using TCountour = typename CountourType<RawShape>::Type;
 
 class ShapeLike {
 public:
@@ -184,7 +171,7 @@ public:
     static RawShape& transform(RawShape& sh, const RawTransf& /*tr*/) {
         // auto vertex_it = ShapeLike::begin(sh);
         // implement ...
-//        static_assert(false, "unimplemented");
+        throw UnimplementedException("ShapeLike::transform()");
         return sh;
     }
 
@@ -204,37 +191,42 @@ public:
     }
 
     template<class RawShape>
-    static THolesContainer<RawShape>& holes(RawShape& /*sh*/) {}
-
-    template<class RawShape>
-    static const THolesContainer<RawShape>& holes(const RawShape& /*sh*/) {}
-
-    template<class RawShape>
-    static RawShape& getHole(
-            typename THolesContainer<RawShape>::iterator it) {
-        return *it;
+    static THolesContainer<RawShape>& holes(RawShape& /*sh*/) {
+        static THolesContainer<RawShape> empty;
+        return empty;
     }
 
     template<class RawShape>
-    static const RawShape& getHole(
-            typename THolesContainer<RawShape>::const_iterator it) {
-        return *it;
+    static const THolesContainer<RawShape>& holes(const RawShape& /*sh*/) {
+        static THolesContainer<RawShape> empty;
+        return empty;
     }
 
-//    template<class RawShape>
-//    static THolesRange<RawShape> holes(RawShape& /*sh*/) {
-//        return THolesRange<RawShape>();
-//    }
+    template<class RawShape>
+    static TCountour<RawShape>& getHole(RawShape& sh, unsigned long idx) {
+        return holes(sh)[idx];
+    }
 
-//    template<class RawShape>
-//    static TConstHolesRange<RawShape> holes(const RawShape&) {
-//        return TConstHolesRange();
-//    }
+    template<class RawShape>
+    static const TCountour<RawShape>& getHole(const RawShape& sh,
+                                              unsigned long idx) {
+        return holes(sh)[idx];
+    }
 
-//    template<class RawShape>
-//    static size_t holesCount(const RawShape& sh) {
-//        return holes(sh).last - holes(sh).first;
-//    }
+    template<class RawShape>
+    static size_t holeCount(const RawShape& sh) {
+        return holes(sh).size();
+    }
+
+    template<class RawShape>
+    static TCountour<RawShape>& getContour(RawShape& sh) {
+        return sh;
+    }
+
+    template<class RawShape>
+    static const TCountour<RawShape>& getContour(const RawShape& sh) {
+        return sh;
+    }
 
 };
 

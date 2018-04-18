@@ -27,6 +27,7 @@ namespace boost {
 using binpack2d::TCoord;
 using binpack2d::PointImpl;
 using binpack2d::PolygonImpl;
+using binpack2d::PathImpl;
 
 //struct ConstPolyWrapper {
 //    const PolygonImpl& poly;
@@ -93,57 +94,61 @@ struct access<PointImpl, 1 > {
 
 
 // Boost would refer to ClipperLib::Path (alias PolygonImpl) as a ring
-//template<> struct tag<PolygonImpl> {
-//    using type = ring_tag;
-//};
+template<> struct tag<PathImpl> {
+    using type = ring_tag;
+};
 
-//template<> struct point_order<PolygonImpl> {
-//    static const order_selector value = clockwise;
-//};
+template<> struct point_order<PathImpl> {
+    static const order_selector value = clockwise;
+};
 
-//template<> struct closure<PolygonImpl> {
-//    static const closure_selector value = closed;
-//};
+template<> struct closure<PathImpl> {
+    static const closure_selector value = closed;
+};
 
+template<> struct tag<PolygonImpl> {
+    using type = polygon_tag;
+};
 
-//template<> struct tag<PolyWrapper> {
-//    using type = polygon_tag;
-//};
+template<> struct exterior_ring<PolygonImpl> {
+    static inline PathImpl& get(PolygonImpl& p) {
+        return binpack2d::ShapeLike::getContour(p);
+    }
 
-//template<> struct exterior_ring<PolyWrapper> {
-//    static inline PolygonImpl& get(PolyWrapper& pw) { return pw.poly; }
-//    static inline PolygonImpl const& get(PolyWrapper const& pw) {
-//        return pw.poly;
-//    }
-//};
+    static inline PathImpl const& get(PolygonImpl const& p) {
+        return binpack2d::ShapeLike::getContour(p);
+    }
+};
 
-//template<> struct ring_const_type<PolyWrapper> {
-//    using type = const PolygonImpl;
-//};
+template<> struct ring_const_type<PolygonImpl> {
+    using type = const PathImpl;
+};
 
-//template<> struct ring_mutable_type<PolyWrapper> {
-//    using type = PolygonImpl;
-//};
+template<> struct ring_mutable_type<PolygonImpl> {
+    using type = PathImpl;
+};
 
-//template<>
-//struct interior_rings<PolyWrapper> {
+template<> struct interior_const_type<PolygonImpl> {
+   using type = const binpack2d::THolesContainer<PolygonImpl>;
+};
 
-//    static inline PolyWrapper::TInterior& get(PolyWrapper& pw) {
-//        return pw.holes();
-//    }
+template<> struct interior_mutable_type<PolygonImpl> {
+   using type = binpack2d::THolesContainer<PolygonImpl>;
+};
 
-//    static inline const PolyWrapper::TInterior& get(PolyWrapper const& pw) {
-//        return pw.holes();
-//    }
-//};
+template<>
+struct interior_rings<PolygonImpl> {
 
-//template<> struct interior_const_type<PolyWrapper> {
-//   using type = const PolyWrapper::TInterior;
-//};
+    static inline binpack2d::THolesContainer<PolygonImpl>& get(
+            PolygonImpl& p) {
+        return binpack2d::ShapeLike::holes(p);
+    }
 
-//template<> struct interior_mutable_type<PolyWrapper> {
-//   using type = PolyWrapper::TInterior;
-//};
+    static inline const binpack2d::THolesContainer<PolygonImpl>& get(
+            PolygonImpl const& p) {
+        return binpack2d::ShapeLike::holes(p);
+    }
+};
 
 }   // traits
 }   // geometry
@@ -157,31 +162,38 @@ struct access<PointImpl, 1 > {
 
 namespace binpack2d {
 
-//// Tell binpack2d how to make string out of a ClipperPolygon object
-//template<>
-//double PointLike::distance<PointImpl>(const PointImpl& p1,
-//                                      const PointImpl& p2 ) {
-//    return boost::geometry::distance(p1, p2);
-//}
+// Tell binpack2d how to make string out of a ClipperPolygon object
+template<>
+double PointLike::distance<PointImpl>(const PointImpl& p1,
+                                      const PointImpl& p2 ) {
+    return boost::geometry::distance(p1, p2);
+}
 
-//// Tell binpack2d how to make string out of a ClipperPolygon object
-//template<>
-//bool ShapeLike::intersects<PolygonImpl>(const PolygonImpl& sh1,
-//                                        const PolygonImpl& sh2) {
-//    return boost::geometry::intersects(sh1, sh2);
-//}
+// Tell binpack2d how to make string out of a ClipperPolygon object
+template<>
+bool ShapeLike::intersects<PathImpl>(const PathImpl& sh1,
+                                        const PathImpl& sh2) {
+    return boost::geometry::intersects(sh1, sh2);
+}
 
-//template<>
-//static bool ShapeLike::isInside<PolygonImpl>(const PointImpl& point,
-//                                             const PolygonImpl& shape) {
+// Tell binpack2d how to make string out of a ClipperPolygon object
+template<>
+bool ShapeLike::intersects<PolygonImpl>(const PolygonImpl& sh1,
+                                        const PolygonImpl& sh2) {
+    return boost::geometry::intersects(sh1, sh2);
+}
+
+template<>
+static bool ShapeLike::isInside<PolygonImpl>(const PointImpl& point,
+                                             const PolygonImpl& shape) {
 
 //    std::string message;
 //    boost::geometry::is_valid(shape, message); // boost::geometry::within(point, shape);
 
 //    std::cout << message << std::endl;
 
-//    return boost::geometry::within(point, shape);
-//}
+    return boost::geometry::within(point, shape);
+}
 
 }
 

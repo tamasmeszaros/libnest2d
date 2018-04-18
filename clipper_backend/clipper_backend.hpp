@@ -2,6 +2,7 @@
 #define CLIPPER_BACKEND_HPP
 
 #include <sstream>
+#include <unordered_map>
 
 #include "../binpack2d.hpp"
 
@@ -12,6 +13,36 @@ namespace binpack2d {
 // Aliases for convinience
 using PointImpl = ClipperLib::IntPoint;
 using PolygonImpl = ClipperLib::PolyNode;
+using PathImpl = ClipperLib::Path;
+
+class HoleCache {
+    friend class ShapeLike;
+    std::unordered_map< const PolygonImpl*, ClipperLib::Paths> map;
+
+    ClipperLib::Paths& _getHoles(const PolygonImpl* p) {
+        ClipperLib::Paths& paths = map[p];
+
+        if(paths.size() != p->Childs.size()) {
+            paths.reserve(p->Childs.size());
+
+            for(auto np : p->Childs) {
+                paths.emplace_back(np->Contour);
+            }
+        }
+
+        return paths;
+    }
+
+    ClipperLib::Paths& getHoles(PolygonImpl& p) {
+        return _getHoles(&p);
+    }
+
+    const ClipperLib::Paths& getHoles(const PolygonImpl& p) {
+        return _getHoles(&p);
+    }
+};
+
+HoleCache holeCache;
 
 // Type of coordinate units used by Clipper
 template<> struct CoordType<PointImpl> {
@@ -31,6 +62,10 @@ template<> struct VertexIteratorTypeOf<PolygonImpl> {
 // Type of vertex iterator used by Clipper
 template<> struct VertexConstIteratorTypeOf<PolygonImpl> {
     using Type = ClipperLib::Path::const_iterator;
+};
+
+template<> struct CountourType<PolygonImpl> {
+    using Type = PathImpl;
 };
 
 
@@ -96,11 +131,9 @@ TVertexConstIterator<PolygonImpl> ShapeLike::cend(const PolygonImpl& sh) {
     return sh.Contour.cend();
 }
 
-template<>
-struct HolesContainer<PolygonImpl> {
-    using Type = ClipperLib::PolyNodes;
+template<> struct HolesContainer<PolygonImpl> {
+    using Type = ClipperLib::Paths;
 };
-
 
 template<>
 PolygonImpl ShapeLike::create( std::initializer_list< PointImpl > il)
@@ -111,13 +144,40 @@ PolygonImpl ShapeLike::create( std::initializer_list< PointImpl > il)
 }
 
 template<>
-THolesContainer<PolygonImpl>& ShapeLike::holes(PolygonImpl& sh) {
-    return sh.Childs;
+const THolesContainer<PolygonImpl>& ShapeLike::holes(const PolygonImpl& sh) {
+    return holeCache.getHoles(sh);
 }
 
 template<>
-const THolesContainer<PolygonImpl>& ShapeLike::holes(const PolygonImpl& sh) {
-    return sh.Childs;
+THolesContainer<PolygonImpl>& ShapeLike::holes(PolygonImpl& sh) {
+    return holeCache.getHoles(sh);
+}
+
+template<>
+static TCountour<PolygonImpl>& ShapeLike::getHole(PolygonImpl& sh,
+                                                  unsigned long idx) {
+    return sh.Childs[idx]->Contour;
+}
+
+template<>
+static const TCountour<PolygonImpl>& ShapeLike::getHole(const PolygonImpl& sh,
+                                                        unsigned long idx) {
+    return sh.Childs[idx]->Contour;
+}
+
+template<>
+static size_t ShapeLike::holeCount(const PolygonImpl& sh) {
+    return sh.Childs.size();
+}
+
+template<>
+PathImpl& ShapeLike::getContour<PolygonImpl>(PolygonImpl& sh) {
+    return sh.Contour;
+}
+
+template<>
+const PathImpl& ShapeLike::getContour<PolygonImpl>(const PolygonImpl& sh) {
+    return sh.Contour;
 }
 
 }

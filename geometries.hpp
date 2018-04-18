@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include "config.hpp"
 #include "geometry_traits.hpp"
 
 namespace binpack2d {

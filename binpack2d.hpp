@@ -67,17 +67,6 @@ public:
     _Item(const TShape& shape): shape_(shape) {}
     _Item(TShape&& shape): shape_(std::move(shape)) {}
 
-//    _Item(const _Rectangle<RawShape>& rect):shape_(rect) {
-
-//    }
-//    _Item& operator=(TShape&& shape) {
-//        shape_ = std::move(shape);
-//    }
-
-//    _Item& operator=(_Rectangle<RawShape>&& shape) {
-//        shape_ = std::move(shape);
-//    }
-
     template<class...Args> _Item(Args...args): shape_(args...) {}
 
     TShape transformedShape() {
@@ -88,9 +77,7 @@ public:
 
     void offset(Unit x, Unit y) { tr_.get(0, 0) += x; tr_.get(1, 1) += y; }
 
-    void rotate(const Radians& /*rads*/) {
-//        static_assert(false, "unimplemented");
-    }
+    void rotate(const Radians& /*rads*/) {}
 
     double area() const { return shape_.area(); }
 
@@ -106,7 +93,6 @@ public:
     _DummyPlacementStrategy(const TBinShape& bin): bin_(bin) {}
 
     bool insertItem(_Item<RawShape>& /*item*/) { return true; }
-
 };
 
 template<class RawShape>
@@ -142,7 +128,6 @@ public:
         std::sort(store_.begin(), store_.end(), sortfunc);
     }
 
-
     ItemGroup nextGroup() {
         return ItemGroup({store_[ pos_++ ]});
     }
@@ -171,11 +156,15 @@ public:
     void arrange(TIterator from,
                  TIterator to,
                  const _Rectangle<TShape>& bin,
-                 Config config = Config()) {
+                 Config config = Config())
+    {
+
+        using BinType = decltype(bin);
 
         sel_strategy_.addItems(from, to);
 
-        auto placer = SelectionStrategy::template PlacementStrategy<decltype(bin)>(bin);
+        auto placer =
+                SelectionStrategy::template PlacementStrategy<BinType>(bin);
 
     }
 

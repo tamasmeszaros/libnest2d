@@ -6,7 +6,7 @@
 #include <array>
 #include <vector>
 
-#include "config.hpp"
+#include "common.hpp"
 
 namespace binpack2d {
 
@@ -44,28 +44,8 @@ template<class ShapeClass>
 using TVertexIterator = typename VertexIteratorTypeOf<ShapeClass>::Type;
 
 template<class ShapeClass>
-using TVertexConstIterator = typename VertexConstIteratorTypeOf<ShapeClass>::Type;
-
-
-template<class ShapeClass>
-struct TransformationTypeOf {
-    using Type = typename std::array< std::array< TCoord<ShapeClass>, 3> , 3>;
-};
-
-template<class ShapeClass>
-using TTransformation = typename TransformationTypeOf<ShapeClass>::Type;
-
-class TransformationLike{
-public:
-
-    template<class RawTransf>
-    static TCoord<RawTransf>& get(const RawTransf& tr,
-                                 unsigned long row,
-                                 unsigned long col ) {
-        return tr[col][row];
-    }
-
-};
+using TVertexConstIterator =
+    typename VertexConstIteratorTypeOf<ShapeClass>::Type;
 
 class PointLike {
 public:
@@ -91,8 +71,8 @@ public:
     }
 
     template<class RawPoint>
-    static double distance(const RawPoint& p1, const RawPoint& p2) {
-        TCoord<RawPoint>();
+    static double distance(const RawPoint& /*p1*/, const RawPoint& /*p2*/) {
+        throw UnimplementedException("PointLike::distance");
     }
 };
 
@@ -138,6 +118,19 @@ public:
     }
 
     template<class RawShape>
+    static void reserve(RawShape& sh,  unsigned long vertex_capacity) {
+        return getContour(sh).reserve(vertex_capacity);
+    }
+
+    template<class RawShape>
+    static void push_back_vertex(RawShape& sh, const TPoint<RawShape>& v) {
+        return getContour(sh).push_back(v);
+    }
+
+    template<class RawShape>
+    static bool isClockwise(const RawShape& /*sh*/) { return true; }
+
+    template<class RawShape>
     static TVertexIterator<RawShape> begin(RawShape& sh) {
         return sh.begin();
     }
@@ -163,30 +156,38 @@ public:
     }
 
     template<class RawShape>
+    static const TPoint<RawShape>& point(const RawShape& sh, unsigned long idx) {
+        return *(cbegin(sh) + idx);
+    }
+
+    template<class RawShape>
     static std::string toString(const RawShape& /*sh*/) {
         return "";
     }
 
-    template<class RawShape, class RawTransf>
-    static RawShape& transform(RawShape& sh, const RawTransf& /*tr*/) {
-        // auto vertex_it = ShapeLike::begin(sh);
-        // implement ...
-        throw UnimplementedException("ShapeLike::transform()");
-        return sh;
-    }
-
     template<class RawShape>
     static double area(const RawShape& /*sh*/) {
+        throw UnimplementedException("ShapeLike::area()");
         return 0;
     }
 
     template<class RawShape>
     static bool intersects(const RawShape& /*sh*/, const RawShape& /*sh*/) {
+        throw UnimplementedException("ShapeLike::intersects()");
         return false;
     }
 
     template<class RawShape>
-    static bool isInside(const TPoint<RawShape>& point, const RawShape& shape) {
+    static bool isInside(const TPoint<RawShape>& /*point*/,
+                         const RawShape& /*shape*/) {
+        throw UnimplementedException("ShapeLike::isInside(point, shape)");
+        return false;
+    }
+
+    template<class RawShape>
+    static bool isInside(const RawShape& /*point*/,
+                         const RawShape& /*shape*/) {
+        throw UnimplementedException("ShapeLike::isInside(shape, shape)");
         return false;
     }
 
@@ -226,6 +227,16 @@ public:
     template<class RawShape>
     static const TCountour<RawShape>& getContour(const RawShape& sh) {
         return sh;
+    }
+
+    template<class RawShape>
+    void rotate(RawShape& /*sh*/, const Radians& /*rads*/) {
+        throw UnimplementedException("ShapeLike::rotate()");
+    }
+
+    template<class RawShape, class RawPoint>
+    void translate(RawShape& /*sh*/, const RawPoint& /*offs*/) {
+        throw UnimplementedException("ShapeLike::translate()");
     }
 
 };

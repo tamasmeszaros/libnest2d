@@ -94,14 +94,20 @@ TCoord<PointImpl>& PointLike::y<PointImpl>(PointImpl& p) {
 }
 
 // Tell binpack2d how to make string out of a ClipperPolygon object
+//template<>
+//double ShapeLike::area(const PolygonImpl& sh) {
+//    return abs(ClipperLib::Area(sh.Contour));
+//}
+
 template<>
-double ShapeLike::area<PolygonImpl>(const PolygonImpl& sh) {
-    return abs(ClipperLib::Area(sh.Contour));
+bool ShapeLike::isClockwise(const PolygonImpl& sh) {
+    return ClipperLib::Orientation(sh.Contour);
 }
+
 
 // Tell binpack2d how to make string out of a ClipperPolygon object
 template<>
-std::string ShapeLike::toString<PolygonImpl>(const PolygonImpl& sh) {
+std::string ShapeLike::toString(const PolygonImpl& sh) {
     std::stringstream ss;
 
     for(auto p : sh.Contour) {
@@ -154,35 +160,35 @@ THolesContainer<PolygonImpl>& ShapeLike::holes(PolygonImpl& sh) {
 }
 
 template<>
-static TCountour<PolygonImpl>& ShapeLike::getHole(PolygonImpl& sh,
+TCountour<PolygonImpl>& ShapeLike::getHole(PolygonImpl& sh,
                                                   unsigned long idx) {
     return sh.Childs[idx]->Contour;
 }
 
 template<>
-static const TCountour<PolygonImpl>& ShapeLike::getHole(const PolygonImpl& sh,
+const TCountour<PolygonImpl>& ShapeLike::getHole(const PolygonImpl& sh,
                                                         unsigned long idx) {
     return sh.Childs[idx]->Contour;
 }
 
 template<>
-static size_t ShapeLike::holeCount(const PolygonImpl& sh) {
+size_t ShapeLike::holeCount(const PolygonImpl& sh) {
     return sh.Childs.size();
 }
 
 template<>
-PathImpl& ShapeLike::getContour<PolygonImpl>(PolygonImpl& sh) {
+PathImpl& ShapeLike::getContour(PolygonImpl& sh) {
     return sh.Contour;
 }
 
 template<>
-const PathImpl& ShapeLike::getContour<PolygonImpl>(const PolygonImpl& sh) {
+const PathImpl& ShapeLike::getContour(const PolygonImpl& sh) {
     return sh.Contour;
 }
 
 }
 
-// All other operators and algorithms is implemented with boost
+// All other operators and algorithms are implemented with boost
 #include "../boost_alg.hpp"
 
 #endif // CLIPPER_BACKEND_HPP

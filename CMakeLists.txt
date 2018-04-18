@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 2.8)
 
 project(Binpack2D)
 
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+  # Update if necessary
+#  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic")
+endif()
+
 # Add our own cmake module path.
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/)
 
@@ -18,11 +23,9 @@ set(BINPACK2D_TEST_LIBRARIES "" CACHE STRING
 set(BINPACK2D_SRCFILES binpack2d.cpp
     binpack2d.hpp       # Templates only
     binpack2d.h         # Exports ready made types using template arguments
-    geometries.hpp
-    geometries.hpp
     geometry_traits.hpp
     geometries_io.hpp
-    config.hpp
+    common.hpp
     )
 
 if((NOT BINPACK2D_GEOMETRIES_TARGET) OR (BINPACK2D_GEOMETRIES_TARGET STREQUAL ""))

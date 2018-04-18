@@ -4,24 +4,6 @@
 #include <boost/geometry.hpp>
 #include "binpack2d.h"
 
-//namespace {
-
-//template<class PolyType>
-//struct _PolyWrapper {
-//    PolyType poly;
-
-//    using TInterior = binpack2d::THolesContainer<PolyType>;
-
-//    _PolyWrapper(const PolyType& p): poly(p) {}
-
-//    TInterior& holes() { return binpack2d::ShapeLike::holes(poly); }
-//    const TInterior& holes() const { return binpack2d::ShapeLike::holes(poly); }
-//};
-
-//using PolyWrapper = _PolyWrapper<binpack2d::PolygonImpl>;
-
-//}
-
 namespace boost {
 
 using binpack2d::TCoord;
@@ -29,23 +11,8 @@ using binpack2d::PointImpl;
 using binpack2d::PolygonImpl;
 using binpack2d::PathImpl;
 
-//struct ConstPolyWrapper {
-//    const PolygonImpl& poly;
-
-//    using TInterior = binpack2d::HolesRange<PolygonImpl>::ContainerType;
-
-//    TInterior holes;
-
-//    ConstPolyWrapper(const PolygonImpl& p):
-//        poly(p),
-//        holes(binpack2d::ShapeLike::holes(p).first,
-//              binpack2d::ShapeLike::holes(p).last) {}
-//};
-
-
 namespace geometry {
 namespace traits {
-
 
 /* ************************************************************************** */
 /* Getting Boost know about our point implementation ************************ */
@@ -153,10 +120,10 @@ struct interior_rings<PolygonImpl> {
 }   // traits
 }   // geometry
 
-//template<>
-//struct range_value<PolygonImpl> {
-//    using type = PointImpl;
-//};
+template<>
+struct range_value<PathImpl> {
+    using type = PointImpl;
+};
 
 }   // boost
 
@@ -171,21 +138,27 @@ double PointLike::distance<PointImpl>(const PointImpl& p1,
 
 // Tell binpack2d how to make string out of a ClipperPolygon object
 template<>
-bool ShapeLike::intersects<PathImpl>(const PathImpl& sh1,
+bool ShapeLike::intersects(const PathImpl& sh1,
                                         const PathImpl& sh2) {
     return boost::geometry::intersects(sh1, sh2);
 }
 
 // Tell binpack2d how to make string out of a ClipperPolygon object
 template<>
-bool ShapeLike::intersects<PolygonImpl>(const PolygonImpl& sh1,
+bool ShapeLike::intersects(const PolygonImpl& sh1,
                                         const PolygonImpl& sh2) {
     return boost::geometry::intersects(sh1, sh2);
 }
 
 template<>
-static bool ShapeLike::isInside<PolygonImpl>(const PointImpl& point,
-                                             const PolygonImpl& shape) {
+double ShapeLike::area(const PolygonImpl& shape) {
+    return boost::geometry::area(shape);
+}
+
+template<>
+bool ShapeLike::isInside(const PointImpl& point,
+                         const PolygonImpl& shape)
+{
 
 //    std::string message;
 //    boost::geometry::is_valid(shape, message); // boost::geometry::within(point, shape);
@@ -193,6 +166,14 @@ static bool ShapeLike::isInside<PolygonImpl>(const PointImpl& point,
 //    std::cout << message << std::endl;
 
     return boost::geometry::within(point, shape);
+}
+
+
+template<>
+bool ShapeLike::isInside(const PolygonImpl& sh1,
+                         const PolygonImpl& sh2)
+{
+    return boost::geometry::within(sh1, sh2);
 }
 
 }

@@ -3,96 +3,184 @@
 
 #include <memory>
 #include <vector>
+#include <map>
 #include <array>
-#include <cmath>
 #include <algorithm>
+#include <limits>
 
-#include "geometries.hpp"
+#include "geometry_traits.hpp"
 
 namespace binpack2d {
 
-const auto BP2D_CONSTEXPR Pi = 2*acos(0);
-
-class Double {
-  double val_;
-public:
-  Double(): val_(double{}) { }
-  Double(double d) : val_(d) { }
-
-  operator double() const BP2D_NOEXCEPT { return val_; }
-  operator double&() BP2D_NOEXCEPT { return val_; }
-};
-
-class Degrees;
-
-class Radians: public Double {
-public:
-
-    Radians(double rads = Double() ): Double(rads) {}
-    Radians(const Degrees& degs);
-
-    operator Degrees();
-};
-
-class Degrees: public Double {
-public:
-    Degrees(double deg = Double()): Double(deg) {}
-    Degrees(const Radians& rads): Double( rads * 180/Pi ) {}
-};
-
-inline bool operator==(const Degrees& deg, const Radians& rads) {
-    Degrees deg2 = rads;
-    auto diff = abs(deg - deg2);
-    return diff < 0.0001;
-}
-
-inline bool operator==(const Radians& rads, const Degrees& deg) {
-    return deg == rads;
-}
-
-template<class RawShape,
-         class TTransformation = TTransformation<RawShape> >
+template<class RawShape>
 class _Item {
-
-    using TShape = _Shape<RawShape>;
-
-    TShape shape_;
-
-    using Unit = TCoord<RawShape>;
-
-    TTransformation tr_;
-
+    RawShape sh_;
+    TPoint<RawShape> offset_;
+    Radians rotation_;
 public:
 
-    _Item(const TShape& shape): shape_(shape) {}
-    _Item(TShape&& shape): shape_(std::move(shape)) {}
+    _Item(const RawShape& sh): sh_(sh) {}
 
-    template<class...Args> _Item(Args...args): shape_(args...) {}
+    _Item(RawShape&& sh): sh_(std::move(sh)) {}
 
-    TShape transformedShape() {
-        TShape sh(shape_);
-        sh.transform(tr_);
-        return sh;
+    _Item(const std::initializer_list< TPoint<RawShape> >& il):
+        sh_(ShapeLike::create<RawShape>(il)) {}
+
+    std::string toString() const { return ShapeLike::toString(sh_); }
+
+    TVertexIterator<RawShape> begin() {
+        return ShapeLike::begin(sh_);
     }
 
-    void offset(Unit x, Unit y) { tr_.get(0, 0) += x; tr_.get(1, 1) += y; }
+    TVertexConstIterator<RawShape> begin() const {
+        return ShapeLike::cbegin(sh_);
+    }
 
-    void rotate(const Radians& /*rads*/) {}
+    TVertexConstIterator<RawShape> cbegin() const {
+        return ShapeLike::cbegin(sh_);
+    }
 
-    double area() const { return shape_.area(); }
+    TVertexIterator<RawShape> end() {
+        return ShapeLike::end(sh_);
+    }
 
-    const TShape& shape() const { return shape_; }
+    TVertexConstIterator<RawShape> end() const {
+        return ShapeLike::cend(sh_);
+    }
+
+    TVertexConstIterator<RawShape> cend() const {
+        return ShapeLike::cend(sh_);
+    }
+
+    TPoint<RawShape> vertex(unsigned long idx) const {
+        return ShapeLike::point(sh_, idx);
+    }
+
+    double area() const {
+        return ShapeLike::area(sh_);
+    }
+
+    unsigned long vertexCount() const BP2D_NOEXCEPT {
+        return cend() - cbegin();
+    }
+
+    inline static bool intersects(const _Item& sh1, const _Item& sh2) {
+        return ShapeLike::intersects(sh1.sh_, sh2.sh_);
+    }
+
+    bool isPointInside(const TPoint<RawShape>& p) {
+        return ShapeLike::isInside(p, sh_);
+    }
+
+    inline void translation(const TPoint<RawShape>& d) BP2D_NOEXCEPT {
+        offset_ = d;
+    }
+
+    inline void rotate(const Radians& rads) BP2D_NOEXCEPT { rotation_ = rads; }
+
+    RawShape transformedShape() {
+        RawShape cpy = sh_;
+        ShapeLike::rotate(cpy, rotation_);
+        ShapeLike::translate(cpy, offset_);
+        return cpy;
+    }
 };
 
+template<class RawShape>
+class _Rectangle: public _Item<RawShape> {
+    RawShape sh_;
+public:
+
+    using Unit =  TCoord<RawShape>;
+
+    _Rectangle(Unit width, Unit height):
+        _Item<RawShape>( ShapeLike::create<RawShape>( {{0, 0},
+                                             {0, height},
+                                             {width, height},
+                                             {width, 0},
+                                                        {0, 0}} ))
+    {
+    }
+};
 
 template<class RawShape, class TBinShape>
 class _DummyPlacementStrategy {
     TBinShape bin_;
 public:
+    using Item = _Item<RawShape>;
 
     _DummyPlacementStrategy(const TBinShape& bin): bin_(bin) {}
 
-    bool insertItem(_Item<RawShape>& /*item*/) { return true; }
+    bool insertItem(Item& /*item*/) { return true; }
+
+//protected:
+
+    using Vertex = TPoint<RawShape>;
+    using Coord = TCoord<Vertex>;
+
+    RawShape leftPoly(const Item& item) const {
+
+        assert(item.vertexCount() > 0);
+
+        Coord max_y = std::numeric_limits<Coord>::min();
+        Coord min_y = std::numeric_limits<Coord>::max();
+
+        using El = std::pair<size_t, std::reference_wrapper<const Vertex>>;
+
+        std::vector< El > top;
+        std::vector< El > bottom;
+
+        size_t idx = 0;
+        for(auto& v : item) {
+            auto vref = std::cref(v);
+            auto vy = getY(v);
+
+            if( vy > max_y ) {
+                max_y = vy;
+                top.clear();
+                top.emplace_back(idx, vref);
+            }
+            else if(vy == max_y) { top.emplace_back(idx, vref); }
+
+            if(vy < min_y) {
+                min_y = vy;
+                bottom.clear();
+                bottom.emplace_back(idx, vref);
+            }
+            else if(vy == min_y) { bottom.emplace_back(idx, vref); }
+
+            idx++;
+        }
+
+        auto cmp = [](const El& e1, const El& e2) {
+            return getX(e1.second.get()) < getX(e2.second.get());
+        };
+
+        auto topleft_it = std::min_element(top.begin(), top.end(), cmp);
+        auto bottomleft_it = std::min_element(bottom.begin(), bottom.end(), cmp);
+
+        const Vertex& topleft_vertex = topleft_it->second;
+        const Vertex& bottomleft_vertex = bottomleft_it->second;
+
+        auto start = std::min(topleft_it->first, bottomleft_it->first);
+        auto finish = std::max(topleft_it->first, bottomleft_it->first);
+
+        RawShape rsh;
+
+        // reserve for all vertices plus 2 for the left horizontal wall
+        ShapeLike::reserve(rsh, finish-start+2);
+
+        ShapeLike::push_back_vertex(rsh, topleft_vertex);       // orientation ????
+
+        // TODO Add bin edge coordinates
+
+        for(size_t i = start+1; i < finish; i++)
+            ShapeLike::push_back_vertex(rsh, item.vertex(i));
+
+        ShapeLike::push_back_vertex(rsh, bottomleft_vertex);    // orientation ????
+
+        return rsh;
+    }
 };
 
 template<class RawShape>
@@ -133,8 +221,6 @@ public:
     }
 
 };
-
-
 
 template<class TShape,
          class SelectionStrategy = _DummySelectionStrategy<TShape>>

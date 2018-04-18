@@ -4,7 +4,6 @@
 #include <binpack2d.h>
 #include <geometries_io.hpp>
 
-
 TEST(BasicFunctionality, Angles)
 {
 
@@ -29,16 +28,16 @@ TEST(BasicFunctionality, creationAndDestruction)
 {
     using namespace binpack2d;
 
-    Shape sh = { {0, 0}, {1, 0}, {1, 1}, {0, 1} };
+    Item sh = { {0, 0}, {1, 0}, {1, 1}, {0, 1} };
 
     ASSERT_EQ(sh.vertexCount(), 4);
 
-    Shape sh2 ({ {0, 0}, {1, 0}, {1, 1}, {0, 1} });
+    Item sh2 ({ {0, 0}, {1, 0}, {1, 1}, {0, 1} });
 
     ASSERT_EQ(sh2.vertexCount(), 4);
 
     // copy
-    Shape sh3 = sh2;
+    Item sh3 = sh2;
 
     ASSERT_EQ(sh3.vertexCount(), 4);
 
@@ -124,36 +123,23 @@ void arrangeRectangles() {
     using namespace binpack2d;
 
 
-    Point p1 = {0, 0};
-    Point p2 = {10, 10};
+    Rectangle bin(100, 100);
+    DummyPlacementStrategy placer(bin);
 
-//    std::cout << PointLike::distance<Point>(p1, p2) << std::endl;
+    Item item = {{70, 75}, {88, 60}, {65, 50}, {60, 30}, {80, 20}, {42, 20},
+                 {35, 35}, {35, 55}, {40, 75}};
 
-    Shape sh1 = { {0, 0}, {1, 0}, {1, 1}, {0, 1} };
-//    Shape sh2 = { {0, 0}, {1, 0}, {1, 1}, {0, 1} };
+    auto leftp = placer.leftPoly(item);
 
-    std::cout << sh1 << std::endl;
-
-//    bool ret = Shape::intersects(sh1, sh2);
-//    std::cout << ret << std::endl;
-
-//    DummyArranger arr;
-
-//    std::vector<Rectangle> rects = { {40, 40}, {10, 10}, {20, 20}  };
-
-//    Rectangle bin = {100, 100};
-
-//    for(auto& rect : rects) { std::cout << rect << std::endl; }
-
-//    arr.arrange(rects.begin(), rects.end(), bin);
+    std::cout << ShapeLike::toString(leftp) << std::endl;
 
 }
 
 
 int main(int argc, char **argv) {
-//    arrangeRectangles();
-//    return EXIT_SUCCESS;
+    arrangeRectangles();
+    return EXIT_SUCCESS;
 
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+//  ::testing::InitGoogleTest(&argc, argv);
+//  return RUN_ALL_TESTS();
 }

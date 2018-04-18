@@ -11,14 +11,15 @@ namespace binpack2d {
 
 using Point = PointImpl;
 
-using Shape = _Shape<PolygonImpl>;
-using Rectangle = _Rectangle<PolygonImpl>;
+//using Shape = _Shape<PolygonImpl>;
 using Item = _Item<PolygonImpl>;
+using Rectangle = _Rectangle<PolygonImpl>;
 
 template<class SelectionStrategy /* default argument does not work... why? */>
 using Arranger = _Arranger<PolygonImpl, SelectionStrategy>;
 
 using DummySelectionStrategy = _DummySelectionStrategy<PolygonImpl>;
+using DummyPlacementStrategy = _DummyPlacementStrategy<PolygonImpl, Rectangle>;
 using DummyArranger = Arranger<DummySelectionStrategy>;
 
 }

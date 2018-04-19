@@ -93,17 +93,17 @@ TCoord<PointImpl>& PointLike::y<PointImpl>(PointImpl& p) {
     return p.Y;
 }
 
+
+template<>
+void ShapeLike::reserve(PolygonImpl& sh, unsigned long vertex_capacity) {
+    return sh.Contour.reserve(vertex_capacity);
+}
+
 // Tell binpack2d how to make string out of a ClipperPolygon object
 //template<>
 //double ShapeLike::area(const PolygonImpl& sh) {
 //    return abs(ClipperLib::Area(sh.Contour));
 //}
-
-template<>
-bool ShapeLike::isClockwise(const PolygonImpl& sh) {
-    return ClipperLib::Orientation(sh.Contour);
-}
-
 
 // Tell binpack2d how to make string out of a ClipperPolygon object
 template<>
@@ -146,6 +146,14 @@ PolygonImpl ShapeLike::create( std::initializer_list< PointImpl > il)
 {
     PolygonImpl p;
     p.Contour = il;
+
+    // Expecting that the coordinate system Y axis is positive in upwards
+    // direction
+    if(ClipperLib::Orientation(p.Contour)) {
+        // Not clockwise then reverse the b*tch
+        ClipperLib::ReversePath(p.Contour);
+    }
+
     return p;
 }
 

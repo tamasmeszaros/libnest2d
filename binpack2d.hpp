@@ -19,48 +19,52 @@ class _Item {
     Radians rotation_;
 public:
 
-    _Item(const RawShape& sh): sh_(sh) {}
+    static BP2D_CONSTEXPR Orientation orientation() {
+        return OrientationType<RawShape>::Value;
+    }
 
-    _Item(RawShape&& sh): sh_(std::move(sh)) {}
+    inline _Item(const RawShape& sh): sh_(sh) {}
 
-    _Item(const std::initializer_list< TPoint<RawShape> >& il):
+    inline _Item(RawShape&& sh): sh_(std::move(sh)) {}
+
+    inline _Item(const std::initializer_list< TPoint<RawShape> >& il):
         sh_(ShapeLike::create<RawShape>(il)) {}
 
-    std::string toString() const { return ShapeLike::toString(sh_); }
+    inline std::string toString() const { return ShapeLike::toString(sh_); }
 
-    TVertexIterator<RawShape> begin() {
+    inline TVertexIterator<RawShape> begin() {
         return ShapeLike::begin(sh_);
     }
 
-    TVertexConstIterator<RawShape> begin() const {
+    inline TVertexConstIterator<RawShape> begin() const {
         return ShapeLike::cbegin(sh_);
     }
 
-    TVertexConstIterator<RawShape> cbegin() const {
+    inline TVertexConstIterator<RawShape> cbegin() const {
         return ShapeLike::cbegin(sh_);
     }
 
-    TVertexIterator<RawShape> end() {
+    inline TVertexIterator<RawShape> end() {
         return ShapeLike::end(sh_);
     }
 
-    TVertexConstIterator<RawShape> end() const {
+    inline TVertexConstIterator<RawShape> end() const {
         return ShapeLike::cend(sh_);
     }
 
-    TVertexConstIterator<RawShape> cend() const {
+    inline TVertexConstIterator<RawShape> cend() const {
         return ShapeLike::cend(sh_);
     }
 
-    TPoint<RawShape> vertex(unsigned long idx) const {
+    inline TPoint<RawShape> vertex(unsigned long idx) const BP2D_NOEXCEPT {
         return ShapeLike::point(sh_, idx);
     }
 
-    double area() const {
+    inline double area() const {
         return ShapeLike::area(sh_);
     }
 
-    unsigned long vertexCount() const BP2D_NOEXCEPT {
+    inline unsigned long vertexCount() const BP2D_NOEXCEPT {
         return cend() - cbegin();
     }
 
@@ -68,7 +72,7 @@ public:
         return ShapeLike::intersects(sh1.sh_, sh2.sh_);
     }
 
-    bool isPointInside(const TPoint<RawShape>& p) {
+    inline bool isPointInside(const TPoint<RawShape>& p) {
         return ShapeLike::isInside(p, sh_);
     }
 
@@ -84,11 +88,16 @@ public:
         ShapeLike::translate(cpy, offset_);
         return cpy;
     }
+
+    inline RawShape& rawShape() BP2D_NOEXCEPT { return sh_; }
+
+    inline const RawShape& rawShape() const BP2D_NOEXCEPT { return sh_; }
 };
 
 template<class RawShape>
 class _Rectangle: public _Item<RawShape> {
     RawShape sh_;
+    using _Item<RawShape>::vertex;
 public:
 
     using Unit =  TCoord<RawShape>;
@@ -100,6 +109,14 @@ public:
                                              {width, 0},
                                                         {0, 0}} ))
     {
+    }
+
+    inline Unit width() const BP2D_NOEXCEPT {
+        return getX(vertex(2));
+    }
+
+    inline Unit height() const BP2D_NOEXCEPT {
+        return getY(vertex(2));
     }
 };
 
@@ -157,7 +174,8 @@ public:
         };
 
         auto topleft_it = std::min_element(top.begin(), top.end(), cmp);
-        auto bottomleft_it = std::min_element(bottom.begin(), bottom.end(), cmp);
+        auto bottomleft_it =
+                std::min_element(bottom.begin(), bottom.end(), cmp);
 
         const Vertex& topleft_vertex = topleft_it->second;
         const Vertex& bottomleft_vertex = bottomleft_it->second;
@@ -170,14 +188,31 @@ public:
         // reserve for all vertices plus 2 for the left horizontal wall
         ShapeLike::reserve(rsh, finish-start+2);
 
-        ShapeLike::push_back_vertex(rsh, topleft_vertex);       // orientation ????
+        if(Item::orientation() == Orientation::CLOCKWISE) {
+            ShapeLike::addVertex(rsh, topleft_vertex);
 
-        // TODO Add bin edge coordinates
+            for(size_t i = finish-1; i > start; i--)
+                ShapeLike::addVertex(rsh, item.vertex(i));
 
-        for(size_t i = start+1; i < finish; i++)
-            ShapeLike::push_back_vertex(rsh, item.vertex(i));
+            ShapeLike::addVertex(rsh, bottomleft_vertex);
 
-        ShapeLike::push_back_vertex(rsh, bottomleft_vertex);    // orientation ????
+            ShapeLike::addVertex(rsh, 0, getY(bottomleft_vertex));
+            ShapeLike::addVertex(rsh, 0, getY(topleft_vertex));
+
+        } else {
+            ShapeLike::addVertex(rsh, topleft_vertex);
+
+            ShapeLike::addVertex(rsh, 0, getY(topleft_vertex));
+            ShapeLike::addVertex(rsh, 0, getY(bottomleft_vertex));
+
+            ShapeLike::addVertex(rsh, bottomleft_vertex);
+
+            for(size_t i = start+1; i < finish; i++)
+                ShapeLike::addVertex(rsh, item.vertex(i));
+        }
+
+        // Close the polygon
+        ShapeLike::addVertex(rsh, topleft_vertex);
 
         return rsh;
     }

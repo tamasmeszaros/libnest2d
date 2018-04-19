@@ -65,10 +65,32 @@ template<> struct tag<PathImpl> {
     using type = ring_tag;
 };
 
-template<> struct point_order<PathImpl> {
-    static const order_selector value = clockwise;
+/* Connversion between binpack2d::Orientation and order_selector ************ */
+
+template<binpack2d::Orientation O>
+struct ToBoostOrienation {};
+
+template<>
+struct ToBoostOrienation<binpack2d::Orientation::CLOCKWISE> {
+    static const order_selector Value = clockwise;
 };
 
+template<>
+struct ToBoostOrienation<binpack2d::Orientation::COUNTER_CLOCKWISE> {
+    static const order_selector Value = counterclockwise;
+};
+
+static const binpack2d::Orientation RealOrientation =
+        binpack2d::OrientationType<PolygonImpl>::Value;
+
+/* ************************************************************************** */
+
+template<> struct point_order<PathImpl> {
+    static const order_selector value =
+            ToBoostOrienation<RealOrientation>::Value;
+};
+
+// All our Paths should be closed for the bin packing application
 template<> struct closure<PathImpl> {
     static const closure_selector value = closed;
 };

@@ -108,6 +108,18 @@ struct CountourType {
 template<class RawShape>
 using TCountour = typename CountourType<RawShape>::Type;
 
+enum class Orientation {
+    CLOCKWISE,
+    COUNTER_CLOCKWISE
+};
+
+template<class RawShape>
+struct OrientationType {
+
+    // Default Polygon orientation that the library expects
+    static const Orientation Value = Orientation::CLOCKWISE;
+};
+
 class ShapeLike {
 public:
 
@@ -117,18 +129,14 @@ public:
         return RawShape(il);
     }
 
+    // Optional, does nothing by default
     template<class RawShape>
-    static void reserve(RawShape& sh,  unsigned long vertex_capacity) {
-        return getContour(sh).reserve(vertex_capacity);
-    }
+    static void reserve(RawShape& sh,  unsigned long /*vertex_capacity*/) {}
 
-    template<class RawShape>
-    static void push_back_vertex(RawShape& sh, const TPoint<RawShape>& v) {
-        return getContour(sh).push_back(v);
+    template<class RawShape, class...Args>
+    static void addVertex(RawShape& sh, Args...args) {
+        return getContour(sh).emplace_back(std::forward<Args>(args)...);
     }
-
-    template<class RawShape>
-    static bool isClockwise(const RawShape& /*sh*/) { return true; }
 
     template<class RawShape>
     static TVertexIterator<RawShape> begin(RawShape& sh) {

@@ -127,9 +127,22 @@ void arrangeRectangles() {
     DummyPlacementStrategy placer(bin);
 
     Item item = {{70, 75}, {88, 60}, {65, 50}, {60, 30}, {80, 20}, {42, 20},
-                 {35, 35}, {35, 55}, {40, 75}};
+                 {35, 35}, {35, 55}, {40, 75}, {70, 75}};
+
+    std::string message;
+    boost::geometry::is_valid(item.rawShape(), message);
+
+    std::cout << message << std::endl;
+
+    boost::geometry::is_valid(bin.rawShape(), message);
+
+    std::cout << message << std::endl;
 
     auto leftp = placer.leftPoly(item);
+
+    boost::geometry::is_valid(leftp, message);
+
+    std::cout << message << std::endl;
 
     std::cout << ShapeLike::toString(leftp) << std::endl;
 

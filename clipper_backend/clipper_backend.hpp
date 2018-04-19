@@ -71,31 +71,31 @@ template<> struct CountourType<PolygonImpl> {
 
 // Tell binpack2d how to extract the X coord from a ClipperPoint object
 template<>
-TCoord<PointImpl> PointLike::x<PointImpl>(const PointImpl& p) {
+inline TCoord<PointImpl> PointLike::x<PointImpl>(const PointImpl& p) {
     return p.X;
 }
 
 // Tell binpack2d how to extract the Y coord from a ClipperPoint object
 template<>
-TCoord<PointImpl> PointLike::y<PointImpl>(const PointImpl& p) {
+inline TCoord<PointImpl> PointLike::y<PointImpl>(const PointImpl& p) {
     return p.Y;
 }
 
 // Tell binpack2d how to extract the X coord from a ClipperPoint object
 template<>
-TCoord<PointImpl>& PointLike::x<PointImpl>(PointImpl& p) {
+inline TCoord<PointImpl>& PointLike::x<PointImpl>(PointImpl& p) {
     return p.X;
 }
 
 // Tell binpack2d how to extract the Y coord from a ClipperPoint object
 template<>
-TCoord<PointImpl>& PointLike::y<PointImpl>(PointImpl& p) {
+inline TCoord<PointImpl>& PointLike::y<PointImpl>(PointImpl& p) {
     return p.Y;
 }
 
 
 template<>
-void ShapeLike::reserve(PolygonImpl& sh, unsigned long vertex_capacity) {
+inline void ShapeLike::reserve(PolygonImpl& sh, unsigned long vertex_capacity) {
     return sh.Contour.reserve(vertex_capacity);
 }
 
@@ -118,22 +118,26 @@ std::string ShapeLike::toString(const PolygonImpl& sh) {
 }
 
 template<>
-TVertexIterator<PolygonImpl> ShapeLike::begin(PolygonImpl& sh) {
+inline TVertexIterator<PolygonImpl> ShapeLike::begin(PolygonImpl& sh) {
     return sh.Contour.begin();
 }
 
 template<>
-TVertexIterator<PolygonImpl> ShapeLike::end(PolygonImpl& sh) {
+inline TVertexIterator<PolygonImpl> ShapeLike::end(PolygonImpl& sh) {
     return sh.Contour.end();
 }
 
 template<>
-TVertexConstIterator<PolygonImpl> ShapeLike::cbegin(const PolygonImpl& sh) {
+inline TVertexConstIterator<PolygonImpl> ShapeLike::cbegin(
+        const PolygonImpl& sh)
+{
     return sh.Contour.cbegin();
 }
 
 template<>
-TVertexConstIterator<PolygonImpl> ShapeLike::cend(const PolygonImpl& sh) {
+inline TVertexConstIterator<PolygonImpl> ShapeLike::cend(
+        const PolygonImpl& sh)
+{
     return sh.Contour.cend();
 }
 
@@ -158,39 +162,42 @@ PolygonImpl ShapeLike::create( std::initializer_list< PointImpl > il)
 }
 
 template<>
-const THolesContainer<PolygonImpl>& ShapeLike::holes(const PolygonImpl& sh) {
+inline const THolesContainer<PolygonImpl>& ShapeLike::holes(
+        const PolygonImpl& sh)
+{
     return holeCache.getHoles(sh);
 }
 
 template<>
-THolesContainer<PolygonImpl>& ShapeLike::holes(PolygonImpl& sh) {
+inline THolesContainer<PolygonImpl>& ShapeLike::holes(PolygonImpl& sh) {
     return holeCache.getHoles(sh);
 }
 
 template<>
-TCountour<PolygonImpl>& ShapeLike::getHole(PolygonImpl& sh,
-                                                  unsigned long idx) {
+inline TCountour<PolygonImpl>& ShapeLike::getHole(PolygonImpl& sh,
+                                                  unsigned long idx)
+{
     return sh.Childs[idx]->Contour;
 }
 
 template<>
-const TCountour<PolygonImpl>& ShapeLike::getHole(const PolygonImpl& sh,
+inline const TCountour<PolygonImpl>& ShapeLike::getHole(const PolygonImpl& sh,
                                                         unsigned long idx) {
     return sh.Childs[idx]->Contour;
 }
 
 template<>
-size_t ShapeLike::holeCount(const PolygonImpl& sh) {
+inline size_t ShapeLike::holeCount(const PolygonImpl& sh) {
     return sh.Childs.size();
 }
 
 template<>
-PathImpl& ShapeLike::getContour(PolygonImpl& sh) {
+inline PathImpl& ShapeLike::getContour(PolygonImpl& sh) {
     return sh.Contour;
 }
 
 template<>
-const PathImpl& ShapeLike::getContour(const PolygonImpl& sh) {
+inline const PathImpl& ShapeLike::getContour(const PolygonImpl& sh) {
     return sh.Contour;
 }
 

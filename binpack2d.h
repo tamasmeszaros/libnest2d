@@ -10,8 +10,9 @@
 namespace binpack2d {
 
 using Point = PointImpl;
+using Box = _Box<PointImpl>;
+using Segment = _Segment<PointImpl>;
 
-//using Shape = _Shape<PolygonImpl>;
 using Item = _Item<PolygonImpl>;
 using Rectangle = _Rectangle<PolygonImpl>;
 

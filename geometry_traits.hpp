@@ -10,6 +10,46 @@
 
 namespace binpack2d {
 
+template<class RawPoint>
+struct PointPair {
+    RawPoint p1;
+    RawPoint p2;
+};
+
+template<class RawPoint>
+class _Box: PointPair<RawPoint> {
+    using PointPair<RawPoint>::p1;
+    using PointPair<RawPoint>::p2;
+public:
+
+    inline _Box() {}
+    inline _Box(const RawPoint& p, const RawPoint& pp):
+        PointPair<RawPoint>({p, pp}) {}
+
+    inline const RawPoint& minCorner() const BP2D_NOEXCEPT { return p1; }
+    inline const RawPoint& maxCorner() const BP2D_NOEXCEPT { return p2; }
+
+    inline RawPoint& minCorner() BP2D_NOEXCEPT { return p1; }
+    inline RawPoint& maxCorner() BP2D_NOEXCEPT { return p2; }
+};
+
+template<class RawPoint>
+class _Segment: PointPair<RawPoint> {
+    using PointPair<RawPoint>::p1;
+    using PointPair<RawPoint>::p2;
+public:
+
+    inline _Segment() {}
+    inline _Segment(const RawPoint& p, const RawPoint& pp):
+        PointPair<RawPoint>({p, pp}) {}
+
+    inline const RawPoint& first() const BP2D_NOEXCEPT { return p1; }
+    inline const RawPoint& second() const BP2D_NOEXCEPT { return p2; }
+
+    inline RawPoint& first() BP2D_NOEXCEPT { return p1; }
+    inline RawPoint& second() BP2D_NOEXCEPT { return p2; }
+};
+
 /**
  * Getting the coordinate data type for a geometry class
  */
@@ -72,7 +112,35 @@ public:
 
     template<class RawPoint>
     static double distance(const RawPoint& /*p1*/, const RawPoint& /*p2*/) {
-        throw UnimplementedException("PointLike::distance");
+        throw UnimplementedException("PointLike::distance(point, point)");
+    }
+
+    template<class RawPoint>
+    static double distance(const RawPoint& /*p1*/,
+                           const _Segment<RawPoint>& /*s*/) {
+        throw UnimplementedException("PointLike::distance(point, segment)");
+    }
+
+    template<class RawPoint>
+    static double horizontalDistance(const RawPoint& p,
+                                     const _Segment<RawPoint>& s) {
+        auto x = PointLike::x(p), y = PointLike::y(p);
+        auto x1 = PointLike::x(s.first()), y1 = PointLike::y(s.first());
+        auto x2 = PointLike::x(s.second()), y2 = PointLike::y(s.second());
+
+        double ret;
+        if( (y < y1 && y < y2) || (y > y1 && y > y2) )
+            ret = std::nan("");
+        else if ((y == y1 && y == y2) && (x > x1 && x > x2))
+            ret = std::min( x-x1, x -x2);
+        else if( (y == y1 && y == y2) && (x < x1 && x < x2))
+            ret = -std::min(x1 - x, x2 - x);
+        else if(y == y1 && y == y2)
+            ret = 0;
+        else
+            ret = x - x1 + (x1 - x2)*(y1 - y)/(y1 - y2);
+
+        return ret;
     }
 };
 
@@ -159,13 +227,19 @@ public:
     }
 
     template<class RawShape>
-    static TPoint<RawShape>& point(RawShape& sh, unsigned long idx) {
+    static TPoint<RawShape>& vertex(RawShape& sh, unsigned long idx) {
         return *(begin(sh) + idx);
     }
 
     template<class RawShape>
-    static const TPoint<RawShape>& point(const RawShape& sh, unsigned long idx) {
+    static const TPoint<RawShape>& vertex(const RawShape& sh,
+                                          unsigned long idx) {
         return *(cbegin(sh) + idx);
+    }
+
+    template<class RawShape>
+    static size_t contourVertexCount(const RawShape& sh) {
+        return cend(sh) - cbegin(sh);
     }
 
     template<class RawShape>
@@ -193,10 +267,16 @@ public:
     }
 
     template<class RawShape>
-    static bool isInside(const RawShape& /*point*/,
+    static bool isInside(const RawShape& /*shape*/,
                          const RawShape& /*shape*/) {
         throw UnimplementedException("ShapeLike::isInside(shape, shape)");
         return false;
+    }
+
+    template<class RawShape>
+    static _Box<TPoint<RawShape>> boundingBox(const RawShape& /*sh*/) {
+        throw UnimplementedException("ShapeLike::boundingBox(shape)");
+        return _Box<TPoint<RawShape>>();
     }
 
     template<class RawShape>

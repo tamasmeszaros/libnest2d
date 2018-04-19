@@ -57,7 +57,7 @@ public:
     }
 
     inline TPoint<RawShape> vertex(unsigned long idx) const BP2D_NOEXCEPT {
-        return ShapeLike::point(sh_, idx);
+        return ShapeLike::vertex(sh_, idx);
     }
 
     inline double area() const {
@@ -65,7 +65,7 @@ public:
     }
 
     inline unsigned long vertexCount() const BP2D_NOEXCEPT {
-        return cend() - cbegin();
+        return ShapeLike::contourVertexCount(sh_);
     }
 
     inline static bool intersects(const _Item& sh1, const _Item& sh2) {
@@ -122,35 +122,118 @@ public:
 
 template<class RawShape, class TBinShape>
 class _DummyPlacementStrategy {
-    TBinShape bin_;
 public:
     using Item = _Item<RawShape>;
+    using Vertex = TPoint<RawShape>;
+    using Unit = TCoord<Vertex>;
+
+private:
+    TBinShape bin_;
+    using Container = std::vector< std::reference_wrapper<Item> > ;
+    Container items_;
+
+public:
+
+    enum class Dir {
+        LEFT,
+        DOWN
+    };
 
     _DummyPlacementStrategy(const TBinShape& bin): bin_(bin) {}
 
-    bool insertItem(Item& /*item*/) { return true; }
+    bool tryPack(Item& item) {
 
-//protected:
+        items_.push_back(item);
 
-    using Vertex = TPoint<RawShape>;
-    using Coord = TCoord<Vertex>;
+        return true;
+    }
 
     RawShape leftPoly(const Item& item) const {
+        return toWallPoly(item, Dir::LEFT);
+    }
 
-        assert(item.vertexCount() > 0);
+    RawShape downPoly(const Item& item) const {
+        return toWallPoly(item, Dir::DOWN);
+    }
+
+    inline Unit availableSpaceLeft(const Item& item) {
+        return availableSpace(item, Dir::LEFT);
+    }
+
+protected:
+    using Coord = TCoord<Vertex>;
+
+    Unit availableSpace(const Item& item, const Dir dir) {
+        auto&& leftp = leftPoly(item);
+
+        Container non_intersecting;
+        non_intersecting.reserve(items_.size());
+
+        auto predicate = [&leftp, &item](const Item& it) {
+            return ( ShapeLike::intersects(it.rawShape(), leftp) ||
+                     ShapeLike::isInside(it.rawShape(), leftp) ) &&
+                   ( !ShapeLike::intersects(it.rawShape(), item.rawShape()) &&
+                     !ShapeLike::isInside(it.rawShape(), item.rawShape()) );
+        };
+
+        std::copy_if(items_.begin(), items_.end(),
+                     std::back_inserter(non_intersecting), predicate);
+
+        auto cmp = [](const Vertex& v1, const Vertex& v2) {
+            return getX(v1) < getX(v2);
+        };
+
+        // find minimum X coord of item
+        auto leftmost_vertex_it = std::min_element(item.begin(),
+                                                   item.end(),
+                                                   cmp);
+        Coord m = getX(*leftmost_vertex_it);
+
+        if(!non_intersecting.empty()) {
+            // TODO Search further
+        }
+
+        return Unit();
+    }
+
+    /// Implementation of the left (and down) polygon as described by
+    /// [López-Camacho et al. 2013](http://www.cs.stir.ac.uk/~goc/papers/EffectiveHueristic2DAOR2013.pdf)
+    RawShape toWallPoly(const Item& item, const Dir dir) const { 
+        // The variable names reflect the case of left polygon calculation.
+        //
+        // We will iterate through the item's vertices and search for the top
+        // and bottom vertices (or right and left if dir==Dir::DOWN).
+        // Save the relevant vertices and their indices into `bottom` and
+        // `top` vectors. In case of left polygon construction these will
+        // contain the top and bottom polygons which have the same vertical
+        // coordinates (in case there is more of them).
+        //
+        // We get the leftmost or downmost vertex from the `bottom` and `top`
+        // vectors and construct the final polygon.
+
+
+        auto getCoord = [dir](const Vertex& v) {
+            return dir == Dir::LEFT? getY(v) : getX(v);
+        };
 
         Coord max_y = std::numeric_limits<Coord>::min();
         Coord min_y = std::numeric_limits<Coord>::max();
 
         using El = std::pair<size_t, std::reference_wrapper<const Vertex>>;
 
+        auto cmp = [dir](const El& e1, const El& e2) {
+            return dir == Dir::LEFT?
+                        getX(e1.second.get()) < getX(e2.second.get()) :
+                        getY(e1.second.get()) < getY(e2.second.get());
+        };
+
         std::vector< El > top;
         std::vector< El > bottom;
 
         size_t idx = 0;
-        for(auto& v : item) {
+        for(auto& v : item) { // Find the bottom and top vertices and save them
             auto vref = std::cref(v);
-            auto vy = getY(v);
+            auto vy = getCoord(v);
 
             if( vy > max_y ) {
                 max_y = vy;
@@ -169,46 +252,58 @@ public:
             idx++;
         }
 
-        auto cmp = [](const El& e1, const El& e2) {
-            return getX(e1.second.get()) < getX(e2.second.get());
-        };
-
+        // Get the top and bottom leftmost vertices, or the right and left
+        // downmost vertices (if dir == Dir::DOWN)
         auto topleft_it = std::min_element(top.begin(), top.end(), cmp);
         auto bottomleft_it =
                 std::min_element(bottom.begin(), bottom.end(), cmp);
 
-        const Vertex& topleft_vertex = topleft_it->second;
-        const Vertex& bottomleft_vertex = bottomleft_it->second;
+        auto& topleft_vertex = topleft_it->second;
+        auto& bottomleft_vertex = bottomleft_it->second;
 
+        // Start and finish positions for the vertices that will be part of the
+        // new polygon
         auto start = std::min(topleft_it->first, bottomleft_it->first);
         auto finish = std::max(topleft_it->first, bottomleft_it->first);
 
+        // the return shape
         RawShape rsh;
 
         // reserve for all vertices plus 2 for the left horizontal wall
         ShapeLike::reserve(rsh, finish-start+2);
 
-        if(Item::orientation() == Orientation::CLOCKWISE) {
-            ShapeLike::addVertex(rsh, topleft_vertex);
-
-            for(size_t i = finish-1; i > start; i--)
-                ShapeLike::addVertex(rsh, item.vertex(i));
-
-            ShapeLike::addVertex(rsh, bottomleft_vertex);
-
-            ShapeLike::addVertex(rsh, 0, getY(bottomleft_vertex));
-            ShapeLike::addVertex(rsh, 0, getY(topleft_vertex));
-
-        } else {
-            ShapeLike::addVertex(rsh, topleft_vertex);
-
-            ShapeLike::addVertex(rsh, 0, getY(topleft_vertex));
-            ShapeLike::addVertex(rsh, 0, getY(bottomleft_vertex));
-
-            ShapeLike::addVertex(rsh, bottomleft_vertex);
-
+        auto addOthers = [&rsh, finish, start, &item](){
             for(size_t i = start+1; i < finish; i++)
                 ShapeLike::addVertex(rsh, item.vertex(i));
+        };
+
+        auto reverseAddOthers = [&rsh, finish, start, &item](){
+            for(size_t i = finish-1; i > start; i--)
+                ShapeLike::addVertex(rsh, item.vertex(i));
+        };
+
+        if( Item::orientation() == Orientation::CLOCKWISE ) {
+            // Clockwise polygon construction
+            ShapeLike::addVertex(rsh, topleft_vertex);
+
+            if(dir == Dir::LEFT) reverseAddOthers();
+            else addOthers();
+
+            ShapeLike::addVertex(rsh, bottomleft_vertex);
+
+            ShapeLike::addVertex(rsh, 0, getCoord(bottomleft_vertex));
+            ShapeLike::addVertex(rsh, 0, getCoord(topleft_vertex));
+
+        } else { // Counter clockwise polygon construction
+            ShapeLike::addVertex(rsh, topleft_vertex);
+
+            ShapeLike::addVertex(rsh, 0, getCoord(topleft_vertex));
+            ShapeLike::addVertex(rsh, 0, getCoord(bottomleft_vertex));
+
+            ShapeLike::addVertex(rsh, bottomleft_vertex);
+
+            if(dir == Dir::LEFT) addOthers();
+            else reverseAddOthers();
         }
 
         // Close the polygon

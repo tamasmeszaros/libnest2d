@@ -182,26 +182,26 @@ TEST(GeometryAlgorithms, ArrangeRectangles)
 void arrangeRectangles() {
     using namespace binpack2d;
 
-//    Rectangle bin(100, 100);
-//    Rectangle bin2(10, 10);
-
-//    bool inr = ShapeLike::intersects(bin.rawShape(), bin2.rawShape());
-
-//    std::cout << inr << std::endl;
-
     Rectangle bin(100, 100);
-    DummyPlacementStrategy placer(bin);
+    Rectangle bin2(10, 10);
 
-    Rectangle rect(20, 80);
+    bool inr = ShapeLike::intersects(bin.rawShape(), bin2.rawShape());
 
-    placer.tryPack(rect);
+    std::cout << inr << std::endl;
 
-    Item item = {{70, 75}, {88, 60}, {65, 50}, {60, 30}, {80, 20}, {42, 20},
-                 {35, 35}, {35, 55}, {40, 75}, {70, 75}};
+//    Rectangle bin(100, 100);
+//    DummyPlacementStrategy placer(bin);
 
-    double d = placer.availableSpaceLeft(item);
+//    Rectangle rect(20, 80);
 
-    std::cout << d << std::endl;
+//    placer.tryPack(rect);
+
+//    Item item = {{70, 75}, {88, 60}, {65, 50}, {60, 30}, {80, 20}, {42, 20},
+//                 {35, 35}, {35, 55}, {40, 75}, {70, 75}};
+
+//    double d = placer.availableSpaceLeft(item);
+
+//    std::cout << d << std::endl;
 
 //    std::string message;
 //    boost::geometry::is_valid(item.rawShape(), message);
@@ -236,9 +236,9 @@ void arrangeRectangles() {
 
 
 int main(int argc, char **argv) {
-//    arrangeRectangles();
-//    return EXIT_SUCCESS;
+    arrangeRectangles();
+    return EXIT_SUCCESS;
 
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+//  ::testing::InitGoogleTest(&argc, argv);
+//  return RUN_ALL_TESTS();
 }

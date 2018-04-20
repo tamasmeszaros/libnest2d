@@ -16,8 +16,8 @@ option(BINPACK2D_UNITTESTS "If enabled, googletest framework will be downloaded
 #set(BINPACK2D_GEOMETRIES_TARGET "" CACHE STRING
 #    "Build binpack2d with geometry classes implemented by the chosen target.")
 
-set(BINPACK2D_TEST_LIBRARIES "" CACHE STRING
-    "Libraries needed to compile the test executable for binpack2d.")
+#set(BINPACK2D_TEST_LIBRARIES "" CACHE STRING
+#    "Libraries needed to compile the test executable for binpack2d.")
 
 
 set(BINPACK2D_SRCFILES binpack2d.cpp

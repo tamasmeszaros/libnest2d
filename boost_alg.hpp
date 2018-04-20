@@ -178,7 +178,7 @@ template<> struct indexed_access<bp2d::Segment, 1, 1> {
 
 
 /* ************************************************************************** */
-/* Ring concept adaptaion *************************************************** */
+/* Polygon concept adaptaion ************************************************ */
 /* ************************************************************************** */
 
 // Connversion between binpack2d::Orientation and order_selector ///////////////
@@ -232,19 +232,19 @@ template<> struct exterior_ring<bp2d::PolygonImpl> {
 };
 
 template<> struct ring_const_type<bp2d::PolygonImpl> {
-    using type = const bp2d::PathImpl;
+    using type = const bp2d::PathImpl&;
 };
 
 template<> struct ring_mutable_type<bp2d::PolygonImpl> {
-    using type = bp2d::PathImpl;
+    using type = bp2d::PathImpl&;
 };
 
 template<> struct interior_const_type<bp2d::PolygonImpl> {
-   using type = const binpack2d::THolesContainer<bp2d::PolygonImpl>;
+   using type = const binpack2d::THolesContainer<bp2d::PolygonImpl>&;
 };
 
 template<> struct interior_mutable_type<bp2d::PolygonImpl> {
-   using type = binpack2d::THolesContainer<bp2d::PolygonImpl>;
+   using type = binpack2d::THolesContainer<bp2d::PolygonImpl>&;
 };
 
 template<>

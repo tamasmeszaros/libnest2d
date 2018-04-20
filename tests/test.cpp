@@ -186,10 +186,16 @@ void arrangeRectangles() {
     Rectangle bin(100, 100);
     DummyPlacementStrategy placer(bin);
 
+    Rectangle rect(20, 80);
+
+    placer.tryPack(rect);
+
     Item item = {{70, 75}, {88, 60}, {65, 50}, {60, 30}, {80, 20}, {42, 20},
                  {35, 35}, {35, 55}, {40, 75}, {70, 75}};
 
-    placer.availableSpaceLeft(item);
+    double d = placer.availableSpaceLeft(item);
+
+    std::cout << d << std::endl;
 
 //    std::string message;
 //    boost::geometry::is_valid(item.rawShape(), message);
@@ -200,33 +206,33 @@ void arrangeRectangles() {
 
 //    std::cout << message << std::endl;
 
-    auto leftp = placer.leftPoly(item);
+//    auto leftp = placer.leftPoly(item);
 
 //    boost::geometry::is_valid(leftp, message);
 
 //    std::cout << message << std::endl;
 
-    std::cout << ShapeLike::toString(leftp) << std::endl;
+//    std::cout << ShapeLike::toString(leftp) << std::endl;
 
-    std::cout << "\n\n\n" << std::endl;
-    auto downp = placer.downPoly(item);
+//    std::cout << "\n\n\n" << std::endl;
+//    auto downp = placer.downPoly(item);
 
 //    boost::geometry::is_valid(downp, message);
 
 //    std::cout << message << std::endl;
 
-    std::cout << ShapeLike::toString(downp) << std::endl;
+//    std::cout << ShapeLike::toString(downp) << std::endl;
 
 
-    std::cout << ShapeLike::area(downp) << std::endl;
+//    std::cout << ShapeLike::area(downp) << std::endl;
 
 }
 
 
 int main(int argc, char **argv) {
-//    arrangeRectangles();
-//    return EXIT_SUCCESS;
+    arrangeRectangles();
+    return EXIT_SUCCESS;
 
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+//  ::testing::InitGoogleTest(&argc, argv);
+//  return RUN_ALL_TESTS();
 }

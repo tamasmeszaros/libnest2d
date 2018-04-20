@@ -125,6 +125,7 @@ class _DummyPlacementStrategy {
 public:
     using Item = _Item<RawShape>;
     using Vertex = TPoint<RawShape>;
+    using Segment = _Segment<Vertex>;
     using Unit = TCoord<Vertex>;
 
 private:
@@ -139,35 +140,45 @@ public:
         DOWN
     };
 
-    _DummyPlacementStrategy(const TBinShape& bin): bin_(bin) {}
+    inline _DummyPlacementStrategy(const TBinShape& bin): bin_(bin) {}
 
     bool tryPack(Item& item) {
+
+        // Get initial position for item in the top right corner
 
         items_.push_back(item);
 
         return true;
     }
 
-    RawShape leftPoly(const Item& item) const {
+    inline RawShape leftPoly(const Item& item) const {
         return toWallPoly(item, Dir::LEFT);
     }
 
-    RawShape downPoly(const Item& item) const {
+    inline RawShape downPoly(const Item& item) const {
         return toWallPoly(item, Dir::DOWN);
     }
 
-    inline Unit availableSpaceLeft(const Item& item) {
+    inline double availableSpaceLeft(const Item& item) {
         return availableSpace(item, Dir::LEFT);
+    }
+
+    inline double availableSpaceDown(const Item& item) {
+        return availableSpace(item, Dir::DOWN);
     }
 
 protected:
     using Coord = TCoord<Vertex>;
 
-    Unit availableSpace(const Item& item, const Dir dir) {
-        auto&& leftp = leftPoly(item);
 
-        Container non_intersecting;
-        non_intersecting.reserve(items_.size());
+
+    double availableSpace(const Item& item, const Dir dir) {
+
+        auto&& leftp = dir == Dir::LEFT? leftPoly(item) :
+                                         downPoly(item);
+
+        Container items_to_left;
+        items_to_left.reserve(items_.size());
 
         auto predicate = [&leftp, &item](const Item& it) {
             return ( ShapeLike::intersects(it.rawShape(), leftp) ||
@@ -177,27 +188,50 @@ protected:
         };
 
         std::copy_if(items_.begin(), items_.end(),
-                     std::back_inserter(non_intersecting), predicate);
+                     std::back_inserter(items_to_left), predicate);
 
-        auto cmp = [](const Vertex& v1, const Vertex& v2) {
+        auto cmp_left = [](const Vertex& v1, const Vertex& v2) {
             return getX(v1) < getX(v2);
         };
+        auto cmp_down = [](const Vertex& v1, const Vertex& v2) {
+            return getY(v1) < getY(v2);
+        };
+        auto cmp = dir == Dir::LEFT? cmp_left : cmp_down;
 
         // find minimum X coord of item
         auto leftmost_vertex_it = std::min_element(item.begin(),
                                                    item.end(),
                                                    cmp);
-        Coord m = getX(*leftmost_vertex_it);
 
-        if(!non_intersecting.empty()) {
-            // TODO Search further
+        // Get the initial distance in floating point
+        double m = static_cast<double>(getX(*leftmost_vertex_it));
+
+        if(!items_to_left.empty()) {
+            for(auto& v : item) {   // For all vertices in item
+                for(Item& pleft : items_to_left) {
+                    // For all segments in items_to_left
+
+                    assert(pleft.vertexCount() > 0);
+
+                    auto first = pleft.begin();
+                    auto next = first + 1;
+                    while(next != pleft.end()) {
+                        double d = PointLike::horizontalDistance( v,
+                                                    Segment(*first, *next) );
+                        if(d < m) m = d;
+                        first++; next++;
+                    }
+                }
+            }
         }
 
-        return Unit();
+        return m;
     }
 
     /// Implementation of the left (and down) polygon as described by
-    /// [López-Camacho et al. 2013](http://www.cs.stir.ac.uk/~goc/papers/EffectiveHueristic2DAOR2013.pdf)
+    /// [López-Camacho et al. 2013]\
+    /// (http://www.cs.stir.ac.uk/~goc/papers/EffectiveHueristic2DAOR2013.pdf)
+    /// see algorithm 8 for details...
     RawShape toWallPoly(const Item& item, const Dir dir) const { 
         // The variable names reflect the case of left polygon calculation.
         //
@@ -208,9 +242,8 @@ protected:
         // contain the top and bottom polygons which have the same vertical
         // coordinates (in case there is more of them).
         //
-        // We get the leftmost or downmost vertex from the `bottom` and `top`
+        // We get the leftmost (or downmost) vertex from the `bottom` and `top`
         // vectors and construct the final polygon.
-
 
         auto getCoord = [dir](const Vertex& v) {
             return dir == Dir::LEFT? getY(v) : getX(v);
@@ -221,11 +254,13 @@ protected:
 
         using El = std::pair<size_t, std::reference_wrapper<const Vertex>>;
 
-        auto cmp = [dir](const El& e1, const El& e2) {
-            return dir == Dir::LEFT?
-                        getX(e1.second.get()) < getX(e2.second.get()) :
-                        getY(e1.second.get()) < getY(e2.second.get());
+        auto cmp_left = [](const El& e1, const El& e2) {
+            return getX(e1.second.get()) < getX(e2.second.get());
         };
+        auto cmp_down = [](const El& e1, const El& e2) {
+            return getY(e1.second.get()) < getY(e2.second.get());
+        };
+        auto cmp = dir == Dir::LEFT? cmp_left : cmp_down;
 
         std::vector< El > top;
         std::vector< El > bottom;
@@ -281,6 +316,8 @@ protected:
             for(size_t i = finish-1; i > start; i--)
                 ShapeLike::addVertex(rsh, item.vertex(i));
         };
+
+        // Final polygon construction...
 
         if( Item::orientation() == Orientation::CLOCKWISE ) {
             // Clockwise polygon construction

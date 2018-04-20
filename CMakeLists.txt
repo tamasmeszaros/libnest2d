@@ -57,4 +57,9 @@ if(BINPACK2D_UNITTESTS)
     add_subdirectory(tests)
 endif()
 
-set(BINPACK2D_HEADERS ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
+get_directory_property(hasParent PARENT_DIRECTORY)
+if(hasParent)
+    set(BINPACK2D_HEADERS ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
+endif()
+
+

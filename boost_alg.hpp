@@ -22,6 +22,17 @@ using Segment = binpack2d::_Segment<PointImpl>;
 
 }
 
+/**
+ * We have to make all the binpack2d geometry types available to boost. The real
+ * models of the geometries remain the same if a conforming model for binpack2d
+ * was defined by the library client. Boost is used only as an optional
+ * implementer of some algorithms that can be implemented by the model itself
+ * if a faster alternative exists.
+ *
+ * However, boost has its own type traits and we have to define the needed
+ * specializations to be able to use boost::geometry. This can be done with the
+ * already provided model.
+ */
 namespace boost {
 namespace geometry {
 namespace traits {

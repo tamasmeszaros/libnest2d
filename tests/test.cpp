@@ -61,7 +61,13 @@ TEST(GeometryAlgorithms, Distance) {
 
     Segment seg(p1, p3);
 
-    ASSERT_DOUBLE_EQ(PointLike::horizontalDistance(p2, seg), 10);
+    auto val = PointLike::horizontalDistance(p2, seg).first;
+
+    if(std::is_floating_point<Coord>::value)
+        ASSERT_DOUBLE_EQ(static_cast<double>(val), 10);
+    else
+        ASSERT_EQ(val, 10);
+
     ASSERT_DOUBLE_EQ(PointLike::distance(p2, seg), 7.0710678118654755);
 }
 
@@ -108,8 +114,8 @@ TEST(GeometryAlgorithms, LeftAndDownPolygon)
 {
     using namespace binpack2d;
 
-    Rectangle bin(100, 100);
-    DummyPlacementStrategy placer(bin);
+    Box bin(100, 100);
+    BottomLeftPlacementStrategy placer(bin);
 
     Item item = {{70, 75}, {88, 60}, {65, 50}, {60, 30}, {80, 20}, {42, 20},
                  {35, 35}, {35, 55}, {40, 75}, {70, 75}};
@@ -182,31 +188,31 @@ TEST(GeometryAlgorithms, ArrangeRectangles)
 void arrangeRectangles() {
     using namespace binpack2d;
 
-    Rectangle bin(100, 100);
-    Rectangle bin2(10, 10);
-
-    bool inr = ShapeLike::intersects(bin.rawShape(), bin2.rawShape());
-
-    std::cout << inr << std::endl;
-
 //    Rectangle bin(100, 100);
-//    DummyPlacementStrategy placer(bin);
+//    Rectangle bin2(10, 10);
 
-//    Rectangle rect(20, 80);
+//    bool inr = ShapeLike::intersects(bin.rawShape(), bin2.rawShape());
 
-//    placer.tryPack(rect);
+//    std::cout << inr << std::endl;
 
-//    Item item = {{70, 75}, {88, 60}, {65, 50}, {60, 30}, {80, 20}, {42, 20},
-//                 {35, 35}, {35, 55}, {40, 75}, {70, 75}};
+    Box bin(100, 100);
+    BottomLeftPlacementStrategy placer(bin);
 
-//    double d = placer.availableSpaceLeft(item);
+    Rectangle rect(20, 80);
 
-//    std::cout << d << std::endl;
+    placer.pack(rect);
 
-//    std::string message;
-//    boost::geometry::is_valid(item.rawShape(), message);
+    Item item = {{70, 75}, {88, 60}, {65, 50}, {60, 30}, {80, 20}, {42, 20},
+                 {35, 35}, {35, 55}, {40, 75}, {70, 75}};
 
-//    std::cout << message << std::endl;
+    auto d = placer.availableSpaceLeft(item);
+
+    std::cout << d << std::endl;
+
+    std::string message;
+    boost::geometry::is_valid(item.rawShape(), message);
+
+    std::cout << message << std::endl;
 
 //    boost::geometry::is_valid(bin.rawShape(), message);
 
@@ -237,8 +243,8 @@ void arrangeRectangles() {
 
 int main(int argc, char **argv) {
     arrangeRectangles();
-    return EXIT_SUCCESS;
+//    return EXIT_SUCCESS;
 
-//  ::testing::InitGoogleTest(&argc, argv);
-//  return RUN_ALL_TESTS();
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }

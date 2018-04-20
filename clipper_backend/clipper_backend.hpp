@@ -15,6 +15,18 @@ using PointImpl = ClipperLib::IntPoint;
 using PolygonImpl = ClipperLib::PolyNode;
 using PathImpl = ClipperLib::Path;
 
+PointImpl& operator +=(PointImpl& p, const PointImpl& pa ) {
+    p.X += pa.X;
+    p.Y += pa.Y;
+    return p;
+}
+
+PointImpl operator+(const PointImpl& p1, const PointImpl& p2) {
+    PointImpl ret = p1;
+    ret += p2;
+    return ret;
+}
+
 class HoleCache {
     friend class ShapeLike;
     std::unordered_map< const PolygonImpl*, ClipperLib::Paths> map;

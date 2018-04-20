@@ -10,46 +10,6 @@
 
 namespace binpack2d {
 
-template<class RawPoint>
-struct PointPair {
-    RawPoint p1;
-    RawPoint p2;
-};
-
-template<class RawPoint>
-class _Box: PointPair<RawPoint> {
-    using PointPair<RawPoint>::p1;
-    using PointPair<RawPoint>::p2;
-public:
-
-    inline _Box() {}
-    inline _Box(const RawPoint& p, const RawPoint& pp):
-        PointPair<RawPoint>({p, pp}) {}
-
-    inline const RawPoint& minCorner() const BP2D_NOEXCEPT { return p1; }
-    inline const RawPoint& maxCorner() const BP2D_NOEXCEPT { return p2; }
-
-    inline RawPoint& minCorner() BP2D_NOEXCEPT { return p1; }
-    inline RawPoint& maxCorner() BP2D_NOEXCEPT { return p2; }
-};
-
-template<class RawPoint>
-class _Segment: PointPair<RawPoint> {
-    using PointPair<RawPoint>::p1;
-    using PointPair<RawPoint>::p2;
-public:
-
-    inline _Segment() {}
-    inline _Segment(const RawPoint& p, const RawPoint& pp):
-        PointPair<RawPoint>({p, pp}) {}
-
-    inline const RawPoint& first() const BP2D_NOEXCEPT { return p1; }
-    inline const RawPoint& second() const BP2D_NOEXCEPT { return p2; }
-
-    inline RawPoint& first() BP2D_NOEXCEPT { return p1; }
-    inline RawPoint& second() BP2D_NOEXCEPT { return p2; }
-};
-
 /**
  * Getting the coordinate data type for a geometry class
  */
@@ -87,6 +47,49 @@ template<class ShapeClass>
 using TVertexConstIterator =
     typename VertexConstIteratorTypeOf<ShapeClass>::Type;
 
+template<class RawPoint>
+struct PointPair {
+    RawPoint p1;
+    RawPoint p2;
+};
+
+template<class RawPoint>
+class _Box: PointPair<RawPoint> {
+    using PointPair<RawPoint>::p1;
+    using PointPair<RawPoint>::p2;
+public:
+
+    inline _Box() {}
+    inline _Box(const RawPoint& p, const RawPoint& pp):
+        PointPair<RawPoint>({p, pp}) {}
+
+    inline _Box(TCoord<RawPoint> width, TCoord<RawPoint> height):
+        _Box(RawPoint{0, 0}, RawPoint{width, height}) {}
+
+    inline const RawPoint& minCorner() const BP2D_NOEXCEPT { return p1; }
+    inline const RawPoint& maxCorner() const BP2D_NOEXCEPT { return p2; }
+
+    inline RawPoint& minCorner() BP2D_NOEXCEPT { return p1; }
+    inline RawPoint& maxCorner() BP2D_NOEXCEPT { return p2; }
+};
+
+template<class RawPoint>
+class _Segment: PointPair<RawPoint> {
+    using PointPair<RawPoint>::p1;
+    using PointPair<RawPoint>::p2;
+public:
+
+    inline _Segment() {}
+    inline _Segment(const RawPoint& p, const RawPoint& pp):
+        PointPair<RawPoint>({p, pp}) {}
+
+    inline const RawPoint& first() const BP2D_NOEXCEPT { return p1; }
+    inline const RawPoint& second() const BP2D_NOEXCEPT { return p2; }
+
+    inline RawPoint& first() BP2D_NOEXCEPT { return p1; }
+    inline RawPoint& second() BP2D_NOEXCEPT { return p2; }
+};
+
 class PointLike {
 public:
 
@@ -122,25 +125,27 @@ public:
     }
 
     template<class RawPoint>
-    static double horizontalDistance(const RawPoint& p,
-                                     const _Segment<RawPoint>& s) {
+    static std::pair<TCoord<RawPoint>, bool> horizontalDistance(
+            const RawPoint& p, const _Segment<RawPoint>& s)
+    {
         auto x = PointLike::x(p), y = PointLike::y(p);
         auto x1 = PointLike::x(s.first()), y1 = PointLike::y(s.first());
         auto x2 = PointLike::x(s.second()), y2 = PointLike::y(s.second());
 
-        double ret;
+        TCoord<RawPoint> ret;
+
         if( (y < y1 && y < y2) || (y > y1 && y > y2) )
-            ret = std::nan("");
+            return {0, false};
         else if ((y == y1 && y == y2) && (x > x1 && x > x2))
             ret = std::min( x-x1, x -x2);
         else if( (y == y1 && y == y2) && (x < x1 && x < x2))
             ret = -std::min(x1 - x, x2 - x);
-        else if(y == y1 && y == y2)
+        else if(y == y1 && y == y2) // Problem if the coords are floating point!
             ret = 0;
         else
             ret = x - x1 + (x1 - x2)*(y1 - y)/(y1 - y2);
 
-        return ret;
+        return {ret, true};
     }
 };
 
@@ -318,12 +323,12 @@ public:
     }
 
     template<class RawShape>
-    void rotate(RawShape& /*sh*/, const Radians& /*rads*/) {
+    static void rotate(RawShape& /*sh*/, const Radians& /*rads*/) {
         throw UnimplementedException("ShapeLike::rotate()");
     }
 
     template<class RawShape, class RawPoint>
-    void translate(RawShape& /*sh*/, const RawPoint& /*offs*/) {
+    static void translate(RawShape& /*sh*/, const RawPoint& /*offs*/) {
         throw UnimplementedException("ShapeLike::translate()");
     }
 

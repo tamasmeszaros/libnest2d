@@ -18,6 +18,7 @@ class _Item {
     RawShape sh_;
     TPoint<RawShape> offset_;
     Radians rotation_;
+    bool has_rotation_ = false, has_offset_ = false;
 public:
 
     static BP2D_CONSTEXPR Orientation orientation() {
@@ -77,22 +78,29 @@ public:
         return ShapeLike::isInside(p, sh_);
     }
 
-    inline void translation(const TPoint<RawShape>& d) BP2D_NOEXCEPT {
-        offset_ = d;
+    inline void translate(const TPoint<RawShape>& d) BP2D_NOEXCEPT {
+        offset_ += d; has_offset_ = true;
     }
 
-    inline void rotate(const Radians& rads) BP2D_NOEXCEPT { rotation_ = rads; }
+    inline void rotate(const Radians& rads) BP2D_NOEXCEPT {
+        rotation_ += rads;
+        has_rotation_ = true;
+    }
 
-    RawShape transformedShape() {
+    RawShape transformedShape() const {
         RawShape cpy = sh_;
-        ShapeLike::rotate(cpy, rotation_);
-        ShapeLike::translate(cpy, offset_);
+        if(has_rotation_) ShapeLike::rotate(cpy, rotation_);
+        if(has_offset_) ShapeLike::translate(cpy, offset_);
         return cpy;
     }
 
     inline RawShape& rawShape() BP2D_NOEXCEPT { return sh_; }
 
     inline const RawShape& rawShape() const BP2D_NOEXCEPT { return sh_; }
+
+    inline void reset() BP2D_NOEXCEPT {
+        has_offset_ = false; has_rotation_ = false;
+    }
 };
 
 template<class RawShape>
@@ -121,16 +129,17 @@ public:
     }
 };
 
-template<class RawShape, class TBinShape>
-class _DummyPlacementStrategy {
+template<class RawShape>
+class _BottomLeftPlacementStrategy {
 public:
     using Item = _Item<RawShape>;
     using Vertex = TPoint<RawShape>;
     using Segment = _Segment<Vertex>;
+    using Box = _Box<Vertex>;
     using Unit = TCoord<Vertex>;
 
 private:
-    TBinShape bin_;
+    Box bin_;
     using Container = std::vector< std::reference_wrapper<Item> > ;
     Container items_;
 
@@ -141,15 +150,35 @@ public:
         DOWN
     };
 
-    inline _DummyPlacementStrategy(const TBinShape& bin): bin_(bin) {}
+    inline _BottomLeftPlacementStrategy(const Box& bin): bin_(bin) {}
 
-    bool tryPack(Item& item) {
+    bool pack(Item& item, Unit min_obj_distance = 0) {
 
         // Get initial position for item in the top right corner
+        setInitialPosition(item);
 
-        items_.push_back(item);
+        Unit d = availableSpaceDown(item);
+        bool can_move = d > min_obj_distance;
+        bool can_be_packed = can_move;
+        bool left = true;
 
-        return true;
+        while(can_move) {
+            if(left) { // write previous down move and go down
+                item.translate({0, -d});
+                d = availableSpaceLeft(item);
+                can_move = d > min_obj_distance;
+                left = false;
+            } else { // write previous left move and go down
+                item.translate({-d, 0});
+                d = availableSpaceDown(item);
+                can_move = d > min_obj_distance;
+                left = true;
+            }
+        }
+
+        if(can_be_packed) items_.push_back(item);
+
+        return can_be_packed;
     }
 
     inline RawShape leftPoly(const Item& item) const {
@@ -160,65 +189,75 @@ public:
         return toWallPoly(item, Dir::DOWN);
     }
 
-    inline double availableSpaceLeft(const Item& item) {
+    inline Unit availableSpaceLeft(const Item& item) {
         return availableSpace(item, Dir::LEFT);
     }
 
-    inline double availableSpaceDown(const Item& item) {
+    inline Unit availableSpaceDown(const Item& item) {
         return availableSpace(item, Dir::DOWN);
     }
 
 protected:
     using Coord = TCoord<Vertex>;
 
+    void setInitialPosition(Item& item) {
+        auto bb = ShapeLike::boundingBox(item.rawShape());
 
+        Coord dx = getX(bin_.maxCorner()) - getX(bb.maxCorner());
+        Coord dy = getY(bin_.maxCorner()) - getY(bb.maxCorner());
 
-    double availableSpace(const Item& item, const Dir dir) {
+        item.translate({dx, dy});
+    }
 
+    Unit availableSpace(const Item& _item, const Dir dir) {
+
+        Item item (_item.transformedShape());
+
+        std::function<Coord(const Vertex&)> getCoord;
+        if(dir == Dir::LEFT)
+            getCoord = [](const Vertex& v) {
+                return getX(v);
+            };
+        else
+            getCoord = [](const Vertex& v) {
+                return getY(v);
+            };
+
+        // Get the left or down polygon, that has the same area as the shadow
+        // of input item reflected to the left or downwards
         auto&& leftp = dir == Dir::LEFT? leftPoly(item) :
                                          downPoly(item);
 
-        Container items_to_left;
+        Container items_to_left;    // packed items 'in the way' of item
         items_to_left.reserve(items_.size());
 
+        // Predicate to find items that are 'in the way' for left (down) move
         auto predicate = [&leftp, &item](const Item& it) {
-
-//            bool b0 = ShapeLike::intersects(it.rawShape(), leftp);
-//            bool b1 = ShapeLike::isInside(it.rawShape(), leftp);
-//            bool b2 = !ShapeLike::intersects(it.rawShape(), item.rawShape());
-//            bool b3 = !ShapeLike::isInside(it.rawShape(), item.rawShape());
-
-//            return (b0 || b1) && (b2 && b3);
             return ( ShapeLike::intersects(it.rawShape(), leftp) ||
                      ShapeLike::isInside(it.rawShape(), leftp) ) &&
                    ( !ShapeLike::intersects(it.rawShape(), item.rawShape()) &&
                      !ShapeLike::isInside(it.rawShape(), item.rawShape()) );
         };
 
-        // Buggy in MSVC2013 for some reason
+        // Get the items that are in the way for the left (or down) movement
         std::copy_if(items_.begin(), items_.end(),
                      std::back_inserter(items_to_left), predicate);
 
-        std::function<bool(const Vertex&, const Vertex&)> cmp;
 
-        if(dir == Dir::LEFT)
-            cmp = [](const Vertex& v1, const Vertex& v2) {
-                return getX(v1) < getX(v2);
-            };
-        else
-            cmp = [](const Vertex& v1, const Vertex& v2) {
-                return getY(v1) < getY(v2);
-            };
+        // Comparison function for finding min vertex
+        auto cmp = [&getCoord](const Vertex& v1, const Vertex& v2) {
+            return getCoord(v1) < getCoord(v2);
+        };
 
-        // find minimum X coord of item
+        // find minimum left or down coordinate of item
         auto leftmost_vertex_it = std::min_element(item.begin(),
                                                    item.end(),
                                                    cmp);
 
         // Get the initial distance in floating point
-        double m = static_cast<double>(getX(*leftmost_vertex_it));
+        Unit m = getCoord(*leftmost_vertex_it);
 
-        if(!items_to_left.empty()) {
+        if(!items_to_left.empty()) { // This is crazy, should be optimized...
             for(auto& v : item) {   // For all vertices in item
                 for(Item& pleft : items_to_left) {
                     // For all segments in items_to_left
@@ -228,9 +267,9 @@ protected:
                     auto first = pleft.begin();
                     auto next = first + 1;
                     while(next != pleft.end()) {
-                        double d = PointLike::horizontalDistance( v,
+                        auto d = PointLike::horizontalDistance( v,
                                                     Segment(*first, *next) );
-                        if(d < m) m = d;
+                        if(d.first < m) m = d.first;
                         first++; next++;
                     }
                 }
@@ -244,7 +283,7 @@ protected:
     /// [López-Camacho et al. 2013]\
     /// (http://www.cs.stir.ac.uk/~goc/papers/EffectiveHueristic2DAOR2013.pdf)
     /// see algorithm 8 for details...
-    RawShape toWallPoly(const Item& item, const Dir dir) const { 
+    RawShape toWallPoly(const Item& _item, const Dir dir) const {
         // The variable names reflect the case of left polygon calculation.
         //
         // We will iterate through the item's vertices and search for the top
@@ -256,6 +295,8 @@ protected:
         //
         // We get the leftmost (or downmost) vertex from the `bottom` and `top`
         // vectors and construct the final polygon.
+
+        Item item (_item.transformedShape());
 
         auto getCoord = [dir](const Vertex& v) {
             return dir == Dir::LEFT? getY(v) : getX(v);
@@ -378,8 +419,7 @@ public:
     using ItemRef = typename std::reference_wrapper<Item>;
     using ItemGroup = typename std::vector<ItemRef>;
 
-    template<class TBin>
-    using PlacementStrategy = _DummyPlacementStrategy<RawShape, TBin>;
+    using PlacementStrategy = _BottomLeftPlacementStrategy<RawShape>;
 
     template<class TIterator>
     void addItems(TIterator first, TIterator last) {

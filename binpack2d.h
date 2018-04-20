@@ -10,6 +10,7 @@
 namespace binpack2d {
 
 using Point = PointImpl;
+using Coord = TCoord<PointImpl>;
 using Box = _Box<PointImpl>;
 using Segment = _Segment<PointImpl>;
 
@@ -20,7 +21,7 @@ template<class SelectionStrategy /* default argument does not work... why? */>
 using Arranger = _Arranger<PolygonImpl, SelectionStrategy>;
 
 using DummySelectionStrategy = _DummySelectionStrategy<PolygonImpl>;
-using DummyPlacementStrategy = _DummyPlacementStrategy<PolygonImpl, Rectangle>;
+using BottomLeftPlacementStrategy = _BottomLeftPlacementStrategy<PolygonImpl>;
 using DummyArranger = Arranger<DummySelectionStrategy>;
 
 }

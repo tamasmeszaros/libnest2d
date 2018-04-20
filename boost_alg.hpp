@@ -274,9 +274,8 @@ struct range_value<bp2d::PathImpl> {
 
 }   // boost
 
-namespace binpack2d {
+namespace binpack2d { // Now the algorithms that boost can provide...
 
-// Tell binpack2d how to make string out of a ClipperPolygon object
 template<>
 inline double PointLike::distance(const PointImpl& p1,
                                   const PointImpl& p2 )
@@ -330,6 +329,28 @@ inline bp2d::Box ShapeLike::boundingBox(const PolygonImpl& sh) {
     bp2d::Box b;
     boost::geometry::envelope(sh, b);
     return b;
+}
+
+template<>
+inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads) {
+    namespace trans = boost::geometry::strategy::transform;
+
+    PolygonImpl cpy = sh;
+
+    trans::rotate_transformer<boost::geometry::radian, Radians, 2, 2>
+            rotate(rads);
+    boost::geometry::transform(cpy, sh, rotate);
+}
+
+template<>
+inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs) {
+    namespace trans = boost::geometry::strategy::transform;
+
+    PolygonImpl cpy = sh;
+    trans::translate_transformer<bp2d::Coord, 2, 2> translate(
+                bp2d::getX(offs), bp2d::getY(offs));
+
+    boost::geometry::transform(cpy, sh, translate);
 }
 
 }

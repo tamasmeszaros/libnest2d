@@ -1,4 +1,4 @@
-#if(NOT TARGET clipper)
+if(NOT TARGET clipper)
 
     find_package(Clipper QUIET)
 
@@ -41,4 +41,6 @@
             message(FATAL_ERROR "Can't find clipper library and no SVN client found to download.")
         endif()
     endif()
-#endif()
+else()
+    set(CLIPPER_LIBRARIES clipper PARENT_SCOPE)
+endif()

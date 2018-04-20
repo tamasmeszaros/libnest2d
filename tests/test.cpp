@@ -182,6 +182,12 @@ TEST(GeometryAlgorithms, ArrangeRectangles)
 void arrangeRectangles() {
     using namespace binpack2d;
 
+//    Rectangle bin(100, 100);
+//    Rectangle bin2(10, 10);
+
+//    bool inr = ShapeLike::intersects(bin.rawShape(), bin2.rawShape());
+
+//    std::cout << inr << std::endl;
 
     Rectangle bin(100, 100);
     DummyPlacementStrategy placer(bin);
@@ -230,9 +236,9 @@ void arrangeRectangles() {
 
 
 int main(int argc, char **argv) {
-    arrangeRectangles();
-    return EXIT_SUCCESS;
+//    arrangeRectangles();
+//    return EXIT_SUCCESS;
 
-//  ::testing::InitGoogleTest(&argc, argv);
-//  return RUN_ALL_TESTS();
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }

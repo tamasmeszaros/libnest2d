@@ -7,6 +7,7 @@
 #include <array>
 #include <algorithm>
 #include <limits>
+#include <functional>
 
 #include "geometry_traits.hpp"
 
@@ -181,22 +182,33 @@ protected:
         items_to_left.reserve(items_.size());
 
         auto predicate = [&leftp, &item](const Item& it) {
+
+//            bool b0 = ShapeLike::intersects(it.rawShape(), leftp);
+//            bool b1 = ShapeLike::isInside(it.rawShape(), leftp);
+//            bool b2 = !ShapeLike::intersects(it.rawShape(), item.rawShape());
+//            bool b3 = !ShapeLike::isInside(it.rawShape(), item.rawShape());
+
+//            return (b0 || b1) && (b2 && b3);
             return ( ShapeLike::intersects(it.rawShape(), leftp) ||
                      ShapeLike::isInside(it.rawShape(), leftp) ) &&
                    ( !ShapeLike::intersects(it.rawShape(), item.rawShape()) &&
                      !ShapeLike::isInside(it.rawShape(), item.rawShape()) );
         };
 
+        // Buggy in MSVC2013 for some reason
         std::copy_if(items_.begin(), items_.end(),
                      std::back_inserter(items_to_left), predicate);
 
-        auto cmp_left = [](const Vertex& v1, const Vertex& v2) {
-            return getX(v1) < getX(v2);
-        };
-        auto cmp_down = [](const Vertex& v1, const Vertex& v2) {
-            return getY(v1) < getY(v2);
-        };
-        auto cmp = dir == Dir::LEFT? cmp_left : cmp_down;
+        std::function<bool(const Vertex&, const Vertex&)> cmp;
+
+        if(dir == Dir::LEFT)
+            cmp = [](const Vertex& v1, const Vertex& v2) {
+                return getX(v1) < getX(v2);
+            };
+        else
+            cmp = [](const Vertex& v1, const Vertex& v2) {
+                return getY(v1) < getY(v2);
+            };
 
         // find minimum X coord of item
         auto leftmost_vertex_it = std::min_element(item.begin(),
@@ -254,13 +266,16 @@ protected:
 
         using El = std::pair<size_t, std::reference_wrapper<const Vertex>>;
 
-        auto cmp_left = [](const El& e1, const El& e2) {
-            return getX(e1.second.get()) < getX(e2.second.get());
-        };
-        auto cmp_down = [](const El& e1, const El& e2) {
-            return getY(e1.second.get()) < getY(e2.second.get());
-        };
-        auto cmp = dir == Dir::LEFT? cmp_left : cmp_down;
+        std::function<bool(const El&, const El&)> cmp;
+
+        if(dir == Dir::LEFT)
+            cmp = [](const El& e1, const El& e2) {
+                return getX(e1.second.get()) < getX(e2.second.get());
+            };
+        else
+            cmp = [](const El& e1, const El& e2) {
+                return getY(e1.second.get()) < getY(e2.second.get());
+            };
 
         std::vector< El > top;
         std::vector< El > bottom;

@@ -118,16 +118,7 @@ inline void ShapeLike::reserve(PolygonImpl& sh, unsigned long vertex_capacity) {
 //}
 
 // Tell binpack2d how to make string out of a ClipperPolygon object
-template<>
-inline std::string ShapeLike::toString(const PolygonImpl& sh) {
-    std::stringstream ss;
-
-    for(auto p : sh.Contour) {
-        ss << p.X << " " << p.Y << "\n";
-    }
-
-    return ss.str();
-}
+template<> std::string ShapeLike::toString(const PolygonImpl& sh);
 
 template<>
 inline TVertexIterator<PolygonImpl> ShapeLike::begin(PolygonImpl& sh) {
@@ -158,20 +149,7 @@ template<> struct HolesContainer<PolygonImpl> {
 };
 
 template<>
-inline PolygonImpl ShapeLike::create( std::initializer_list< PointImpl > il)
-{
-    PolygonImpl p;
-    p.Contour = il;
-
-    // Expecting that the coordinate system Y axis is positive in upwards
-    // direction
-    if(ClipperLib::Orientation(p.Contour)) {
-        // Not clockwise then reverse the b*tch
-        ClipperLib::ReversePath(p.Contour);
-    }
-
-    return p;
-}
+PolygonImpl ShapeLike::create( std::initializer_list< PointImpl > il);
 
 template<>
 inline const THolesContainer<PolygonImpl>& ShapeLike::holes(

@@ -122,11 +122,13 @@ public:
     using Unit =  TCoord<RawShape>;
 
     _Rectangle(Unit width, Unit height):
-        _Item<RawShape>( ShapeLike::create<RawShape>( {{0, 0},
-                                             {0, height},
-                                             {width, height},
-                                             {width, 0},
-                                                        {0, 0}} ))
+        _Item<RawShape>( ShapeLike::create<RawShape>( {
+                                                        {0, 0},
+                                                        {0, height},
+                                                        {width, height},
+                                                        {width, 0},
+                                                        {0, 0}
+                                                      } ))
     {
     }
 
@@ -589,7 +591,7 @@ public:
     _Arranger(TBinType&& bin,
               PConf&& pconfig = PConf(),
               SConf&& sconfig = SConf()):
-        bin_(bin),
+        bin_(std::forward<TBinType>(bin)),
         pconfig_(std::forward<PlacementConfig>(pconfig))
     {
         selector_.configure(std::forward<SelectionConfig>(sconfig));

@@ -218,7 +218,7 @@ public:
 
     // Optional, does nothing by default
     template<class RawShape>
-    static void reserve(RawShape& sh,  unsigned long /*vertex_capacity*/) {}
+    static void reserve(RawShape& /*sh*/,  unsigned long /*vertex_capacity*/) {}
 
     template<class RawShape, class...Args>
     static void addVertex(RawShape& sh, Args...args) {

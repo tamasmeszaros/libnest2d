@@ -157,31 +157,35 @@ TEST(GeometryAlgorithms, ArrangeRectangles)
 {
     using namespace binpack2d;
 
-    DummySelectionStrategy dms;
+//    DummySelectionStrategy dms;
 
     std::vector<Rectangle> rects = { {40, 40}, {10, 10}, {20, 20} };
 
-    dms.addItems(rects.begin(), rects.end());
+//    dms.addItems(rects.begin(), rects.end());
 
-    auto nx0 = dms.nextGroup();
+    Arranger arr(Box(100, 100));
 
-    ASSERT_EQ(nx0.size(), 1);
+    arr.arrange(rects.begin(), rects.end());
 
-    ASSERT_DOUBLE_EQ(nx0[0].get().area(), 10*10);
+//    auto nx0 = dms.nextGroup();
 
+//    ASSERT_EQ(nx0.size(), 1);
 
-    auto nx1 = dms.nextGroup();
-
-    ASSERT_EQ(nx1.size(), 1);
-
-    ASSERT_DOUBLE_EQ(nx1[0].get().area(), 20*20);
+//    ASSERT_DOUBLE_EQ(nx0[0].get().area(), 10*10);
 
 
-    auto nx2 = dms.nextGroup();
+//    auto nx1 = dms.nextGroup();
 
-    ASSERT_EQ(nx2.size(), 1);
+//    ASSERT_EQ(nx1.size(), 1);
 
-    ASSERT_DOUBLE_EQ(nx2[0].get().area(), 40*40);
+//    ASSERT_DOUBLE_EQ(nx1[0].get().area(), 20*20);
+
+
+//    auto nx2 = dms.nextGroup();
+
+//    ASSERT_EQ(nx2.size(), 1);
+
+//    ASSERT_DOUBLE_EQ(nx2[0].get().area(), 40*40);
 
 }
 

@@ -136,12 +136,18 @@ public:
     using Vertex = TPoint<RawShape>;
     using Segment = _Segment<Vertex>;
     using Box = _Box<Vertex>;
+    using BinType = Box;
     using Unit = TCoord<Vertex>;
 
+    struct Config {
+        Unit min_obj_distance = 0;
+    };
+
 private:
-    Box bin_;
+    BinType bin_;
     using Container = std::vector< std::reference_wrapper<Item> > ;
     Container items_;
+    Config config_;
 
 public:
 
@@ -150,9 +156,19 @@ public:
         DOWN
     };
 
-    inline _BottomLeftPlacementStrategy(const Box& bin): bin_(bin) {}
+    inline void configure(const Config& config) BP2D_NOEXCEPT {
+        config_ = config;
+    }
 
-    bool pack(Item& item, Unit min_obj_distance = 0) {
+    inline _BottomLeftPlacementStrategy(const BinType& bin): bin_(bin) {}
+
+    inline const BinType& bin() const BP2D_NOEXCEPT { return bin_; }
+
+    inline bool pack(Item& item) {
+        return pack(item, config_.min_obj_distance);
+    }
+
+    bool pack(Item& item, Unit min_obj_distance) {
 
         // Get initial position for item in the top right corner
         setInitialPosition(item);
@@ -419,7 +435,9 @@ public:
     using ItemRef = typename std::reference_wrapper<Item>;
     using ItemGroup = typename std::vector<ItemRef>;
 
-    using PlacementStrategy = _BottomLeftPlacementStrategy<RawShape>;
+    using Config = int; //dummy
+
+    void configure(const Config& /*config*/) { }
 
     template<class TIterator>
     void addItems(TIterator first, TIterator last) {
@@ -438,53 +456,110 @@ public:
         std::sort(store_.begin(), store_.end(), sortfunc);
     }
 
-    ItemGroup nextGroup() {
-        return ItemGroup({store_[ pos_++ ]});
-    }
+    template<class PlacementStrategy>
+    void packItems(PlacementStrategy& placer) {}
+
+    size_t binCount() const {}
+
+    ItemGroup itemsForBin(size_t binIndex);
 
 };
 
-template<class TShape,
-         class SelectionStrategy = _DummySelectionStrategy<TShape>>
-class _Arranger {
+template<class TSelector>
+struct SelectionLike {
 
-    SelectionStrategy sel_strategy_;
+    using Item = typename TSelector::Item;
+    using Config = typename TSelector::Config;
+    using ItemGroup = typename TSelector::ItemGroup;
 
-public:
-
-    _Arranger() {}
-
-    using Unit = TCoord< TPoint<TShape> >;
-
-    struct Config {
-        Unit minObjectDistance;
-    };
+    inline static void configure(TSelector& selector, Config&& config) {
+        selector.configure(std::forward<Config>(config));
+    }
 
     template<class TIterator>
-    void arrange(TIterator from,
-                 TIterator to,
-                 const _Rectangle<TShape>& bin,
-                 Config config = Config())
+    inline static void addItems(TSelector& selector,
+                                TIterator first, TIterator last)
     {
-
-        using BinType = decltype(bin);
-
-        sel_strategy_.addItems(from, to);
-
-        auto placer =
-                SelectionStrategy::template PlacementStrategy<BinType>(bin);
-
+        selector.addItems(first, last);
     }
 
-    template<class TIterator, class TBin, class...Args>
-    void arrange(TIterator from,
-                 TIterator to,
-                 const TBin& bin,
-                 Args...args)
+    template<class PlacementStrategy>
+    inline static void packItems(TSelector selector,
+                                 PlacementStrategy& placer)
     {
-        arrange(from, to, bin, Config{args...});
+        selector.packItems(placer);
     }
 
+    inline static size_t binCount(const TSelector& selector) {
+        return selector.binCount();
+    }
+
+    inline static ItemGroup itemsForBin(TSelector& selector, size_t binIndex) {
+        return selector.itemsForBin(binIndex);
+    }
+
+    inline static TSelector create() {
+        return TSelector();
+    }
+};
+
+template<class TPlacer>
+struct PlacementLike {
+
+    using Item = typename TPlacer::Item;
+    using Unit = typename TPlacer::Unit;
+    using Config = typename TPlacer::Config;
+    using BinType = typename TPlacer::BinType;
+
+    inline static void configure(TPlacer& placer, Config&& config) {
+        placer.configure(std::forward<Config>(config));
+    }
+
+    inline static bool pack(TPlacer& placer, Item& item) {
+        placer.pack(item);
+    }
+
+    inline static const BinType& bin(const TPlacer& placer) {
+        return placer.bin();
+    }
+
+    inline static TPlacer create(BinType&& bin) {
+        return TPlacer(std::forward<BinType>(bin));
+    }
+};
+
+template<class RawShape,
+         class PlacementStrategy = _BottomLeftPlacementStrategy<RawShape>,
+         class SelectionStrategy = _DummySelectionStrategy<RawShape>
+         >
+class _Arranger {
+
+    PlacementStrategy placer_;
+    SelectionStrategy selector_;
+
+public:    
+    using TSel = SelectionLike<SelectionStrategy>;
+    using TPlacer = PlacementLike<PlacementStrategy>;
+
+    using BinType = typename TPlacer::BinType;
+    using PlacementConfig = typename TPlacer::Config;
+    using SelectionConfig = typename TSel::Config;
+
+    _Arranger(BinType&& bin,
+              PlacementConfig&& pconfig = PlacementConfig(),
+              SelectionConfig&& sconfig = SelectionConfig()):
+        placer_(TPlacer::create(std::forward<BinType>(bin))),
+        selector_(TSel::create())
+    {
+        TPlacer::configure(placer_, std::forward<PlacementConfig>(pconfig));
+        TSel::configure(selector_, std::forward<SelectionConfig>(sconfig));
+    }
+
+    template<class TIterator>
+    void arrange(TIterator from, TIterator to) {
+        TSel::addItems(selector_, from, to);
+        TSel::packItems(selector_, placer_);
+    }
 };
 
 }

@@ -41,4 +41,6 @@ if(DEFINED BINPACK2D_TEST_LIBRARIES)
     target_link_libraries(bp2d_tests ${BINPACK2D_TEST_LIBRARIES})
 endif()
 
+add_test(gtests bp2d_tests)
+
 

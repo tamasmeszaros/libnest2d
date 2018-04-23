@@ -17,12 +17,10 @@ using Segment = _Segment<PointImpl>;
 using Item = _Item<PolygonImpl>;
 using Rectangle = _Rectangle<PolygonImpl>;
 
-template<class SelectionStrategy /* default argument does not work... why? */>
-using Arranger = _Arranger<PolygonImpl, SelectionStrategy>;
-
 using DummySelectionStrategy = _DummySelectionStrategy<PolygonImpl>;
 using BottomLeftPlacementStrategy = _BottomLeftPlacementStrategy<PolygonImpl>;
-using DummyArranger = Arranger<DummySelectionStrategy>;
+
+using Arranger = _Arranger<PolygonImpl>;
 
 }
 

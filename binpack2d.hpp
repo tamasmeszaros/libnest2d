@@ -19,6 +19,10 @@ class _Item {
     TPoint<RawShape> offset_;
     Radians rotation_;
     bool has_rotation_ = false, has_offset_ = false;
+
+    // For caching the transformation
+    mutable RawShape tr_cache_;
+    mutable bool tr_cache_valid_ = false;
 public:
 
     static BP2D_CONSTEXPR Orientation orientation() {
@@ -80,17 +84,23 @@ public:
 
     inline void translate(const TPoint<RawShape>& d) BP2D_NOEXCEPT {
         offset_ += d; has_offset_ = true;
+        tr_cache_valid_ = false;
     }
 
     inline void rotate(const Radians& rads) BP2D_NOEXCEPT {
         rotation_ += rads;
         has_rotation_ = true;
+        tr_cache_valid_ = false;
     }
 
-    RawShape transformedShape() const {
+    inline RawShape transformedShape() const {
+        if(tr_cache_valid_) return tr_cache_;
+
         RawShape cpy = sh_;
         if(has_rotation_) ShapeLike::rotate(cpy, rotation_);
         if(has_offset_) ShapeLike::translate(cpy, offset_);
+        tr_cache_ = cpy; tr_cache_valid_ = true;
+
         return cpy;
     }
 
@@ -129,6 +139,64 @@ public:
     }
 };
 
+template<class PlacementStrategy>
+class PlacementStrategyLike {
+    PlacementStrategy impl_;
+public:
+    using Item = typename PlacementStrategy::Item;
+    using Unit = typename PlacementStrategy::Unit;
+    using Config = typename PlacementStrategy::Config;
+    using BinType = typename PlacementStrategy::BinType;
+
+    PlacementStrategyLike(const BinType& bin, const Config& config = Config()):
+        impl_(bin)
+    {
+        configure(config);
+    }
+
+    inline void configure(const Config& config) { impl_.configure(config); }
+
+    inline bool pack(Item& item) { return impl_.pack(item); }
+
+    inline const BinType& bin() const { return impl_.bin(); }
+
+    inline void bin(const BinType& bin) { impl_.bin(bin); }
+
+    // To read final transformation into item and get the exact placement
+    // Packing does not neccessarily calculate final coordinates or
+    // transformation. Some placement algorithms work with relative positions
+    inline Item& place(Item& item) { return impl_.place(item); }
+
+};
+
+// SelectionStrategy needs to have default constructor
+template<class SelectionStrategy>
+class SelectionStrategyLike {
+    SelectionStrategy impl_;
+public:
+
+    using Config = typename SelectionStrategy::Config;
+    using ItemGroup = typename SelectionStrategy::ItemGroup;
+
+    inline void configure(const Config& config) {
+        impl_.configure(config);
+    }
+
+    template<class PlacementLike, class TIterator>
+    inline void packItems( PlacementLike&& placer,
+                           TIterator first,
+                           TIterator last)
+    {
+        impl_.packItems(placer, first, last);
+    }
+
+    inline size_t binCount() const { return impl_.binCount(); }
+
+    inline ItemGroup itemsForBin(size_t binIndex) {
+        return impl_.itemsForBin(binIndex);
+    }
+};
+
 template<class RawShape>
 class _BottomLeftPlacementStrategy {
 public:
@@ -160,9 +228,11 @@ public:
         config_ = config;
     }
 
-    inline _BottomLeftPlacementStrategy(const BinType& bin): bin_(bin) {}
+    inline _BottomLeftPlacementStrategy(const BinType& bin):
+        bin_(bin) {}
 
     inline const BinType& bin() const BP2D_NOEXCEPT { return bin_; }
+    inline void bin(BinType&& b) { bin_ = std::forward<BinType>(b); }
 
     inline bool pack(Item& item) {
         return pack(item, config_.min_obj_distance);
@@ -196,6 +266,8 @@ public:
 
         return can_be_packed;
     }
+
+    inline Item& place(Item& item) const BP2D_NOEXCEPT { return item; }
 
     inline RawShape leftPoly(const Item& item) const {
         return toWallPoly(item, Dir::LEFT);
@@ -249,10 +321,11 @@ protected:
 
         // Predicate to find items that are 'in the way' for left (down) move
         auto predicate = [&leftp, &item](const Item& it) {
-            return ( ShapeLike::intersects(it.rawShape(), leftp) ||
-                     ShapeLike::isInside(it.rawShape(), leftp) ) &&
-                   ( !ShapeLike::intersects(it.rawShape(), item.rawShape()) &&
-                     !ShapeLike::isInside(it.rawShape(), item.rawShape()) );
+            auto tsh = it.transformedShape();
+            return ( ShapeLike::intersects(tsh, leftp) ||
+                     ShapeLike::isInside(tsh, leftp) ) &&
+                   ( !ShapeLike::intersects(tsh, item.rawShape()) &&
+                     !ShapeLike::isInside(tsh, item.rawShape()) );
         };
 
         // Get the items that are in the way for the left (or down) movement
@@ -280,12 +353,16 @@ protected:
 
                     assert(pleft.vertexCount() > 0);
 
-                    auto first = pleft.begin();
+                    auto trpleft = pleft.transformedShape();
+
+                    auto first = ShapeLike::begin(trpleft);
                     auto next = first + 1;
-                    while(next != pleft.end()) {
+                    while(next != ShapeLike::end(trpleft)) {
                         auto d = PointLike::horizontalDistance( v,
                                                     Segment(*first, *next) );
-                        if(d.first < m) m = d.first;
+                        if(d.second) {
+                            if(d.first < m) m = d.first;
+                        }
                         first++; next++;
                     }
                 }
@@ -424,108 +501,63 @@ protected:
 
 template<class RawShape>
 class _DummySelectionStrategy {
+
     using Container = typename std::vector<_Item<RawShape>>;
 
     Container store_;
-    unsigned long pos_;
+
+public:
+    using Item = _Item<RawShape>;
+    using ItemRef = std::reference_wrapper<Item>;
+    using ItemGroup = std::vector<ItemRef>;
+    using PackGroup = std::vector<ItemGroup>;
+    using Config = int; //dummy
+
+private:
+    PackGroup packed_bins_;
 
 public:
 
-    using Item = _Item<RawShape>;
-    using ItemRef = typename std::reference_wrapper<Item>;
-    using ItemGroup = typename std::vector<ItemRef>;
-
-    using Config = int; //dummy
-
     void configure(const Config& /*config*/) { }
 
-    template<class TIterator>
-    void addItems(TIterator first, TIterator last) {
+    template<class PlacementLike, class TIterator>
+    void packItems(PlacementLike&& placer,
+                   TIterator first,
+                   TIterator last)
+    {
 
         store_.clear();
         store_.reserve(last-first);
+        packed_bins_.clear();
 
         std::copy(first, last, std::back_inserter(store_));
 
-        pos_ = 0;
+        size_t pos = 0;
 
         auto sortfunc = [](Item& i1, Item& i2) {
-            return i1.area() < i2.area();
+            return i1.area() > i2.area();
         };
 
         std::sort(store_.begin(), store_.end(), sortfunc);
+
+        packed_bins_.push_back({});
+
+        for(auto& item : store_ ) {
+            if(placer.pack(item)) packed_bins_[pos].push_back(item);
+            else {
+                packed_bins_.push_back({});
+                pos++;
+            }
+        }
     }
 
-    template<class PlacementStrategy>
-    void packItems(PlacementStrategy& placer) {}
+    size_t binCount() const { return packed_bins_.size(); }
 
-    size_t binCount() const {}
-
-    ItemGroup itemsForBin(size_t binIndex);
-
-};
-
-template<class TSelector>
-struct SelectionLike {
-
-    using Item = typename TSelector::Item;
-    using Config = typename TSelector::Config;
-    using ItemGroup = typename TSelector::ItemGroup;
-
-    inline static void configure(TSelector& selector, Config&& config) {
-        selector.configure(std::forward<Config>(config));
+    ItemGroup itemsForBin(size_t binIndex) {
+        assert(binIndex < packed_bins_.size());
+        return packed_bins_[binIndex];
     }
 
-    template<class TIterator>
-    inline static void addItems(TSelector& selector,
-                                TIterator first, TIterator last)
-    {
-        selector.addItems(first, last);
-    }
-
-    template<class PlacementStrategy>
-    inline static void packItems(TSelector selector,
-                                 PlacementStrategy& placer)
-    {
-        selector.packItems(placer);
-    }
-
-    inline static size_t binCount(const TSelector& selector) {
-        return selector.binCount();
-    }
-
-    inline static ItemGroup itemsForBin(TSelector& selector, size_t binIndex) {
-        return selector.itemsForBin(binIndex);
-    }
-
-    inline static TSelector create() {
-        return TSelector();
-    }
-};
-
-template<class TPlacer>
-struct PlacementLike {
-
-    using Item = typename TPlacer::Item;
-    using Unit = typename TPlacer::Unit;
-    using Config = typename TPlacer::Config;
-    using BinType = typename TPlacer::BinType;
-
-    inline static void configure(TPlacer& placer, Config&& config) {
-        placer.configure(std::forward<Config>(config));
-    }
-
-    inline static bool pack(TPlacer& placer, Item& item) {
-        placer.pack(item);
-    }
-
-    inline static const BinType& bin(const TPlacer& placer) {
-        return placer.bin();
-    }
-
-    inline static TPlacer create(BinType&& bin) {
-        return TPlacer(std::forward<BinType>(bin));
-    }
 };
 
 template<class RawShape,
@@ -533,32 +565,59 @@ template<class RawShape,
          class SelectionStrategy = _DummySelectionStrategy<RawShape>
          >
 class _Arranger {
+    using TSel = SelectionStrategyLike<SelectionStrategy>;
+    TSel selector_;
 
-    PlacementStrategy placer_;
-    SelectionStrategy selector_;
-
-public:    
-    using TSel = SelectionLike<SelectionStrategy>;
-    using TPlacer = PlacementLike<PlacementStrategy>;
-
+public:
+    using TPlacer = PlacementStrategyLike<PlacementStrategy>;
+    using Item = _Item<RawShape>;
     using BinType = typename TPlacer::BinType;
     using PlacementConfig = typename TPlacer::Config;
     using SelectionConfig = typename TSel::Config;
 
-    _Arranger(BinType&& bin,
-              PlacementConfig&& pconfig = PlacementConfig(),
-              SelectionConfig&& sconfig = SelectionConfig()):
-        placer_(TPlacer::create(std::forward<BinType>(bin))),
-        selector_(TSel::create())
+    using PackGroup = std::vector<typename TSel::ItemGroup>;
+
+private:
+    BinType bin_;
+    PlacementConfig pconfig_;
+
+public:
+
+    template<class TBinType = BinType,
+             class PConf = PlacementConfig,
+             class SConf = SelectionConfig>
+    _Arranger(TBinType&& bin,
+              PConf&& pconfig = PConf(),
+              SConf&& sconfig = SConf()):
+        bin_(bin),
+        pconfig_(std::forward<PlacementConfig>(pconfig))
     {
-        TPlacer::configure(placer_, std::forward<PlacementConfig>(pconfig));
-        TSel::configure(selector_, std::forward<SelectionConfig>(sconfig));
+        selector_.configure(std::forward<SelectionConfig>(sconfig));
     }
 
     template<class TIterator>
-    void arrange(TIterator from, TIterator to) {
-        TSel::addItems(selector_, from, to);
-        TSel::packItems(selector_, placer_);
+    inline PackGroup arrange(TIterator from, TIterator to) {
+
+        TPlacer placer(bin_, pconfig_);
+        selector_.packItems(placer, from, to);
+
+        PackGroup ret;
+
+        for(size_t i = 0; i < selector_.binCount(); i++) {
+            auto items = selector_.itemsForBin(i);
+            std::for_each(items.begin(), items.end(),
+                          [&placer](Item& it){
+                placer.place(it);
+            });
+            ret.push_back(items);
+        }
+
+        return ret;
+    }
+
+    template<class TIterator>
+    inline PackGroup operator() (TIterator from, TIterator to) {
+        return arrange(from, to);
     }
 };
 

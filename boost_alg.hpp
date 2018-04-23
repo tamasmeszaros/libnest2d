@@ -1,6 +1,10 @@
 #ifndef BOOST_ALG_HPP
 #define BOOST_ALG_HPP
 
+#ifndef DISABLE_BOOST_SERIALIZE
+    #include <sstream>
+#endif
+
 #include <boost/geometry.hpp>
 #include "binpack2d.h"
 
@@ -352,6 +356,25 @@ inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs) {
 
     boost::geometry::transform(cpy, sh, translate);
 }
+
+//#ifndef DISABLE_BOOST_SERIALIZE
+template<>
+inline std::string ShapeLike::serialize(const PolygonImpl& sh) {
+
+    std::stringstream ss;
+    std::string style;
+    auto svg_data = boost::geometry::svg(sh, style);
+
+    ss << svg_data << std::endl;
+
+    return ss.str();
+}
+//#endif
+
+//#ifndef DISABLE_BOOST_UNSERIALIZE
+template<>
+inline void ShapeLike::unserialize(PolygonImpl& sh, const std::string& str) {}
+//#endif
 
 }
 

@@ -15,13 +15,13 @@ using PointImpl = ClipperLib::IntPoint;
 using PolygonImpl = ClipperLib::PolyNode;
 using PathImpl = ClipperLib::Path;
 
-PointImpl& operator +=(PointImpl& p, const PointImpl& pa ) {
+inline PointImpl& operator +=(PointImpl& p, const PointImpl& pa ) {
     p.X += pa.X;
     p.Y += pa.Y;
     return p;
 }
 
-PointImpl operator+(const PointImpl& p1, const PointImpl& p2) {
+inline PointImpl operator+(const PointImpl& p1, const PointImpl& p2) {
     PointImpl ret = p1;
     ret += p2;
     return ret;
@@ -54,7 +54,7 @@ class HoleCache {
     }
 };
 
-HoleCache holeCache;
+extern HoleCache holeCache;
 
 // Type of coordinate units used by Clipper
 template<> struct CoordType<PointImpl> {
@@ -119,7 +119,7 @@ inline void ShapeLike::reserve(PolygonImpl& sh, unsigned long vertex_capacity) {
 
 // Tell binpack2d how to make string out of a ClipperPolygon object
 template<>
-std::string ShapeLike::toString(const PolygonImpl& sh) {
+inline std::string ShapeLike::toString(const PolygonImpl& sh) {
     std::stringstream ss;
 
     for(auto p : sh.Contour) {
@@ -158,7 +158,7 @@ template<> struct HolesContainer<PolygonImpl> {
 };
 
 template<>
-PolygonImpl ShapeLike::create( std::initializer_list< PointImpl > il)
+inline PolygonImpl ShapeLike::create( std::initializer_list< PointImpl > il)
 {
     PolygonImpl p;
     p.Contour = il;
@@ -214,6 +214,9 @@ inline const PathImpl& ShapeLike::getContour(const PolygonImpl& sh) {
 }
 
 }
+
+//#define DISABLE_BOOST_SERIALIZE
+//#define DISABLE_BOOST_UNSERIALIZE
 
 // All other operators and algorithms are implemented with boost
 #include "../boost_alg.hpp"

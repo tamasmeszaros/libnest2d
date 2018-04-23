@@ -71,6 +71,9 @@ public:
 
     inline RawPoint& minCorner() BP2D_NOEXCEPT { return p1; }
     inline RawPoint& maxCorner() BP2D_NOEXCEPT { return p2; }
+
+    inline TCoord<RawPoint> width() const BP2D_NOEXCEPT;
+    inline TCoord<RawPoint> height() const BP2D_NOEXCEPT;
 };
 
 template<class RawPoint>
@@ -148,6 +151,17 @@ public:
         return {ret, true};
     }
 };
+
+template<class RawPoint>
+TCoord<RawPoint> _Box<RawPoint>::width() const BP2D_NOEXCEPT {
+    return PointLike::x(minCorner()) - PointLike::x(maxCorner());
+}
+
+
+template<class RawPoint>
+TCoord<RawPoint> _Box<RawPoint>::height() const BP2D_NOEXCEPT {
+    return PointLike::y(minCorner()) - PointLike::y(maxCorner());
+}
 
 template<class RawPoint>
 TCoord<RawPoint> getX(const RawPoint& p) { return PointLike::x<RawPoint>(p); }
@@ -250,6 +264,16 @@ public:
     template<class RawShape>
     static std::string toString(const RawShape& /*sh*/) {
         return "";
+    }
+
+    template<class RawShape>
+    static std::string serialize(const RawShape& sh) {
+        return toString(sh);
+    }
+
+    template<class RawShape>
+    static void unserialize(RawShape& /*sh*/, const std::string& /*str*/) {
+        throw UnimplementedException("ShapeLike::unserialize()");
     }
 
     template<class RawShape>

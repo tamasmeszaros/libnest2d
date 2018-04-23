@@ -69,6 +69,17 @@ TEST(GeometryAlgorithms, Distance) {
         ASSERT_EQ(val, 10);
 
     ASSERT_DOUBLE_EQ(PointLike::distance(p2, seg), 7.0710678118654755);
+
+    Point p4 = {80, 0};
+    Segment seg2 = { {0, 0}, {0, 40} };
+
+    val = PointLike::horizontalDistance(p4, seg2).first;
+
+    if(std::is_floating_point<Coord>::value)
+        ASSERT_DOUBLE_EQ(static_cast<double>(val), 10);
+    else
+        ASSERT_EQ(val, 80);
+
 }
 
 TEST(GeometryAlgorithms, Area) {
@@ -157,40 +168,40 @@ TEST(GeometryAlgorithms, ArrangeRectangles)
 {
     using namespace binpack2d;
 
-//    DummySelectionStrategy dms;
-
     std::vector<Rectangle> rects = { {40, 40}, {10, 10}, {20, 20} };
 
-//    dms.addItems(rects.begin(), rects.end());
+    // Old MSVC2013 fucker does not recognize initializer list for structs
+    BottomLeftPlacementStrategy::Config config;
+    config.min_obj_distance = 10;
 
-    Arranger arr(Box(100, 100));
+    Arranger arrange(Box(100, 100), config /*{.min_obj_distance = 10}*/ );
 
-    arr.arrange(rects.begin(), rects.end());
+    auto groups = arrange(rects.begin(), rects.end());
 
-//    auto nx0 = dms.nextGroup();
-
-//    ASSERT_EQ(nx0.size(), 1);
-
-//    ASSERT_DOUBLE_EQ(nx0[0].get().area(), 10*10);
-
-
-//    auto nx1 = dms.nextGroup();
-
-//    ASSERT_EQ(nx1.size(), 1);
-
-//    ASSERT_DOUBLE_EQ(nx1[0].get().area(), 20*20);
-
-
-//    auto nx2 = dms.nextGroup();
-
-//    ASSERT_EQ(nx2.size(), 1);
-
-//    ASSERT_DOUBLE_EQ(nx2[0].get().area(), 40*40);
+    ASSERT_EQ(groups.size(), 1);
+    ASSERT_EQ(groups[0].size(), 3);
 
 }
 
 void arrangeRectangles() {
     using namespace binpack2d;
+    std::vector<Rectangle> rects = { {40, 40}, {10, 10}, {20, 20} };
+
+    // Old MSVC2013 fucker does not recognize initializer list for structs
+    BottomLeftPlacementStrategy::Config config;
+    config.min_obj_distance = 0;
+
+    std::cout << Rectangle(100, 100) << std::endl;
+
+    Arranger arrange(Box(100, 100), config /*{.min_obj_distance = 10}*/ );
+
+    auto groups = arrange(rects.begin(), rects.end());
+
+    for(auto g : groups) {
+        for(auto sh : g) {
+            std::cout << sh.get() << std::endl;
+        }
+    }
 
 //    Rectangle bin(100, 100);
 //    Rectangle bin2(10, 10);
@@ -199,24 +210,24 @@ void arrangeRectangles() {
 
 //    std::cout << inr << std::endl;
 
-    Box bin(100, 100);
-    BottomLeftPlacementStrategy placer(bin);
+//    Box bin(100, 100);
+//    BottomLeftPlacementStrategy placer(bin);
 
-    Rectangle rect(20, 80);
+//    Rectangle rect(20, 80);
 
-    placer.pack(rect);
+//    placer.pack(rect);
 
-    Item item = {{70, 75}, {88, 60}, {65, 50}, {60, 30}, {80, 20}, {42, 20},
-                 {35, 35}, {35, 55}, {40, 75}, {70, 75}};
+//    Item item = {{70, 75}, {88, 60}, {65, 50}, {60, 30}, {80, 20}, {42, 20},
+//                 {35, 35}, {35, 55}, {40, 75}, {70, 75}};
 
-    auto d = placer.availableSpaceLeft(item);
+//    auto d = placer.availableSpaceLeft(item);
 
-    std::cout << d << std::endl;
+//    std::cout << d << std::endl;
 
-    std::string message;
-    boost::geometry::is_valid(item.rawShape(), message);
+//    std::string message;
+//    boost::geometry::is_valid(item.rawShape(), message);
 
-    std::cout << message << std::endl;
+//    std::cout << message << std::endl;
 
 //    boost::geometry::is_valid(bin.rawShape(), message);
 
@@ -247,8 +258,8 @@ void arrangeRectangles() {
 
 int main(int argc, char **argv) {
     arrangeRectangles();
-//    return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+//  ::testing::InitGoogleTest(&argc, argv);
+//  return RUN_ALL_TESTS();
 }

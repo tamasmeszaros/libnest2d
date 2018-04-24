@@ -1,0 +1,4 @@
+#ifndef PRINTER_PARTS_H
+#define PRINTER_PARTS_H
+
+#endif // PRINTER_PARTS_H

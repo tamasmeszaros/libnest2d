@@ -154,13 +154,13 @@ public:
 
 template<class RawPoint>
 TCoord<RawPoint> _Box<RawPoint>::width() const BP2D_NOEXCEPT {
-    return PointLike::x(minCorner()) - PointLike::x(maxCorner());
+    return PointLike::x(maxCorner()) - PointLike::x(minCorner());
 }
 
 
 template<class RawPoint>
 TCoord<RawPoint> _Box<RawPoint>::height() const BP2D_NOEXCEPT {
-    return PointLike::y(minCorner()) - PointLike::y(maxCorner());
+    return PointLike::y(maxCorner()) - PointLike::y(minCorner());
 }
 
 template<class RawPoint>

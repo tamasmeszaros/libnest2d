@@ -32,7 +32,7 @@ else()
 endif()
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/..")
-add_executable(bp2d_tests test.cpp)
+add_executable(bp2d_tests test.cpp printer_parts.h printer_parts.cpp)
 target_link_libraries(bp2d_tests binpack2d
     ${GTEST_LIBRARIES}
 )

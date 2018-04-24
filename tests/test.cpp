@@ -1,7 +1,9 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include <fstream>
 
 #include <binpack2d.h>
+#include "printer_parts.h"
 #include <geometries_io.hpp>
 
 TEST(BasicFunctionality, Angles)
@@ -182,76 +184,53 @@ TEST(GeometryAlgorithms, ArrangeRectangles)
     ASSERT_EQ(groups[0].size(), 3);
 
 }
+namespace {
+using namespace binpack2d;
+void exportSVG(Arranger::PackGroup& result, const Arranger::BinType& bin) {
+
+    std::string loc = "out";
+
+
+    int i = 0;
+    for(auto r : result) {
+        std::fstream out(loc + std::to_string(i) + ".svg", std::fstream::out);
+        if(out.is_open()) {
+            if(i == 0)
+                out << Rectangle(bin.width(), bin.height()) << std::endl;
+            for(auto sh : r) {
+                out << sh.get() << std::endl;
+            }
+        }
+        out.close();
+
+        i++;
+    }
+}
+}
 
 void arrangeRectangles() {
     using namespace binpack2d;
-    std::vector<Rectangle> rects = { {40, 40}, {10, 10}, {20, 20} };
 
-    // Old MSVC2013 fucker does not recognize initializer list for structs
     BottomLeftPlacementStrategy::Config config;
-    config.min_obj_distance = 0;
+    config.min_obj_distance = 6;
 
-    std::cout << Rectangle(100, 100) << std::endl;
+    auto input = PRINTER_PART_POLYGONS;
+//    std::vector<Rectangle> input = { {40, 40}, {10, 10}, {20, 20} };
 
-    Arranger arrange(Box(100, 100), config /*{.min_obj_distance = 10}*/ );
+    Box bin(210, 250);
+    Arranger arrange(bin, config /*{.min_obj_distance = 10}*/ );
 
-    auto groups = arrange(rects.begin(), rects.end());
-
-    for(auto g : groups) {
-        for(auto sh : g) {
-            std::cout << sh.get() << std::endl;
-        }
+    bool valid = true;
+    std::string message;
+    for(auto& it : input) {
+        valid = boost::geometry::is_valid(it.rawShape(), message);
+        std::cout << message << std::endl;
     }
 
-//    Rectangle bin(100, 100);
-//    Rectangle bin2(10, 10);
+    auto result = arrange(input.begin(),
+                          input.end());
 
-//    bool inr = ShapeLike::intersects(bin.rawShape(), bin2.rawShape());
-
-//    std::cout << inr << std::endl;
-
-//    Box bin(100, 100);
-//    BottomLeftPlacementStrategy placer(bin);
-
-//    Rectangle rect(20, 80);
-
-//    placer.pack(rect);
-
-//    Item item = {{70, 75}, {88, 60}, {65, 50}, {60, 30}, {80, 20}, {42, 20},
-//                 {35, 35}, {35, 55}, {40, 75}, {70, 75}};
-
-//    auto d = placer.availableSpaceLeft(item);
-
-//    std::cout << d << std::endl;
-
-//    std::string message;
-//    boost::geometry::is_valid(item.rawShape(), message);
-
-//    std::cout << message << std::endl;
-
-//    boost::geometry::is_valid(bin.rawShape(), message);
-
-//    std::cout << message << std::endl;
-
-//    auto leftp = placer.leftPoly(item);
-
-//    boost::geometry::is_valid(leftp, message);
-
-//    std::cout << message << std::endl;
-
-//    std::cout << ShapeLike::toString(leftp) << std::endl;
-
-//    std::cout << "\n\n\n" << std::endl;
-//    auto downp = placer.downPoly(item);
-
-//    boost::geometry::is_valid(downp, message);
-
-//    std::cout << message << std::endl;
-
-//    std::cout << ShapeLike::toString(downp) << std::endl;
-
-
-//    std::cout << ShapeLike::area(downp) << std::endl;
+    exportSVG(result, bin);
 
 }
 

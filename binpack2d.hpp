@@ -252,12 +252,12 @@ public:
 
         while(can_move) {
             if(left) { // write previous down move and go down
-                item.translate({0, -d});
+                item.translate({0, -d+min_obj_distance});
                 d = availableSpaceLeft(item);
                 can_move = d > min_obj_distance;
                 left = false;
             } else { // write previous left move and go down
-                item.translate({-d, 0});
+                item.translate({-d+min_obj_distance, 0});
                 d = availableSpaceDown(item);
                 can_move = d > min_obj_distance;
                 left = true;

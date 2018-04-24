@@ -309,6 +309,13 @@ inline bool ShapeLike::intersects(const PolygonImpl& sh1,
     return boost::geometry::intersects(sh1, sh2);
 }
 
+// Tell binpack2d how to make string out of a ClipperPolygon object
+template<>
+inline bool ShapeLike::intersects(const bp2d::Segment& s1,
+                                  const bp2d::Segment& s2) {
+    return boost::geometry::intersects(s1, s2);
+}
+
 template<>
 inline double ShapeLike::area(const PolygonImpl& shape) {
     return boost::geometry::area(shape);
@@ -326,6 +333,13 @@ inline bool ShapeLike::isInside(const PolygonImpl& sh1,
                                 const PolygonImpl& sh2)
 {
     return boost::geometry::within(sh1, sh2);
+}
+
+template<>
+inline bool ShapeLike::touches( const PolygonImpl& sh1,
+                                const PolygonImpl& sh2)
+{
+    return boost::geometry::touches(sh1, sh2);
 }
 
 template<>
@@ -362,7 +376,7 @@ template<>
 inline std::string ShapeLike::serialize(const PolygonImpl& sh) {
 
     std::stringstream ss;
-    std::string style;
+    std::string style = "fill: orange; stroke: black; stroke-width: 1px;";
     auto svg_data = boost::geometry::svg(sh, style);
 
     ss << svg_data << std::endl;

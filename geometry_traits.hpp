@@ -150,6 +150,30 @@ public:
 
         return {ret, true};
     }
+
+    template<class RawPoint>
+    static std::pair<TCoord<RawPoint>, bool> verticalDistance(
+            const RawPoint& p, const _Segment<RawPoint>& s)
+    {
+        auto x = PointLike::x(p), y = PointLike::y(p);
+        auto x1 = PointLike::x(s.first()), y1 = PointLike::y(s.first());
+        auto x2 = PointLike::x(s.second()), y2 = PointLike::y(s.second());
+
+        TCoord<RawPoint> ret;
+
+        if( (x < x1 && x < x2) || (x > x1 && x > x2) )
+            return {0, false};
+        else if ((x == x1 && x == x2) && (y > y1 && y > y2))
+            ret = std::min( y-y1, y -y2);
+        else if( (x == x1 && x == x2) && (y < y1 && y < y2))
+            ret = -std::min(y1 - y, y2 - y);
+        else if(x == x1 && x == x2) // Problem if the coords are floating point!
+            ret = 0;
+        else
+            ret = y - y1 + (y1 - y2)*(x1 - x)/(x1 - x2);
+
+        return {ret, true};
+    }
 };
 
 template<class RawPoint>
@@ -299,6 +323,12 @@ public:
     static bool isInside(const RawShape& /*shape*/,
                          const RawShape& /*shape*/) {
         throw UnimplementedException("ShapeLike::isInside(shape, shape)");
+        return false;
+    }
+
+    template<class RawShape>
+    static bool touches( const RawShape& /*shape*/,
+                         const RawShape& /*shape*/) {
         return false;
     }
 

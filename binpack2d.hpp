@@ -74,12 +74,13 @@ public:
         return ShapeLike::contourVertexCount(sh_);
     }
 
-    inline static bool intersects(const _Item& sh1, const _Item& sh2) {
-        return ShapeLike::intersects(sh1.sh_, sh2.sh_);
-    }
-
     inline bool isPointInside(const TPoint<RawShape>& p) {
         return ShapeLike::isInside(p, sh_);
+    }
+
+    inline bool isInside(const _Item& outer) {
+        return ShapeLike::isInside(transformedShape(),
+                                   outer.transformedShape());
     }
 
     inline void translate(const TPoint<RawShape>& d) BP2D_NOEXCEPT {
@@ -110,6 +111,18 @@ public:
 
     inline void reset() BP2D_NOEXCEPT {
         has_offset_ = false; has_rotation_ = false;
+    }
+
+    //Static methods:
+
+    inline static bool intersects(const _Item& sh1, const _Item& sh2) {
+        return ShapeLike::intersects(sh1.transformedShape(),
+                                     sh2.transformedShape());
+    }
+
+    inline static bool touches(const _Item& sh1, const _Item& sh2) {
+        return ShapeLike::touches(sh1.transformedShape(),
+                                  sh2.transformedShape());
     }
 };
 
@@ -264,7 +277,23 @@ public:
             }
         }
 
-        if(can_be_packed) items_.push_back(item);
+        if(can_be_packed) {
+            items_.push_back(item);
+//            bool valid = true;
+
+//            for(Item& r1 : items_) {
+//                for(Item& r2 : items_) {
+//                    if(&r1 != &r2 ) {
+//                        valid = !Item::intersects(r1, r2);
+//                        valid = !r1.isInside(r2) && !r2.isInside(r1);
+
+//                        if (!valid) {
+//                            can_be_packed = false;
+//                        }
+//                    }
+//                }
+//            }
+        }
 
         return can_be_packed;
     }
@@ -299,41 +328,77 @@ protected:
         item.translate({dx, dy});
     }
 
-    Unit availableSpace(const Item& _item, const Dir dir) {
+    template<class C = Coord>
+    static std::enable_if_t<std::is_floating_point<C>::value, bool>
+    isInTheWayOf( const Item& item,
+                  const Item& other,
+                  const RawShape& scanpoly)
+    {
+        auto tsh = other.transformedShape();
+        return ( ShapeLike::intersects(tsh, scanpoly) ||
+                 ShapeLike::isInside(tsh, scanpoly) ) &&
+               ( !ShapeLike::intersects(tsh, item.rawShape()) &&
+                 !ShapeLike::isInside(tsh, item.rawShape()) );
+    }
 
-        Item item (_item.transformedShape());
+    template<class C = Coord>
+    static std::enable_if_t<std::is_integral<C>::value, bool>
+    isInTheWayOf( const Item& item,
+                  const Item& other,
+                  const RawShape& scanpoly)
+    {
+        auto tsh = other.transformedShape();
 
-        std::function<Coord(const Vertex&)> getCoord;
-        if(dir == Dir::LEFT)
-            getCoord = [](const Vertex& v) {
-                return getX(v);
-            };
-        else
-            getCoord = [](const Vertex& v) {
-                return getY(v);
-            };
+        bool inters_scanpoly = ShapeLike::intersects(tsh, scanpoly) && !ShapeLike::touches(tsh, scanpoly);
+        bool inters_item = ShapeLike::intersects(tsh, item.rawShape()) && !ShapeLike::touches(tsh, item.rawShape());
 
+        return ( inters_scanpoly ||
+                 ShapeLike::isInside(tsh, scanpoly)) &&
+               ( !inters_item &&
+                 !ShapeLike::isInside(tsh, item.rawShape())
+                 );
+    }
+
+    Container itemsInTheWayOf(const Item& item, const Dir dir) {
         // Get the left or down polygon, that has the same area as the shadow
         // of input item reflected to the left or downwards
-        auto&& leftp = dir == Dir::LEFT? leftPoly(item) :
-                                         downPoly(item);
+        auto&& scanpoly = dir == Dir::LEFT? leftPoly(item) :
+                                            downPoly(item);
 
-        Container items_to_left;    // packed items 'in the way' of item
-        items_to_left.reserve(items_.size());
+        Container ret;    // packed items 'in the way' of item
+        ret.reserve(items_.size());
 
         // Predicate to find items that are 'in the way' for left (down) move
-        auto predicate = [&leftp, &item](const Item& it) {
-            auto tsh = it.transformedShape();
-            return ( ShapeLike::intersects(tsh, leftp) ||
-                     ShapeLike::isInside(tsh, leftp) ) &&
-                   ( !ShapeLike::intersects(tsh, item.rawShape()) &&
-                     !ShapeLike::isInside(tsh, item.rawShape()) );
+        auto predicate = [&scanpoly, &item](const Item& it) {
+            return isInTheWayOf(item, it, scanpoly);
         };
 
         // Get the items that are in the way for the left (or down) movement
         std::copy_if(items_.begin(), items_.end(),
-                     std::back_inserter(items_to_left), predicate);
+                     std::back_inserter(ret), predicate);
 
+        return ret;
+    }
+
+    Unit availableSpace(const Item& _item, const Dir dir) {
+
+        Item item (_item.transformedShape());
+
+
+        std::function<Coord(const Vertex&)> getCoord;
+        std::function< std::pair<Coord, bool>(const Vertex&, const Segment&) >
+            availableDistance;
+
+        if(dir == Dir::LEFT) {
+            getCoord = [](const Vertex& v) { return getX(v); };
+            availableDistance = PointLike::horizontalDistance<Vertex>;
+        }
+        else {
+            getCoord = [](const Vertex& v) { return getY(v); };
+            availableDistance = PointLike::verticalDistance<Vertex>;
+        }
+
+        auto&& items_to_left = itemsInTheWayOf(item, dir);
 
         // Comparison function for finding min vertex
         auto cmp = [&getCoord](const Vertex& v1, const Vertex& v2) {
@@ -348,24 +413,25 @@ protected:
         // Get the initial distance in floating point
         Unit m = getCoord(*leftmost_vertex_it);
 
+
         if(!items_to_left.empty()) { // This is crazy, should be optimized...
-            for(auto& v : item) {   // For all vertices in item
-                for(Item& pleft : items_to_left) {
-                    // For all segments in items_to_left
+            for(Item& pleft : items_to_left) {
+                // For all segments in items_to_left
 
-                    assert(pleft.vertexCount() > 0);
+                assert(pleft.vertexCount() > 0);
 
-                    auto trpleft = pleft.transformedShape();
+                auto trpleft = pleft.transformedShape();
+                auto first = ShapeLike::begin(trpleft);
+                auto next = first + 1;
+                auto endit = ShapeLike::end(trpleft);
 
-                    auto first = ShapeLike::begin(trpleft);
-                    auto next = first + 1;
-                    while(next != ShapeLike::end(trpleft)) {
-                        auto d = PointLike::horizontalDistance( v,
-                                                    Segment(*first, *next) );
-                        if(d.second) {
-                            if(d.first < m) m = d.first;
-                        }
-                        first++; next++;
+                while(next != endit) {
+                    Segment seg(*(first++), *(next++));
+                    for(auto& v : item) {   // For all vertices in item
+
+                        auto d = availableDistance(v, seg);
+
+                        if(d.second && d.first < m)  m = d.first;
                     }
                 }
             }
@@ -444,8 +510,8 @@ protected:
         auto bottomleft_it =
                 std::min_element(bottom.begin(), bottom.end(), cmp);
 
-        auto& topleft_vertex = topleft_it->second;
-        auto& bottomleft_vertex = bottomleft_it->second;
+        auto& topleft_vertex = topleft_it->second.get();
+        auto& bottomleft_vertex = bottomleft_it->second.get();
 
         // Start and finish positions for the vertices that will be part of the
         // new polygon
@@ -475,15 +541,21 @@ protected:
             ShapeLike::addVertex(rsh, topleft_vertex);
 
             if(dir == Dir::LEFT) reverseAddOthers();
-            else addOthers();
+            else {
+                ShapeLike::addVertex(rsh, getX(topleft_vertex), 0);
+                ShapeLike::addVertex(rsh, getX(bottomleft_vertex), 0);
+            }
 
             ShapeLike::addVertex(rsh, bottomleft_vertex);
 
-            ShapeLike::addVertex(rsh, 0, getCoord(bottomleft_vertex));
-            ShapeLike::addVertex(rsh, 0, getCoord(topleft_vertex));
+            if(dir == Dir::LEFT) {
+                ShapeLike::addVertex(rsh, 0, getY(bottomleft_vertex));
+                ShapeLike::addVertex(rsh, 0, getY(topleft_vertex));
+            }
+            else reverseAddOthers();
 
         } else { // Counter clockwise polygon construction
-            ShapeLike::addVertex(rsh, topleft_vertex);
+            /*ShapeLike::addVertex(rsh, topleft_vertex);
 
             ShapeLike::addVertex(rsh, 0, getCoord(topleft_vertex));
             ShapeLike::addVertex(rsh, 0, getCoord(bottomleft_vertex));
@@ -491,7 +563,8 @@ protected:
             ShapeLike::addVertex(rsh, bottomleft_vertex);
 
             if(dir == Dir::LEFT) addOthers();
-            else reverseAddOthers();
+            else reverseAddOthers();*/
+            throw UnimplementedException("Counter clockwise toWallPoly()");
         }
 
         // Close the polygon

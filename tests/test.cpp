@@ -4,7 +4,7 @@
 
 #include <binpack2d.h>
 #include "printer_parts.h"
-#include <geometries_io.hpp>
+#include <binpack2d/geometries_io.hpp>
 
 TEST(BasicFunctionality, Angles)
 {
@@ -138,8 +138,8 @@ TEST(GeometryAlgorithms, IsPointInsidePolygon) {
 
 }
 
-TEST(GeometryAlgorithms, Intersections) {
-    using namespace binpack2d;
+//TEST(GeometryAlgorithms, Intersections) {
+//    using namespace binpack2d;
 
 //    Rectangle rect(70, 30);
 
@@ -154,7 +154,7 @@ TEST(GeometryAlgorithms, Intersections) {
 //    Segment s2({1, 1}, {11, 11});
 //    ASSERT_FALSE(ShapeLike::intersects(s1, s1));
 //    ASSERT_FALSE(ShapeLike::intersects(s1, s2));
-}
+//}
 
 // Simple test, does not use gmock
 TEST(GeometryAlgorithms, LeftAndDownPolygon)
@@ -162,7 +162,7 @@ TEST(GeometryAlgorithms, LeftAndDownPolygon)
     using namespace binpack2d;
 
     Box bin(100, 100);
-    BottomLeftPlacementStrategy placer(bin);
+    BottomLeftPlacer placer(bin);
 
     Item item = {{70, 75}, {88, 60}, {65, 50}, {60, 30}, {80, 20}, {42, 20},
                  {35, 35}, {35, 55}, {40, 75}, {70, 75}};
@@ -187,6 +187,8 @@ TEST(GeometryAlgorithms, LeftAndDownPolygon)
 
     Item leftp = placer.leftPoly(item);
 
+    ASSERT_TRUE(ShapeLike::isValid(leftp).first);
+
     ASSERT_EQ(leftp.vertexCount(), leftControl.vertexCount());
 
     for(size_t i = 0; i < leftControl.vertexCount(); i++) {
@@ -195,6 +197,70 @@ TEST(GeometryAlgorithms, LeftAndDownPolygon)
     }
 
     Item downp = placer.downPoly(item);
+
+    ASSERT_TRUE(ShapeLike::isValid(downp).first);
+
+    ASSERT_EQ(downp.vertexCount(), downControl.vertexCount());
+
+    for(size_t i = 0; i < downControl.vertexCount(); i++) {
+        ASSERT_EQ(getX(downp.vertex(i)), getX(downControl.vertex(i)));
+        ASSERT_EQ(getY(downp.vertex(i)), getY(downControl.vertex(i)));
+    }
+
+    BottomLeftPlacer::Config config;
+    config.min_obj_distance = 2;
+    placer.configure( config );
+
+    Point tl = {40, 75};
+    Coord d = config.min_obj_distance;
+    tl += { 0, d};
+
+    Point bl = {42, 20};
+    bl += {0, -d};
+
+
+    leftControl = {  tl,
+                     {40, 75},
+                     {35, 55},
+                     {35, 35},
+                     {42, 20},
+                     bl,
+                     {0,  getY(bl)},
+                     {0,  getY(tl)},
+                     tl};
+
+    tl = {88, 60};
+    tl += {d, 0};
+
+    bl = {35, 35};
+    bl += {-d, 0};
+
+    downControl = {tl,
+                    {getX(tl), 0},
+                    {getX(bl), 0},
+                    bl,
+                   {35, 35},
+                    {42, 20},
+                    {80, 20},
+                    {60, 30},
+                    {65, 50},
+                   {88, 60},
+                    tl};
+
+    leftp = placer.leftPoly(item);
+
+    ASSERT_TRUE(ShapeLike::isValid(leftp).first);
+
+    ASSERT_EQ(leftp.vertexCount(), leftControl.vertexCount());
+
+    for(size_t i = 0; i < leftControl.vertexCount(); i++) {
+        ASSERT_EQ(getX(leftp.vertex(i)), getX(leftControl.vertex(i)));
+        ASSERT_EQ(getY(leftp.vertex(i)), getY(leftControl.vertex(i)));
+    }
+
+    downp = placer.downPoly(item);
+
+    ASSERT_TRUE(ShapeLike::isValid(downp).first);
 
     ASSERT_EQ(downp.vertexCount(), downControl.vertexCount());
 
@@ -205,36 +271,90 @@ TEST(GeometryAlgorithms, LeftAndDownPolygon)
 }
 
 // Simple test, does not use gmock
-TEST(GeometryAlgorithms, ArrangeRectangles)
+TEST(GeometryAlgorithms, ArrangeRectanglesTight)
 {
     using namespace binpack2d;
 
-    std::vector<Rectangle> rects = { {40, 40}, {10, 10}, {20, 20} };
-//    std::vector<Rectangle> rects = {
-//        {80, 80},
-//        {60, 90},
-//        {70, 30},
-//        {80, 60},
-//        {60, 60},
-//        {60, 40},
-//        {40, 40},
-//        {10, 10},
-//        {10, 10},
-//        {10, 10},
-//        {10, 10},
-//        {10, 10},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {20, 20} };
+    std::vector<Rectangle> rects = {
+        {80, 80},
+        {60, 90},
+        {70, 30},
+        {80, 60},
+        {60, 60},
+        {60, 40},
+        {40, 40},
+        {10, 10},
+        {10, 10},
+        {10, 10},
+        {10, 10},
+        {10, 10},
+        {5, 5},
+        {5, 5},
+        {5, 5},
+        {5, 5},
+        {5, 5},
+        {5, 5},
+        {5, 5},
+        {20, 20} };
 
     // Old MSVC2013 fucker does not recognize initializer list for structs
-    BottomLeftPlacementStrategy::Config config;
+    BottomLeftPlacer::Config config;
     config.min_obj_distance = 0;
+
+    Arranger arrange(Box(210, 250), config /*{.min_obj_distance = 10}*/ );
+
+    auto groups = arrange(rects.begin(), rects.end());
+
+    ASSERT_EQ(groups.size(), 1);
+    ASSERT_EQ(groups[0].size(), rects.size());
+
+    // check for no intersections, no containment:
+
+    for(auto result : groups) {
+        bool valid = true;
+        for(Item& r1 : result) {
+            for(Item& r2 : result) {
+                if(&r1 != &r2 ) {
+                    valid = !Item::intersects(r1, r2) || Item::touches(r1, r2);
+                    valid = (valid && !r1.isInside(r2) && !r2.isInside(r1));
+                    ASSERT_TRUE(valid);
+                }
+            }
+        }
+    }
+
+}
+
+TEST(GeometryAlgorithms, ArrangeRectanglesLoose)
+{
+    using namespace binpack2d;
+
+//    std::vector<Rectangle> rects = { {40, 40}, {10, 10}, {20, 20} };
+    std::vector<Rectangle> rects = {
+        {80, 80},
+        {60, 90},
+        {70, 30},
+        {80, 60},
+        {60, 60},
+        {60, 40},
+        {40, 40},
+        {10, 10},
+        {10, 10},
+        {10, 10},
+        {10, 10},
+        {10, 10},
+        {5, 5},
+        {5, 5},
+        {5, 5},
+        {5, 5},
+        {5, 5},
+        {5, 5},
+        {5, 5},
+        {20, 20} };
+
+    // Old MSVC2013 fucker does not recognize initializer list for structs
+    BottomLeftPlacer::Config config;
+    config.min_obj_distance = 5;
 
     Arranger arrange(Box(210, 250), config /*{.min_obj_distance = 10}*/ );
 
@@ -278,11 +398,11 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             out << svg_header;
             Rectangle rbin(bin.width(), bin.height());
             for(auto&v : rbin) setY(v, -getY(v) + 500 );
-            out << rbin << std::endl;
+            out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
             for(auto& sh : r) {
                 Item tsh = sh.get().transformedShape();
                 for(auto&v : tsh) setY(v, -getY(v) + 500 );
-                out << ShapeLike::serialize(tsh.rawShape()) << std::endl;
+                out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape()) << std::endl;
             }
             out << "\n</svg>" << std::endl;
         }
@@ -296,17 +416,22 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 void arrangeRectangles() {
     using namespace binpack2d;
 
-    BottomLeftPlacementStrategy::Config config;
-    config.min_obj_distance = 2;
+    BottomLeftPlacer::Config config;
+    config.min_obj_distance = 6;
 
-//    auto input = PRINTER_PART_POLYGONS;
-    std::vector<Rectangle> input = {
-        {80, 80},
-        {60, 90},
-        {70, 30},
-        {80, 60},
-        {60, 60},
-        {60, 40},
+    auto input = PRINTER_PART_POLYGONS;
+//    std::vector<Rectangle> input = {
+//        {200, 200},
+//        {}
+
+//    };
+//    std::vector<Rectangle> input = {
+//        {80, 80},
+//        {60, 90},
+//        {70, 30},
+//        {80, 60},
+//        {60, 60},
+//        {60, 40},
 //        {40, 40},
 //        {10, 10},
 //        {10, 10},
@@ -321,16 +446,40 @@ void arrangeRectangles() {
 //        {5, 5},
 //        {5, 5},
 //        {20, 20}
-    };
+//    };
+
+//    std::vector<Rectangle> input = {
+//        {80, 80},
+//        {110, 10},
+//        {200, 5},
+//        {80, 30},
+//        {60, 90},
+//        {70, 30},
+//        {80, 60},
+//        {60, 60},
+//        {60, 40},
+//        {40, 40},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {20, 20}
+//    };
 
     Box bin(210, 250);
     Arranger arrange(bin, config /*{.min_obj_distance = 10}*/ );
 
-    bool valid = true;
-    std::string message;
     for(auto& it : input) {
-        valid = boost::geometry::is_valid(it.rawShape(), message);
-        std::cout << message << std::endl;
+        auto ret = ShapeLike::isValid(it.rawShape());
+        std::cout << ret.second << std::endl;
     }
 
     auto result = arrange(input.begin(),

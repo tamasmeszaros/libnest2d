@@ -9,7 +9,7 @@ namespace binpack2d {
 
 template<class RawShape>
 std::ostream& operator<<(std::ostream& stream, const _Item<RawShape>& sh) {
-    stream << ShapeLike::serialize(sh.transformedShape()) << "\n";
+    stream << sh.toString() << "\n";
     return stream;
 }
 

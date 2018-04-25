@@ -6,7 +6,9 @@
 #endif
 
 #include <boost/geometry.hpp>
-#include "binpack2d.h"
+
+// this should be removed to not confuse the compiler
+// #include <binpack2d.h>
 
 namespace bp2d {
 
@@ -371,9 +373,11 @@ inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs) {
     boost::geometry::transform(cpy, sh, translate);
 }
 
-//#ifndef DISABLE_BOOST_SERIALIZE
+#ifndef DISABLE_BOOST_SERIALIZE
 template<>
-inline std::string ShapeLike::serialize(const PolygonImpl& sh) {
+inline std::string ShapeLike::serialize<binpack2d::Formats::SVG>(
+        const PolygonImpl& sh)
+{
 
     std::stringstream ss;
     std::string style = "fill: orange; stroke: black; stroke-width: 1px;";
@@ -383,12 +387,25 @@ inline std::string ShapeLike::serialize(const PolygonImpl& sh) {
 
     return ss.str();
 }
-//#endif
+#endif
 
-//#ifndef DISABLE_BOOST_UNSERIALIZE
+#ifndef DISABLE_BOOST_UNSERIALIZE
 template<>
-inline void ShapeLike::unserialize(PolygonImpl& sh, const std::string& str) {}
-//#endif
+inline void ShapeLike::unserialize<binpack2d::Formats::SVG>(
+        PolygonImpl& sh,
+        const std::string& str)
+{
+}
+#endif
+
+template<>
+inline std::pair<bool, std::string>
+ShapeLike::isValid(const PolygonImpl& sh) {
+    std::string message;
+    bool ret = boost::geometry::is_valid(sh, message);
+
+    return {ret, message};
+}
 
 }
 

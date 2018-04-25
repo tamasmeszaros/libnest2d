@@ -22,12 +22,14 @@ option(BINPACK2D_UNITTESTS "If enabled, googletest framework will be downloaded
 #    "Libraries needed to compile the test executable for binpack2d.")
 
 
-set(BINPACK2D_SRCFILES binpack2d.cpp
-    binpack2d.hpp       # Templates only
+set(BINPACK2D_SRCFILES binpack2d/binpack2d.cpp
+    binpack2d/binpack2d.hpp       # Templates only
     binpack2d.h         # Exports ready made types using template arguments
-    geometry_traits.hpp
-    geometries_io.hpp
-    common.hpp
+    binpack2d/geometry_traits.hpp
+    binpack2d/geometries_io.hpp
+    binpack2d/common.hpp
+    binpack2d/placers/bottomleft.hpp
+    binpack2d/selections/filler.hpp
     )
 
 if((NOT BINPACK2D_GEOMETRIES_TARGET) OR (BINPACK2D_GEOMETRIES_TARGET STREQUAL ""))
@@ -37,16 +39,16 @@ if((NOT BINPACK2D_GEOMETRIES_TARGET) OR (BINPACK2D_GEOMETRIES_TARGET STREQUAL ""
         find_package(Boost REQUIRED)
     endif()
 
-    add_subdirectory(clipper_backend)
+    add_subdirectory(binpack2d/clipper_backend)
 
     set(BINPACK2D_GEOMETRIES_TARGET ${CLIPPER_LIBRARIES})
 
     include_directories(BEFORE ${CLIPPER_INCLUDE_DIRS})
     include_directories(${Boost_INCLUDE_DIRS})
 
-    list(APPEND BINPACK2D_SRCFILES clipper_backend/clipper_backend.cpp
-                                   clipper_backend/clipper_backend.hpp
-                                   boost_alg.hpp)
+    list(APPEND BINPACK2D_SRCFILES binpack2d/clipper_backend/clipper_backend.cpp
+                                   binpack2d/clipper_backend/clipper_backend.hpp
+                                   binpack2d/boost_alg.hpp)
 
 else()
     message(STATUS "Binpack2D backend target is: ${BINPACK2D_GEOMETRIES_TARGET}")
@@ -54,6 +56,7 @@ endif()
 
 add_library(binpack2d STATIC ${BINPACK2D_SRCFILES} )
 target_link_libraries(binpack2d ${BINPACK2D_GEOMETRIES_TARGET})
+target_include_directories(binpack2d PUBLIC ${CMAKE_SOURCE_DIR})
 
 if(BINPACK2D_UNITTESTS)
     add_subdirectory(tests)

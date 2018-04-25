@@ -231,6 +231,11 @@ struct OrientationType {
     static const Orientation Value = Orientation::CLOCKWISE;
 };
 
+enum class Formats {
+    WKT,
+    SVG
+};
+
 class ShapeLike {
 public:
 
@@ -290,12 +295,12 @@ public:
         return "";
     }
 
-    template<class RawShape>
-    static std::string serialize(const RawShape& sh) {
-        return toString(sh);
+    template<Formats, class RawShape>
+    static std::string serialize(const RawShape& /*sh*/) {
+        throw UnimplementedException("ShapeLike::serialize()");
     }
 
-    template<class RawShape>
+    template<Formats, class RawShape>
     static void unserialize(RawShape& /*sh*/, const std::string& /*str*/) {
         throw UnimplementedException("ShapeLike::unserialize()");
     }
@@ -384,6 +389,11 @@ public:
     template<class RawShape, class RawPoint>
     static void translate(RawShape& /*sh*/, const RawPoint& /*offs*/) {
         throw UnimplementedException("ShapeLike::translate()");
+    }
+
+    template<class RawShape>
+    static std::pair<bool, std::string> isValid(const RawShape& sh) {
+        return {true ,""};
     }
 
 };

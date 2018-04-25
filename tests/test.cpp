@@ -276,9 +276,13 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         std::fstream out(loc + std::to_string(i) + ".svg", std::fstream::out);
         if(out.is_open()) {
             out << svg_header;
-            out << Rectangle(bin.width(), bin.height()) << std::endl;
-            for(auto sh : r) {
-                out << sh.get() << std::endl;
+            Rectangle rbin(bin.width(), bin.height());
+            for(auto&v : rbin) setY(v, -getY(v) + 500 );
+            out << rbin << std::endl;
+            for(auto& sh : r) {
+                Item tsh = sh.get().transformedShape();
+                for(auto&v : tsh) setY(v, -getY(v) + 500 );
+                out << ShapeLike::serialize(tsh.rawShape()) << std::endl;
             }
             out << "\n</svg>" << std::endl;
         }
@@ -303,20 +307,20 @@ void arrangeRectangles() {
         {80, 60},
         {60, 60},
         {60, 40},
-        {40, 40},
-        {10, 10},
-        {10, 10},
-        {10, 10},
-        {10, 10},
-        {10, 10},
-        {5, 5},
-        {5, 5},
-        {5, 5},
-        {5, 5},
-        {5, 5},
-        {5, 5},
-        {5, 5},
-        {20, 20}
+//        {40, 40},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {20, 20}
     };
 
     Box bin(210, 250);

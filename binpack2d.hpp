@@ -9,6 +9,9 @@
 #include <limits>
 #include <functional>
 
+#include <iostream>
+
+
 #include "geometry_traits.hpp"
 
 namespace binpack2d {
@@ -130,16 +133,34 @@ template<class RawShape>
 class _Rectangle: public _Item<RawShape> {
     RawShape sh_;
     using _Item<RawShape>::vertex;
+    using TO = Orientation;
 public:
 
     using Unit =  TCoord<RawShape>;
 
-    _Rectangle(Unit width, Unit height):
+    template<TO o = OrientationType<RawShape>::Value>
+    inline _Rectangle(Unit width, Unit height,
+                      // disable this ctor if o != CLOCKWISE
+                      std::enable_if_t< o == TO::CLOCKWISE, int> = 0 ):
         _Item<RawShape>( ShapeLike::create<RawShape>( {
                                                         {0, 0},
                                                         {0, height},
                                                         {width, height},
                                                         {width, 0},
+                                                        {0, 0}
+                                                      } ))
+    {
+    }
+
+    template<TO o = OrientationType<RawShape>::Value>
+    inline _Rectangle(Unit width, Unit height,
+                      // disable this ctor if o != COUNTER_CLOCKWISE
+                      std::enable_if_t< o == TO::COUNTER_CLOCKWISE, int> = 0 ):
+        _Item<RawShape>( ShapeLike::create<RawShape>( {
+                                                        {0, 0},
+                                                        {width, 0},
+                                                        {width, height},
+                                                        {0, height},
                                                         {0, 0}
                                                       } ))
     {
@@ -258,6 +279,10 @@ public:
         // Get initial position for item in the top right corner
         setInitialPosition(item);
 
+        if(getX(item.vertex(2)) == 70 && getY(item.vertex(2)) == 30) {
+            std::cout << "itt" << std::endl;
+        }
+
         Unit d = availableSpaceDown(item);
         bool can_move = d > min_obj_distance;
         bool can_be_packed = can_move;
@@ -277,23 +302,7 @@ public:
             }
         }
 
-        if(can_be_packed) {
-            items_.push_back(item);
-//            bool valid = true;
-
-//            for(Item& r1 : items_) {
-//                for(Item& r2 : items_) {
-//                    if(&r1 != &r2 ) {
-//                        valid = !Item::intersects(r1, r2);
-//                        valid = !r1.isInside(r2) && !r2.isInside(r1);
-
-//                        if (!valid) {
-//                            can_be_packed = false;
-//                        }
-//                    }
-//                }
-//            }
-        }
+        if(can_be_packed)  items_.push_back(item);
 
         return can_be_packed;
     }
@@ -386,16 +395,24 @@ protected:
 
 
         std::function<Coord(const Vertex&)> getCoord;
-        std::function< std::pair<Coord, bool>(const Vertex&, const Segment&) >
+        std::function< std::pair<Coord, bool>(const Segment&, const Vertex&) >
             availableDistance;
 
         if(dir == Dir::LEFT) {
             getCoord = [](const Vertex& v) { return getX(v); };
-            availableDistance = PointLike::horizontalDistance<Vertex>;
+            availableDistance = [](const Segment& s, const Vertex& v) {
+                auto ret = PointLike::horizontalDistance<Vertex>(v, s);
+                if(ret.second) ret.first = -ret.first;
+                return ret;
+            };
         }
         else {
             getCoord = [](const Vertex& v) { return getY(v); };
-            availableDistance = PointLike::verticalDistance<Vertex>;
+            availableDistance = [](const Segment& s, const Vertex& v) {
+                auto ret = PointLike::verticalDistance<Vertex>(v, s);
+                if(ret.second) ret.first = -ret.first;
+                return ret;
+            };
         }
 
         auto&& items_to_left = itemsInTheWayOf(item, dir);
@@ -414,28 +431,51 @@ protected:
         Unit m = getCoord(*leftmost_vertex_it);
 
 
-        if(!items_to_left.empty()) { // This is crazy, should be optimized...
-            for(Item& pleft : items_to_left) {
-                // For all segments in items_to_left
+        if(!items_to_left.empty()) {
+            auto first = item.begin();
+            auto next = first + 1;
+            auto endit = item.end();
 
-                assert(pleft.vertexCount() > 0);
+            // For all edges in item:
+            while(next != endit) {
+                Segment seg(*(first++), *(next++));
 
-                auto trpleft = pleft.transformedShape();
-                auto first = ShapeLike::begin(trpleft);
-                auto next = first + 1;
-                auto endit = ShapeLike::end(trpleft);
+                // for all shapes in items_to_left
+                for(Item& sh : items_to_left) {
+                    assert(sh.vertexCount() > 0);
 
-                while(next != endit) {
-                    Segment seg(*(first++), *(next++));
-                    for(auto& v : item) {   // For all vertices in item
+                    Item tsh(sh.transformedShape());
+                    for(auto& v : tsh) {   // For all vertices in item
 
-                        auto d = availableDistance(v, seg);
+                        auto d = availableDistance(seg, v);
 
                         if(d.second && d.first < m)  m = d.first;
                     }
                 }
             }
         }
+//        if(!items_to_left.empty()) { // This is crazy, should be optimized...
+//            for(Item& pleft : items_to_left) {
+//                // For all segments in items_to_left
+
+//                assert(pleft.vertexCount() > 0);
+
+//                auto trpleft = pleft.transformedShape();
+//                auto first = ShapeLike::begin(trpleft);
+//                auto next = first + 1;
+//                auto endit = ShapeLike::end(trpleft);
+
+//                while(next != endit) {
+//                    Segment seg(*(first++), *(next++));
+//                    for(auto& v : item) {   // For all vertices in item
+
+//                        auto d = availableDistance(v, seg);
+
+//                        if(d.second && d.first < m)  m = d.first;
+//                    }
+//                }
+//            }
+//        }
 
         return m;
     }

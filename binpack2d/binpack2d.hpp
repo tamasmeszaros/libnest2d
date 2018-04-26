@@ -226,7 +226,7 @@ public:
             TBin&& bin,
             PConfig&& config = PConfig() )
     {
-        impl_.packItems<TPlacer>(first, last,
+        impl_.template packItems<TPlacer>(first, last,
                                  std::forward<TBin>(bin),
                                  std::forward<PConfig>(config));
     }
@@ -273,7 +273,7 @@ public:
     template<class TIterator>
     inline PackGroup arrange(TIterator from, TIterator to) {
 
-        selector_.packItems<TPlacer>(from, to, bin_, pconfig_);
+        selector_.template packItems<TPlacer>(from, to, bin_, pconfig_);
 
         PackGroup ret;
 

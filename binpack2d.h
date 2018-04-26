@@ -6,6 +6,7 @@
 #include <binpack2d/clipper_backend/clipper_backend.hpp>
 
 #include <binpack2d/placers/bottomleft.hpp>
+#include <binpack2d/selections/firstfit.hpp>
 #include <binpack2d/selections/filler.hpp>
 
 namespace binpack2d {
@@ -19,13 +20,11 @@ using Item = _Item<PolygonImpl>;
 using Rectangle = _Rectangle<PolygonImpl>;
 
 using FillerSelection = strategies::_FillerSelection<PolygonImpl>;
+using FirstFitSelection = strategies::_FirstFitSelection<PolygonImpl>;
 using BottomLeftPlacer = strategies::_BottomLeftPlacer<PolygonImpl>;
 
-template<class PlacementStrategy = BottomLeftPlacer,
-         class SelectionStrategy = FillerSelection>
-using __Arranger = _Arranger<PolygonImpl, PlacementStrategy, SelectionStrategy>;
-
-using Arranger = __Arranger<>;
+using Arranger = _Arranger<BottomLeftPlacer, FirstFitSelection>;
+using FillArranger = _Arranger<BottomLeftPlacer, FillerSelection>;
 
 }
 

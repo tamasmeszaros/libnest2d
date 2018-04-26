@@ -30,6 +30,8 @@ set(BINPACK2D_SRCFILES binpack2d/binpack2d.cpp
     binpack2d/common.hpp
     binpack2d/placers/bottomleft.hpp
     binpack2d/selections/filler.hpp
+    binpack2d/selections/firstfit.hpp
+    binpack2d/selections/djd_heuristic.hpp
     )
 
 if((NOT BINPACK2D_GEOMETRIES_TARGET) OR (BINPACK2D_GEOMETRIES_TARGET STREQUAL ""))

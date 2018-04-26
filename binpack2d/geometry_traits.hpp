@@ -10,49 +10,51 @@
 
 namespace binpack2d {
 
+/// Getting the coordinate data type for a geometry class.
+template<class GeomClass> struct CoordType { using Type = long; };
+
+/// TCoord<GeomType> as shorthand for typename `CoordType<GeomType>::Type`.
+template<class GeomType> using TCoord = typename CoordType<GeomType>::Type;
+
+/// Getting the type of point structure used by a shape.
+template<class Shape> struct PointType { using Type = void; };
+
+/// TPoint<ShapeClass> as shorthand for `typename PointType<ShapeClass>::Type`.
+template<class Shape> using TPoint = typename PointType<Shape>::Type;
+
+/// Getting the VertexIterator type of a shape class.
+template<class Shape> struct VertexIteratorType { using Type = void; };
+
+/// Getting the const vertex iterator for a shape class.
+template<class Shape> struct VertexConstIteratorType { using Type = void; };
+
 /**
- * Getting the coordinate data type for a geometry class
+ * TVertexIterator<Shape> as shorthand for
+ * `typename VertexIteratorType<Shape>::Type`
  */
-template<class GeomClass>
-struct CoordType {
-    using Type = long;
-};
+template<class Shape>
+using TVertexIterator = typename VertexIteratorType<Shape>::Type;
 
-/// TCoord<GeomType> is now a shorthand for CoordType<GeomType>::Type
-template<class GeomType>
-using TCoord = typename CoordType<GeomType>::Type;
-
+/**
+ * \brief TVertexConstIterator<Shape> as shorthand for
+ * `typename VertexConstIteratorType<Shape>::Type`
+ */
 template<class ShapeClass>
-struct PointType {
-    using Type = void;
-};
+using TVertexConstIterator = typename VertexConstIteratorType<ShapeClass>::Type;
 
-template<class ShapeClass>
-using TPoint = typename PointType<ShapeClass>::Type;
-
-template<class ShapeClass>
-struct VertexIteratorTypeOf {
-    using Type = void;
-};
-
-template<class ShapeClass>
-struct VertexConstIteratorTypeOf {
-    using Type = void;
-};
-
-template<class ShapeClass>
-using TVertexIterator = typename VertexIteratorTypeOf<ShapeClass>::Type;
-
-template<class ShapeClass>
-using TVertexConstIterator =
-    typename VertexConstIteratorTypeOf<ShapeClass>::Type;
-
+/**
+ * \brief A point pair base class for other point pairs (segment, box, ...).
+ * \tparam RawPoint The actual point type to use.
+ */
 template<class RawPoint>
 struct PointPair {
     RawPoint p1;
     RawPoint p2;
 };
 
+/**
+ * \brief An abstraction of a box;
+ */
 template<class RawPoint>
 class _Box: PointPair<RawPoint> {
     using PointPair<RawPoint>::p1;

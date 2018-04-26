@@ -79,12 +79,12 @@ template<> struct PointType<PolygonImpl> {
 };
 
 // Type of vertex iterator used by Clipper
-template<> struct VertexIteratorTypeOf<PolygonImpl> {
+template<> struct VertexIteratorType<PolygonImpl> {
     using Type = ClipperLib::Path::iterator;
 };
 
 // Type of vertex iterator used by Clipper
-template<> struct VertexConstIteratorTypeOf<PolygonImpl> {
+template<> struct VertexConstIteratorType<PolygonImpl> {
     using Type = ClipperLib::Path::const_iterator;
 };
 

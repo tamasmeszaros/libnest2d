@@ -13,6 +13,9 @@
 
 namespace binpack2d {
 
+/**
+ * An item to be placed on a bin.
+ */
 template<class RawShape>
 class _Item {
     RawShape sh_;
@@ -126,6 +129,9 @@ public:
     }
 };
 
+/**
+ * Subclass of _Item for regular rectangle items.
+ */
 template<class RawShape>
 class _Rectangle: public _Item<RawShape> {
     RawShape sh_;
@@ -172,12 +178,14 @@ public:
     }
 };
 
+/**
+ * A wrapper interface (trait) class for any placement strategy provider.
+ */
 template<class PlacementStrategy>
 class PlacementStrategyLike {
     PlacementStrategy impl_;
 public:
     using Item = typename PlacementStrategy::Item;
-    using Unit = typename PlacementStrategy::Unit;
     using Config = typename PlacementStrategy::Config;
     using BinType = typename PlacementStrategy::BinType;
     using ItemGroup = typename PlacementStrategy::ItemGroup;
@@ -204,7 +212,10 @@ public:
 
 };
 
-// SelectionStrategy needs to have default constructor
+
+/**
+ * A wrapper interface (trait) class for any selections strategy provider.
+ */
 template<class SelectionStrategy>
 class SelectionStrategyLike {
     SelectionStrategy impl_;
@@ -238,14 +249,18 @@ public:
     }
 };
 
-template<class RawShape, class PlacementStrategy, class SelectionStrategy >
+/**
+ * The Arranger is the frontend class for the binpack2d library. It takes the
+ * input items and outputs the items with the proper transformations to be
+ * inside the provided bin.
+ */
+template<class PlacementStrategy, class SelectionStrategy >
 class _Arranger {
     using TSel = SelectionStrategyLike<SelectionStrategy>;
     TSel selector_;
 
 public:
     using TPlacer = PlacementStrategyLike<PlacementStrategy>;
-    using Item = _Item<RawShape>;
     using BinType = typename TPlacer::BinType;
     using PlacementConfig = typename TPlacer::Config;
     using SelectionConfig = typename TSel::Config;

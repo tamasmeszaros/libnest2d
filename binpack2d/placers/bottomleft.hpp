@@ -120,7 +120,7 @@ protected:
     using Coord = TCoord<Vertex>;
 
     void setInitialPosition(Item& item) {
-        auto bb = ShapeLike::boundingBox(item.rawShape());
+        auto bb = ShapeLike::boundingBox(item.transformedShape());
 
         Vertex v = { getX(bb.maxCorner()), getY(bb.minCorner()) };
 
@@ -367,13 +367,14 @@ protected:
         // the return shape
         RawShape rsh;
 
-        // reserve for all vertices plus 2 for the left horizontal wall
-        ShapeLike::reserve(rsh, finish-start+2);
+        // reserve for all vertices plus 2 for the left horizontal wall, 2 for
+        // the additional vertices for maintaning min object distance
+        ShapeLike::reserve(rsh, finish-start+4);
 
-        auto addOthers = [&rsh, finish, start, &item](){
+        /*auto addOthers = [&rsh, finish, start, &item](){
             for(size_t i = start+1; i < finish; i++)
                 ShapeLike::addVertex(rsh, item.vertex(i));
-        };
+        };*/
 
         auto reverseAddOthers = [&rsh, finish, start, &item](){
             for(size_t i = finish-1; i > start; i--)

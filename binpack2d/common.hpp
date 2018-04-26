@@ -17,6 +17,9 @@ namespace binpack2d {
 
 const auto BP2D_CONSTEXPR Pi = 2*acos(0);
 
+/**
+ * @brief The Double class
+ */
 class Double {
   double val_;
 public:
@@ -29,6 +32,9 @@ public:
 
 class Degrees;
 
+/**
+ * @brief Data type representing radians. It supports conversion to degrees.
+ */
 class Radians: public Double {
 public:
 
@@ -38,6 +44,9 @@ public:
     operator Degrees();
 };
 
+/**
+ * @brief Data type representing degrees. It supports conversion to radians.
+ */
 class Degrees: public Double {
 public:
     Degrees(double deg = Double()): Double(deg) {}

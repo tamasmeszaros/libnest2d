@@ -66,11 +66,7 @@ public:
         double free_area = 0;
         double filled_area = 0;
 
-        auto addBin = [ &placers,
-                        &free_area,
-                        &filled_area,
-                        &bin,
-                        &pconfig]()
+        auto addBin = [ &placers, &free_area, &filled_area, &bin, &pconfig]()
         {
             placers.emplace_back(bin);
             placers.back().configure(pconfig);
@@ -78,43 +74,40 @@ public:
             filled_area = 0;
         };
 
-        auto tryOneByOne = [&not_packed,
-                            &bin_area,
-                            &free_area,
-                            &filled_area](Placer& placer, double waste)
+        auto tryOneByOne =
+                [&not_packed,  &bin_area, &free_area, &filled_area]
+                (Placer& placer, double waste)
         {
             double item_area = 0;
             bool ret = false;
-            for(auto it = not_packed.begin();
-                it != not_packed.end() && !ret &&
-                        free_area - (item_area = it->get().area()) <= waste;
-                it++)
-            {
-                if(item_area > free_area || !placer.pack(*it) ) continue;
+            auto it = not_packed.begin();
 
-                free_area -= item_area;
-                filled_area = bin_area - free_area;
-                auto itmp = it++;
-                not_packed.erase(itmp);
-                ret = true;
+            while(it != not_packed.end() && !ret &&
+                  free_area - (item_area = it->get().area()) <= waste)
+            {
+                if(item_area <= free_area && placer.pack(*it) ) {
+                    free_area -= item_area;
+                    filled_area = bin_area - free_area;
+                    auto itmp = it++;
+                    not_packed.erase(itmp);
+                    ret = true;
+                } else it++;
             }
 
             return ret;
         };
 
-        auto tryGroupsOfTwo = [&not_packed,
-                               &bin_area,
-                               &free_area,
-                               &filled_area](Placer& placer, double waste)
+        auto tryGroupsOfTwo =
+                [&not_packed, &bin_area, &free_area, &filled_area]
+                (Placer& placer, double waste)
         {
             return false;
         };
 
 
-        auto tryGroupsOfThree = [&not_packed,
-                                 &bin_area,
-                                 &free_area,
-                                 &filled_area](Placer& placer, double waste)
+        auto tryGroupsOfThree =
+                [&not_packed, &bin_area, &free_area, &filled_area]
+                (Placer& placer, double waste)
         {
             return false;
         };
@@ -126,37 +119,31 @@ public:
 
             auto& placer = placers.back();
 
-            // Fille the bin up to INITIAL_FILL_PROPORTION of its capacity
-            for(auto it = not_packed.begin();
-                it != not_packed.end() && filled_area < INITIAL_FILL_AREA ;
-                it++)
-            {
-                if(placer.pack(*it)) {
-                    filled_area += it->get().area();
-                    free_area = bin_area - filled_area;
-                    auto itmp = it++;
-                    not_packed.erase(itmp);
+            {// Fille the bin up to INITIAL_FILL_PROPORTION of its capacity
+                auto it = not_packed.begin();
+
+                while(it != not_packed.end() && filled_area < INITIAL_FILL_AREA)
+                {
+                    if(placer.pack(*it)) {
+                        filled_area += it->get().area();
+                        free_area = bin_area - filled_area;
+                        auto itmp = it++;
+                        not_packed.erase(itmp);
+                    } else it++;
                 }
             }
 
             // try pieses one by one
-            while(tryOneByOne(placer, waste)) {
-                waste = 0;
-            }
+            while(tryOneByOne(placer, waste)) waste = 0;
 
             // try groups of 2 pieses
-            while(tryGroupsOfTwo(placer, waste)) {
-                waste = 0;
-            }
+            while(tryGroupsOfTwo(placer, waste)) waste = 0;
 
             // try groups of 3 pieses
-            while(tryGroupsOfThree(placer, waste)) {
-                waste = 0;
-            }
+            while(tryGroupsOfThree(placer, waste)) waste = 0;
 
-            if(waste < free_area)
-                waste += w;
-            else addBin();
+            if(waste < free_area) waste += w;
+            else if(!not_packed.empty()) addBin();
         }
 
         std::for_each(placers.begin(), placers.end(),

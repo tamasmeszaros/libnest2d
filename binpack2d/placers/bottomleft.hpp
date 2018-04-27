@@ -286,10 +286,12 @@ protected:
         return m;
     }
 
-    /// Implementation of the left (and down) polygon as described by
-    /// [López-Camacho et al. 2013]\
-    /// (http://www.cs.stir.ac.uk/~goc/papers/EffectiveHueristic2DAOR2013.pdf)
-    /// see algorithm 8 for details...
+    /**
+     * Implementation of the left (and down) polygon as described by
+     * [López-Camacho et al. 2013]\
+     * (http://www.cs.stir.ac.uk/~goc/papers/EffectiveHueristic2DAOR2013.pdf)
+     * see algorithm 8 for details...
+     */
     RawShape toWallPoly(const Item& _item, const Dir dir) const {
         // The variable names reflect the case of left polygon calculation.
         //

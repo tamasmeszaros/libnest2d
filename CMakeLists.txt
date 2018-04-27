@@ -7,7 +7,10 @@ enable_testing()
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   # Update if necessary
 #  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long ")
 endif()
+
+set(CMAKE_CXX_STANDARD 14)
 
 # Add our own cmake module path.
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/)
@@ -39,6 +42,7 @@ if((NOT BINPACK2D_GEOMETRIES_TARGET) OR (BINPACK2D_GEOMETRIES_TARGET STREQUAL ""
 
     if(NOT Boost_INCLUDE_DIRS_FOUND)
         find_package(Boost REQUIRED)
+        # TODO automatic download of boost geometry headers
     endif()
 
     add_subdirectory(binpack2d/clipper_backend)

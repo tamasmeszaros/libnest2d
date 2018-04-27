@@ -5,7 +5,7 @@ if(NOT TARGET clipper)
     if(NOT CLIPPER_FOUND)
         find_package(Subversion QUIET)
         if(Subversion_FOUND)        
-            message(STATUS "clipper no found so download")
+            message(STATUS "Clipper not found so it will be downloaded.")
             # Silently download and build the library in the build dir
 
             if (CMAKE_VERSION VERSION_LESS 3.2)
@@ -17,7 +17,7 @@ if(NOT TARGET clipper)
             include(DownloadProject)
             download_project(   PROJ                clipper_library
                                 SVN_REPOSITORY      https://svn.code.sf.net/p/polyclipping/code/trunk
-                                SOURCE_SUBDIR       cpp
+                                #SOURCE_SUBDIR       cpp
                                 INSTALL_COMMAND     ""
                                 CONFIGURE_COMMAND   "" # Not working, I will just add the source files
                                 ${UPDATE_DISCONNECTED_IF_AVAILABLE}

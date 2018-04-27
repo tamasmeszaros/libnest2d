@@ -314,6 +314,12 @@ public:
     }
 
     template<class RawShape>
+    static double area(const _Box<TPoint<RawShape>>& box)
+    {
+        return box.width() * box.height();
+    }
+
+    template<class RawShape>
     static bool intersects(const RawShape& /*sh*/, const RawShape& /*sh*/) {
         throw UnimplementedException("ShapeLike::intersects()");
         return false;

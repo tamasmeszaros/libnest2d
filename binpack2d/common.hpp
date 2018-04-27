@@ -66,6 +66,7 @@ inline bool operator==(const Radians& rads, const Degrees& deg) {
 class UnimplementedException : public std::exception
 {
     std::string info_;
+    mutable std::string basic_txt_;
 public:
 
     UnimplementedException(const std::string& info = ""): info_(info) {}

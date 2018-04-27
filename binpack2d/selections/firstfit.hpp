@@ -9,15 +9,15 @@ template<class RawShape>
 class _FirstFitSelection {
     using Container = typename std::vector<_Item<RawShape>>;
     Container store_;
-
 public:
     using Item = _Item<RawShape>;
-    using ItemRef = std::reference_wrapper<Item>;
-    using ItemGroup = std::vector<ItemRef>;
-    using PackGroup = std::vector<ItemGroup>;
     using Config = int; //dummy
 
 private:
+    using ItemRef = std::reference_wrapper<Item>;
+    using ItemGroup = std::vector<ItemRef>;
+    using PackGroup = std::vector<ItemGroup>;
+
     PackGroup packed_bins_;
 
 public:

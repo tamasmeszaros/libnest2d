@@ -10,7 +10,10 @@
 namespace {
 using namespace binpack2d;
 
-void exportSVG(Arranger::PackGroup& result, const Arranger::BinType& bin) {
+template<class Arranger,
+         class Result = typename Arranger::PackGroup,
+         class Bin = typename Arranger::BinType>
+void exportSVG(Result& result, const Bin& bin) {
 
     std::string loc = "out";
 
@@ -104,7 +107,7 @@ void arrangeRectangles() {
 //    };
 
     Box bin(210, 250);
-    Arranger arrange(bin, config /*{.min_obj_distance = 10}*/ );
+    DJDArranger arrange(bin, config /*{.min_obj_distance = 10}*/ );
 
     for(auto& it : input) {
         auto ret = ShapeLike::isValid(it.rawShape());
@@ -114,7 +117,7 @@ void arrangeRectangles() {
     auto result = arrange(input.begin(),
                           input.end());
 
-    exportSVG(result, bin);
+    exportSVG<DJDArranger>(result, bin);
 
 }
 

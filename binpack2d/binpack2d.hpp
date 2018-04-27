@@ -108,6 +108,8 @@ public:
         return cpy;
     }
 
+    inline operator RawShape() const { return transformedShape(); }
+
     inline RawShape& rawShape() BP2D_NOEXCEPT { return sh_; }
 
     inline const RawShape& rawShape() const BP2D_NOEXCEPT { return sh_; }
@@ -188,7 +190,9 @@ public:
     using Item = typename PlacementStrategy::Item;
     using Config = typename PlacementStrategy::Config;
     using BinType = typename PlacementStrategy::BinType;
-    using ItemGroup = typename PlacementStrategy::ItemGroup;
+
+    using ItemRef = std::reference_wrapper<Item>;
+    using ItemGroup = std::vector<ItemRef>;
 
     PlacementStrategyLike(const BinType& bin, const Config& config = Config()):
         impl_(bin)
@@ -220,9 +224,11 @@ template<class SelectionStrategy>
 class SelectionStrategyLike {
     SelectionStrategy impl_;
 public:
-
+    using Item = typename SelectionStrategy::Item;
     using Config = typename SelectionStrategy::Config;
-    using ItemGroup = typename SelectionStrategy::ItemGroup;
+
+    using ItemRef = std::reference_wrapper<Item>;
+    using ItemGroup = std::vector<ItemRef>;
 
     inline void configure(const Config& config) {
         impl_.configure(config);
@@ -288,7 +294,8 @@ public:
     template<class TIterator>
     inline PackGroup arrange(TIterator from, TIterator to) {
 
-        selector_.template packItems<TPlacer>(from, to, bin_, pconfig_);
+        selector_.template packItems<PlacementStrategy>(
+                    from, to, bin_, pconfig_);
 
         PackGroup ret;
 

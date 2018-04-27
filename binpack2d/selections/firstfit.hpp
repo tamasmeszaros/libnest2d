@@ -33,11 +33,13 @@ public:
                    PConfig&& pconfig = PConfig())
     {
 
+        using Placer = PlacementStrategyLike<TPlacer>;
+
         store_.clear();
         store_.reserve(last-first);
         packed_bins_.clear();
 
-        std::vector<PlacementStrategyLike<TPlacer>> placers;
+        std::vector<Placer> placers;
 
         std::copy(first, last, std::back_inserter(store_));
 
@@ -62,7 +64,7 @@ public:
         }
 
         std::for_each(placers.begin(), placers.end(),
-                      [this](auto placer){
+                      [this](Placer& placer){
             packed_bins_.push_back(placer.getItems());
         });
     }

@@ -43,4 +43,6 @@ endif()
 
 add_test(gtests bp2d_tests)
 
-
+add_executable(main main.cpp printer_parts.cpp printer_parts.h)
+target_link_libraries(main binpack2d)
+target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR})

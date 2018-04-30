@@ -203,13 +203,15 @@ public:
 
     inline bool pack(Item& item) { return impl_.pack(item); }
 
+    inline void unpackLast() { impl_.unpackLast(); }
+
     inline const BinType& bin() const { return impl_.bin(); }
 
     inline void bin(const BinType& bin) { impl_.bin(bin); }
 
     inline ItemGroup getItems() { return impl_.getItems(); }
 
-    inline double waste() const { return impl_.waste(); }
+//    inline double waste() const { return impl_.waste(); }
 
     inline void clearItems() { impl_.clearItems(); }
 

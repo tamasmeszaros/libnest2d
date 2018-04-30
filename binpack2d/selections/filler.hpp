@@ -45,6 +45,10 @@ public:
 
         std::sort(store_.begin(), store_.end(), sortfunc);
 
+        Container a = {store_.begin()+5, store_.begin() + 7};
+        a.insert(a.end(), store_.end()-10, store_.end());
+        store_ = a;
+
         PlacementStrategyLike<TPlacer> placer(bin);
         placer.configure(pconfig);
 

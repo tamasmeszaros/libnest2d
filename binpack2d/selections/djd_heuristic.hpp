@@ -86,11 +86,12 @@ public:
                 if(item_area <= free_area && placer.pack(*it) ) {
                     free_area -= item_area;
                     filled_area = bin_area - free_area;
-                    auto itmp = it++;
-                    not_packed.erase(itmp);
                     ret = true;
-                } else it++;
+                } else
+                    it++;
             }
+
+            if(ret) not_packed.erase(it);
 
             return ret;
         };
@@ -99,7 +100,64 @@ public:
                 [&not_packed, &bin_area, &free_area, &filled_area]
                 (Placer& placer, double waste)
         {
-            return false;
+            double item_area = 0, largest_area = 0, smallest_area = 0;
+            double second_largest = 0, second_smallest = 0;
+
+            if(not_packed.size() < 2)
+                return false; // No group of two items
+            else {
+                largest_area = not_packed.front().get().area();
+                auto itmp = not_packed.begin(); itmp++;
+                second_largest = itmp->get().area();
+                if( free_area - second_largest - largest_area > waste)
+                    return false; // If even the largest two items do not fill
+                    // the bin to the desired waste than we can end here.
+
+                smallest_area = not_packed.back().get().area();
+                itmp = not_packed.end(); std::advance(itmp, -2);
+                second_smallest = itmp->get().area();
+            }
+
+            bool ret = false;
+            auto it = not_packed.begin();
+            auto it2 = it;
+
+            double largest = second_largest;
+            double smallest= smallest_area;
+            while(it != not_packed.end() && !ret && free_area -
+                  (item_area = it->get().area()) - largest <= waste )
+            {
+                // if this is the last element, the next smallest is the
+                // previous item
+                auto itmp = it; std::advance(itmp, 1);
+                if(itmp == not_packed.end()) smallest = second_smallest;
+
+                if(item_area + smallest <= free_area && placer.pack(*it)) {
+                    // First would fit
+                    it2 = not_packed.begin();
+                    double item2_area = 0;
+                    while(it2 != not_packed.end() && !ret && free_area -
+                          (item2_area = it2->get().area()) - item_area <= waste)
+                    {
+                        double area_sum = item_area + item2_area;
+                        if(it != it2 &&
+                                area_sum <= free_area && placer.pack(*it2))
+                        {
+                            free_area -= area_sum;
+                            filled_area = bin_area - free_area;
+                            ret = true;
+                        } else it2++;
+                    }
+                    if(!ret) { placer.unpackLast(); it++; }
+                } else
+                    it++;
+
+                largest = largest_area;
+            }
+
+            if(ret) { not_packed.erase(it); not_packed.erase(it2); }
+
+            return ret;
         };
 
 
@@ -107,6 +165,18 @@ public:
                 [&not_packed, &bin_area, &free_area, &filled_area]
                 (Placer& placer, double waste)
         {
+//            std::array<double, 3> items_area = {0};
+
+//            std::vector< std::pair<size_t, size_t> >
+//                    largest(not_packed.size(), {0,1});
+
+//            auto getTwoLargest = [&largest]()
+
+//            auto it = not_packed.begin();
+//            while(it != not_packed.end()) {
+
+//            }
+
             return false;
         };
 

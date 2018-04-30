@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <array>
 #include <vector>
+#include <limits>
 
 #include "common.hpp"
 
@@ -133,6 +134,7 @@ public:
     static std::pair<TCoord<RawPoint>, bool> horizontalDistance(
             const RawPoint& p, const _Segment<RawPoint>& s)
     {
+        using Unit = TCoord<RawPoint>;
         auto x = PointLike::x(p), y = PointLike::y(p);
         auto x1 = PointLike::x(s.first()), y1 = PointLike::y(s.first());
         auto x2 = PointLike::x(s.second()), y2 = PointLike::y(s.second());
@@ -145,7 +147,8 @@ public:
             ret = std::min( x-x1, x -x2);
         else if( (y == y1 && y == y2) && (x < x1 && x < x2))
             ret = -std::min(x1 - x, x2 - x);
-        else if(y == y1 && y == y2) // Problem if the coords are floating point!
+        else if(std::abs(y - y1) <= std::numeric_limits<Unit>::epsilon() &&
+                std::abs(y - y2) <= std::numeric_limits<Unit>::epsilon())
             ret = 0;
         else
             ret = x - x1 + (x1 - x2)*(y1 - y)/(y1 - y2);
@@ -157,6 +160,7 @@ public:
     static std::pair<TCoord<RawPoint>, bool> verticalDistance(
             const RawPoint& p, const _Segment<RawPoint>& s)
     {
+        using Unit = TCoord<RawPoint>;
         auto x = PointLike::x(p), y = PointLike::y(p);
         auto x1 = PointLike::x(s.first()), y1 = PointLike::y(s.first());
         auto x2 = PointLike::x(s.second()), y2 = PointLike::y(s.second());
@@ -169,7 +173,8 @@ public:
             ret = std::min( y-y1, y -y2);
         else if( (x == x1 && x == x2) && (y < y1 && y < y2))
             ret = -std::min(y1 - y, y2 - y);
-        else if(x == x1 && x == x2) // Problem if the coords are floating point!
+        else if(std::abs(x - x1) <= std::numeric_limits<Unit>::epsilon() &&
+                std::abs(x - x2) <= std::numeric_limits<Unit>::epsilon())
             ret = 0;
         else
             ret = y - y1 + (y1 - y2)*(x1 - x)/(x1 - x2);

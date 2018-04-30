@@ -378,6 +378,83 @@ TEST(GeometryAlgorithms, ArrangeRectanglesLoose)
 
 }
 
+namespace {
+using namespace binpack2d;
+
+template<class Bin>
+void exportSVG(std::vector<std::reference_wrapper<Item>>& result, const Bin& bin, int idx) {
+
+    std::string loc = "out";
+
+    static std::string svg_header =
+R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg height="500" width="500" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+)raw";
+
+    int i = idx;
+    auto r = result;
+//    for(auto r : result) {
+        std::fstream out(loc + std::to_string(i) + ".svg", std::fstream::out);
+        if(out.is_open()) {
+            out << svg_header;
+            Rectangle rbin(bin.width(), bin.height());
+            for(auto&v : rbin) setY(v, -getY(v) + 500 );
+            out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
+            for(Item& sh : r) {
+                Item tsh = sh.transformedShape();
+                for(auto&v : tsh) setY(v, -getY(v) + 500 );
+                out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape()) << std::endl;
+            }
+            out << "\n</svg>" << std::endl;
+        }
+        out.close();
+
+//        i++;
+//    }
+}
+}
+
+TEST(GeometryAlgorithms, BottomLeftStressTest) {
+    using namespace binpack2d;
+
+    auto input = PRINTER_PART_POLYGONS;
+
+    Box bin(210, 250);
+    BottomLeftPlacer placer(bin);
+
+    auto it = input.begin();
+    auto next = it;
+    int i = 0;
+    while(it != input.end() && ++next != input.end()) {
+        placer.pack(*it);
+        placer.pack(*next);
+
+        auto result = placer.getItems();
+        bool valid = true;
+
+        if(result.size() == 2) {
+        Item& r1 = result[0];
+        Item& r2 = result[1];
+            valid = !Item::intersects(r1, r2) || Item::touches(r1, r2);
+            valid = (valid && !r1.isInside(r2) && !r2.isInside(r1));
+            if(!valid) {
+                std::cout << "error index: " << i << std::endl;
+                exportSVG(result, bin, i);
+            }
+//                    ASSERT_TRUE(valid);
+        } else {
+            std::cout << "something went terribly wrong!" << std::endl;
+        }
+
+
+        placer.clearItems();
+        it++;
+        i++;
+    }
+}
+
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

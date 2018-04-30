@@ -50,26 +50,24 @@ public:
 
     bool pack(Item& item) {
 
-        Unit min_obj_distance = config_.min_obj_distance;
-
         // Get initial position for item in the top right corner
         setInitialPosition(item);
 
         Unit d = availableSpaceDown(item);
-        bool can_move = d > min_obj_distance;
+        bool can_move = d > std::numeric_limits<Unit>::epsilon();
         bool can_be_packed = can_move;
         bool left = true;
 
         while(can_move) {
             if(left) { // write previous down move and go down
-                item.translate({0, -d+min_obj_distance});
+                item.translate({0, -d});
                 d = availableSpaceLeft(item);
-                can_move = d > min_obj_distance;
+                can_move = d > std::numeric_limits<Unit>::epsilon();
                 left = false;
             } else { // write previous left move and go down
-                item.translate({-d+min_obj_distance, 0});
+                item.translate({-d, 0});
                 d = availableSpaceDown(item);
-                can_move = d > min_obj_distance;
+                can_move = d > std::numeric_limits<Unit>::epsilon();
                 left = true;
             }
         }
@@ -77,8 +75,8 @@ public:
         if(can_be_packed) {
             Item trsh(item.transformedShape());
             for(auto& v : trsh) can_be_packed = can_be_packed &&
-                ((getX(v) <= (bin_.width() - config_.min_obj_distance)) &&
-                (getY(v) <= (bin_.height() - config_.min_obj_distance)) );
+                    getX(v) <= bin_.width() &&
+                    getY(v) <= bin_.height();
 
             if(can_be_packed) items_.push_back(item);
         }
@@ -86,21 +84,11 @@ public:
         return can_be_packed;
     }
 
+    void unpackLast() { items_.pop_back(); }
+
     inline ItemGroup getItems() { return items_; }
 
     inline void clearItems() { items_.clear(); }
-
-    double waste() const {
-        double bin_area = bin_.height()*bin_.width();
-        double items_area = 0;
-
-        std::for_each(items_.begin(), items_.end(),
-                      [&items_area](const Item& item) {
-            items_area += item.area();
-        });
-
-        return 1.0 - items_area/bin_area;
-    }
 
     inline RawShape leftPoly(const Item& item) const {
         return toWallPoly(item, Dir::LEFT);
@@ -129,9 +117,6 @@ protected:
 
         Coord dx = getX(bin_.maxCorner()) - getX(v);
         Coord dy = getY(bin_.maxCorner()) - getY(v);
-
-        dx -= config_.min_obj_distance;
-        dy -= config_.min_obj_distance;
 
         item.translate({dx, dy});
     }
@@ -387,62 +372,24 @@ protected:
 
         // Final polygon construction...
 
-        Vertex tl = topleft_vertex;
-        Vertex bl = bottomleft_vertex;
-        Coord d = config_.min_obj_distance;
-        if(dir == Dir::LEFT) {
-            tl += { 0, d};
-            bl += {0, -d};
-        } else {
-            tl += {d, 0};
-            bl += {-d, 0};
-        }
-
         if( Item::orientation() == Orientation::CLOCKWISE ) {
             // Clockwise polygon construction
 
-            if(d > 0) {
-                ShapeLike::addVertex(rsh, tl);
+            ShapeLike::addVertex(rsh, topleft_vertex);
 
-                if(dir == Dir::LEFT) {
-                    ShapeLike::addVertex(rsh, topleft_vertex);
-                    reverseAddOthers();
-                    ShapeLike::addVertex(rsh, bottomleft_vertex);
-                }
-                else {
-                    ShapeLike::addVertex(rsh, getX(tl), 0);
-                    ShapeLike::addVertex(rsh, getX(bl), 0);
-                }
-
-                ShapeLike::addVertex(rsh, bl);
-
-                if(dir == Dir::LEFT) {
-                    ShapeLike::addVertex(rsh, 0, getY(bl));
-                    ShapeLike::addVertex(rsh, 0, getY(tl));
-                }
-                else {
-                    ShapeLike::addVertex(rsh, bottomleft_vertex);
-                    reverseAddOthers();
-                    ShapeLike::addVertex(rsh, topleft_vertex);
-                }
-            } else {
-
-                ShapeLike::addVertex(rsh, topleft_vertex);
-
-                if(dir == Dir::LEFT) reverseAddOthers();
-                else {
-                    ShapeLike::addVertex(rsh, getX(topleft_vertex), 0);
-                    ShapeLike::addVertex(rsh, getX(bottomleft_vertex), 0);
-                }
-
-                ShapeLike::addVertex(rsh, bottomleft_vertex);
-
-                if(dir == Dir::LEFT) {
-                    ShapeLike::addVertex(rsh, 0, getY(bottomleft_vertex));
-                    ShapeLike::addVertex(rsh, 0, getY(topleft_vertex));
-                }
-                else reverseAddOthers();
+            if(dir == Dir::LEFT) reverseAddOthers();
+            else {
+                ShapeLike::addVertex(rsh, getX(topleft_vertex), 0);
+                ShapeLike::addVertex(rsh, getX(bottomleft_vertex), 0);
             }
+
+            ShapeLike::addVertex(rsh, bottomleft_vertex);
+
+            if(dir == Dir::LEFT) {
+                ShapeLike::addVertex(rsh, 0, getY(bottomleft_vertex));
+                ShapeLike::addVertex(rsh, 0, getY(topleft_vertex));
+            }
+            else reverseAddOthers();
 
         } else { // Counter clockwise polygon construction
             /*ShapeLike::addVertex(rsh, topleft_vertex);
@@ -458,7 +405,7 @@ protected:
         }
 
         // Close the polygon
-        ShapeLike::addVertex(rsh, tl);
+        ShapeLike::addVertex(rsh, topleft_vertex);
 
         return rsh;
     }

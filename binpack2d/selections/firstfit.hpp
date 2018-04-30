@@ -7,8 +7,6 @@ namespace binpack2d { namespace strategies {
 
 template<class RawShape>
 class _FirstFitSelection {
-    using Container = typename std::vector<_Item<RawShape>>;
-    Container store_;
 public:
     using Item = _Item<RawShape>;
     using Config = int; //dummy
@@ -17,7 +15,9 @@ private:
     using ItemRef = std::reference_wrapper<Item>;
     using ItemGroup = std::vector<ItemRef>;
     using PackGroup = std::vector<ItemGroup>;
+    using Container = ItemGroup;//typename std::vector<_Item<RawShape>>;
 
+    Container store_;
     PackGroup packed_bins_;
 
 public:

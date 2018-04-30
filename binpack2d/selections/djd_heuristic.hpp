@@ -17,12 +17,10 @@ public:
 
 private:
     using ItemRef = std::reference_wrapper<Item>;
-
     using ItemGroup = std::vector<ItemRef>;
-
     using PackGroup = std::vector<ItemGroup>;
+    using Container = ItemGroup;//typename std::vector<Item>;
 
-    using Container = typename std::vector<Item>;
     Container store_;
     Config config_;
     PackGroup packed_bins_;

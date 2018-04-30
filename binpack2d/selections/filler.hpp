@@ -7,11 +7,6 @@ namespace binpack2d { namespace strategies {
 
 template<class RawShape>
 class _FillerSelection {
-
-    using Container = typename std::vector<_Item<RawShape>>;
-
-    Container store_;
-
 public:
     using Item = _Item<RawShape>;
     using ItemRef = std::reference_wrapper<Item>;
@@ -20,6 +15,9 @@ public:
     using Config = int; //dummy
 
 private:
+    using Container = ItemGroup;
+
+    Container store_;
     PackGroup packed_bins_;
 
 public:

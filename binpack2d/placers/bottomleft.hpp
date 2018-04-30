@@ -1,6 +1,8 @@
 #ifndef BOTTOMLEFT_HPP
 #define BOTTOMLEFT_HPP
 
+#include <limits>
+
 #include "../binpack2d.hpp"
 
 namespace binpack2d { namespace strategies {

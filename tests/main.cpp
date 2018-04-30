@@ -31,8 +31,8 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             Rectangle rbin(bin.width(), bin.height());
             for(auto&v : rbin) setY(v, -getY(v) + 500 );
             out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
-            for(auto& sh : r) {
-                Item tsh = sh.get().transformedShape();
+            for(Item& sh : r) {
+                Item tsh = sh.transformedShape();
                 for(auto&v : tsh) setY(v, -getY(v) + 500 );
                 out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape()) << std::endl;
             }
@@ -51,6 +51,7 @@ void arrangeRectangles() {
     BottomLeftPlacer::Config config;
     config.min_obj_distance = 6;
 
+//    std::vector<PolygonImpl> input;
     auto input = PRINTER_PART_POLYGONS;
 //    std::vector<Rectangle> input = {
 //        {200, 200},
@@ -110,7 +111,7 @@ void arrangeRectangles() {
     DJDArranger arrange(bin, config /*{.min_obj_distance = 10}*/ );
 
     for(auto& it : input) {
-        auto ret = ShapeLike::isValid(it.rawShape());
+        auto ret = ShapeLike::isValid(it/*.rawShape()*/);
         std::cout << ret.second << std::endl;
     }
 

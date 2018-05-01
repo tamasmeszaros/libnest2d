@@ -54,20 +54,20 @@ public:
         setInitialPosition(item);
 
         Unit d = availableSpaceDown(item);
-        bool can_move = d > std::numeric_limits<Unit>::epsilon();
+        bool can_move = d > 1 /*std::numeric_limits<Unit>::epsilon()*/;
         bool can_be_packed = can_move;
         bool left = true;
 
         while(can_move) {
             if(left) { // write previous down move and go down
-                item.translate({0, -d});
+                item.translate({0, -d+1});
                 d = availableSpaceLeft(item);
-                can_move = d > std::numeric_limits<Unit>::epsilon();
+                can_move = d > 1/*std::numeric_limits<Unit>::epsilon()*/;
                 left = false;
             } else { // write previous left move and go down
-                item.translate({-d, 0});
+                item.translate({-d+1, 0});
                 d = availableSpaceDown(item);
-                can_move = d > std::numeric_limits<Unit>::epsilon();
+                can_move = d > 1/*std::numeric_limits<Unit>::epsilon()*/;
                 left = true;
             }
         }

@@ -9,19 +9,18 @@
 
 namespace {
 using namespace binpack2d;
+using ItemGroup = std::vector<std::reference_wrapper<Item>>;
+using PackGroup = std::vector<ItemGroup>;
 
-template<class Arranger,
-         int SCALE,
-         class Result = typename Arranger::PackGroup,
-         class Bin = typename Arranger::BinType>
-void exportSVG(Result& result, const Bin& bin) {
+template<int SCALE, class Bin >
+void exportSVG(PackGroup& result, const Bin& bin) {
 
     std::string loc = "out";
 
     static std::string svg_header =
 R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
-<svg height="50000" width="50000" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg height="500" width="500" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 )raw";
 
     int i = 0;
@@ -30,11 +29,17 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         if(out.is_open()) {
             out << svg_header;
             Rectangle rbin(bin.width(), bin.height());
-            for(auto&v : rbin) setY(v, -getY(v) + 500*SCALE );
+            for(auto&v : rbin) {
+                setY(v, -getY(v)/SCALE + 500 );
+                setX(v, getX(v)/SCALE);
+            }
             out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
             for(Item& sh : r) {
                 Item tsh = sh.transformedShape();
-                for(auto&v : tsh) setY(v, -getY(v) + 500*SCALE );
+                for(auto&v : tsh) {
+                    setY(v, -getY(v)/SCALE + 500);
+                    setX(v, getX(v)/SCALE);
+                }
                 out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape()) << std::endl;
             }
             out << "\n</svg>" << std::endl;
@@ -46,14 +51,14 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 }
 
 template< int SCALE, class Bin>
-void exportSVG(std::vector<std::reference_wrapper<Item>>& result, const Bin& bin, int idx) {
+void exportSVG(ItemGroup& result, const Bin& bin, int idx) {
 
     std::string loc = "out";
 
     static std::string svg_header =
 R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
-<svg height="50000" width="50000" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg height="500" width="500" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 )raw";
 
     int i = idx;
@@ -63,11 +68,17 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         if(out.is_open()) {
             out << svg_header;
             Rectangle rbin(bin.width(), bin.height());
-            for(auto&v : rbin) setY(v, -getY(v) + 500*SCALE );
+            for(auto&v : rbin) {
+                setY(v, -getY(v)/SCALE + 500 );
+                setX(v, getX(v)/SCALE);
+            }
             out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
             for(Item& sh : r) {
                 Item tsh = sh.transformedShape();
-                for(auto&v : tsh) setY(v, -getY(v) + 500*SCALE );
+                for(auto&v : tsh) {
+                    setY(v, -getY(v)/SCALE + 500);
+                    setX(v, getX(v)/SCALE);
+                }
                 out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape()) << std::endl;
             }
             out << "\n</svg>" << std::endl;
@@ -141,8 +152,8 @@ void arrangeRectangles() {
 //    std::vector<PolygonImpl> input;
     auto input = PRINTER_PART_POLYGONS;
 
-    const int SCALE = 100;
-    auto scaler = [SCALE](Item& item) {
+    const int SCALE = 1000;
+    auto scaler = [&SCALE](Item& item) {
         for(auto& v : item) { setX(v, SCALE*getX(v)); setY(v, SCALE*getY(v));}
     };
 
@@ -231,12 +242,12 @@ void arrangeRectangles() {
     auto result = arrange(input.begin(),
                           input.end());
 
-    exportSVG<DJDArranger, SCALE>(result, bin);
+    exportSVG<SCALE>(result, bin);
 
 }
 
-int main(int argc, char **argv) {
-//    arrangeRectangles();
-    findDegenerateCase();
+int main(void /*int argc, char **argv*/) {
+    arrangeRectangles();
+//    findDegenerateCase();
     return EXIT_SUCCESS;
 }

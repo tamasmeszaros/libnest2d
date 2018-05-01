@@ -45,8 +45,8 @@ public:
 
         std::sort(store_.begin(), store_.end(), sortfunc);
 
-        Container a = {store_.begin()+5, store_.begin() + 7};
-        a.insert(a.end(), store_.end()-10, store_.end());
+        Container a = {store_[0], store_[1], store_[4], store_[5] };
+//        a.insert(a.end(), store_.end()-10, store_.end());
         store_ = a;
 
         PlacementStrategyLike<TPlacer> placer(bin);
@@ -57,7 +57,7 @@ public:
             if(!placer.pack(item))  {
                 packed_bins_.push_back(placer.getItems());
                 placer.clearItems();
-                was_packed = false;
+                was_packed = placer.pack(item);
             } else was_packed = true;
         }
 

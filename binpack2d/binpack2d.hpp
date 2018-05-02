@@ -106,6 +106,12 @@ public:
         tr_cache_valid_ = false;
     }
 
+    inline Radians rotation() const BP2D_NOEXCEPT { return rotation_; }
+
+    inline TPoint<RawShape> translation() const BP2D_NOEXCEPT {
+        return offset_;
+    }
+
     inline RawShape transformedShape() const {
         if(tr_cache_valid_) return tr_cache_;
 

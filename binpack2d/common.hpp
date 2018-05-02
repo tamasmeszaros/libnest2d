@@ -45,11 +45,11 @@ class Degrees;
  */
 class Radians: public Double {
 public:
-
     Radians(double rads = Double() ): Double(rads) {}
     Radians(const Degrees& degs);
 
     operator Degrees();
+    inline double toDegrees();
 };
 
 /**
@@ -59,6 +59,7 @@ class Degrees: public Double {
 public:
     Degrees(double deg = Double()): Double(deg) {}
     Degrees(const Radians& rads): Double( rads * 180/Pi ) {}
+    inline double toRadians() { return Radians(*this);}
 };
 
 inline bool operator==(const Degrees& deg, const Radians& rads) {
@@ -81,8 +82,6 @@ public:
 
     virtual char const * what() const BP2D_NOEXCEPT;
 };
-
-
 
 }
 #endif // BP2D_CONFIG_HPP

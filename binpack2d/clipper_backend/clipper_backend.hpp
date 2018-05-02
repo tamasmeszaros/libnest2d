@@ -95,25 +95,25 @@ template<> struct CountourType<PolygonImpl> {
 
 // Tell binpack2d how to extract the X coord from a ClipperPoint object
 template<>
-inline TCoord<PointImpl> PointLike::x<PointImpl>(const PointImpl& p) {
+inline TCoord<PointImpl> PointLike::x(const PointImpl& p) {
     return p.X;
 }
 
 // Tell binpack2d how to extract the Y coord from a ClipperPoint object
 template<>
-inline TCoord<PointImpl> PointLike::y<PointImpl>(const PointImpl& p) {
+inline TCoord<PointImpl> PointLike::y(const PointImpl& p) {
     return p.Y;
 }
 
 // Tell binpack2d how to extract the X coord from a ClipperPoint object
 template<>
-inline TCoord<PointImpl>& PointLike::x<PointImpl>(PointImpl& p) {
+inline TCoord<PointImpl>& PointLike::x(PointImpl& p) {
     return p.X;
 }
 
 // Tell binpack2d how to extract the Y coord from a ClipperPoint object
 template<>
-inline TCoord<PointImpl>& PointLike::y<PointImpl>(PointImpl& p) {
+inline TCoord<PointImpl>& PointLike::y(PointImpl& p) {
     return p.Y;
 }
 

@@ -160,6 +160,7 @@ TEST(GeometryAlgorithms, IsPointInsidePolygon) {
 TEST(GeometryAlgorithms, LeftAndDownPolygon)
 {
     using namespace binpack2d;
+    using namespace binpack2d;
 
     Box bin(100, 100);
     BottomLeftPlacer placer(bin);
@@ -187,8 +188,7 @@ TEST(GeometryAlgorithms, LeftAndDownPolygon)
 
     Item leftp = placer.leftPoly(item);
 
-    ASSERT_TRUE(ShapeLike::isValid(leftp).first);
-
+    ASSERT_TRUE(ShapeLike::isValid(leftp.rawShape()).first);
     ASSERT_EQ(leftp.vertexCount(), leftControl.vertexCount());
 
     for(size_t i = 0; i < leftControl.vertexCount(); i++) {
@@ -198,70 +198,7 @@ TEST(GeometryAlgorithms, LeftAndDownPolygon)
 
     Item downp = placer.downPoly(item);
 
-    ASSERT_TRUE(ShapeLike::isValid(downp).first);
-
-    ASSERT_EQ(downp.vertexCount(), downControl.vertexCount());
-
-    for(size_t i = 0; i < downControl.vertexCount(); i++) {
-        ASSERT_EQ(getX(downp.vertex(i)), getX(downControl.vertex(i)));
-        ASSERT_EQ(getY(downp.vertex(i)), getY(downControl.vertex(i)));
-    }
-
-    BottomLeftPlacer::Config config;
-    config.min_obj_distance = 2;
-    placer.configure( config );
-
-    Point tl = {40, 75};
-    Coord d = config.min_obj_distance;
-    tl += { 0, d};
-
-    Point bl = {42, 20};
-    bl += {0, -d};
-
-
-    leftControl = {  tl,
-                     {40, 75},
-                     {35, 55},
-                     {35, 35},
-                     {42, 20},
-                     bl,
-                     {0,  getY(bl)},
-                     {0,  getY(tl)},
-                     tl};
-
-    tl = {88, 60};
-    tl += {d, 0};
-
-    bl = {35, 35};
-    bl += {-d, 0};
-
-    downControl = {tl,
-                    {getX(tl), 0},
-                    {getX(bl), 0},
-                    bl,
-                   {35, 35},
-                    {42, 20},
-                    {80, 20},
-                    {60, 30},
-                    {65, 50},
-                   {88, 60},
-                    tl};
-
-    leftp = placer.leftPoly(item);
-
-    ASSERT_TRUE(ShapeLike::isValid(leftp).first);
-
-    ASSERT_EQ(leftp.vertexCount(), leftControl.vertexCount());
-
-    for(size_t i = 0; i < leftControl.vertexCount(); i++) {
-        ASSERT_EQ(getX(leftp.vertex(i)), getX(leftControl.vertex(i)));
-        ASSERT_EQ(getY(leftp.vertex(i)), getY(leftControl.vertex(i)));
-    }
-
-    downp = placer.downPoly(item);
-
-    ASSERT_TRUE(ShapeLike::isValid(downp).first);
-
+    ASSERT_TRUE(ShapeLike::isValid(downp.rawShape()).first);
     ASSERT_EQ(downp.vertexCount(), downControl.vertexCount());
 
     for(size_t i = 0; i < downControl.vertexCount(); i++) {
@@ -398,12 +335,20 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         std::fstream out(loc + std::to_string(i) + ".svg", std::fstream::out);
         if(out.is_open()) {
             out << svg_header;
-            Rectangle rbin(bin.width(), bin.height());
-            for(auto&v : rbin) setY(v, -getY(v) + 500 );
+            Item rbin( Rectangle(bin.width(), bin.height()) );
+            for(unsigned i = 0; i < rbin.vertexCount(); i++) {
+                auto v = rbin.vertex(i);
+                setY(v, -getY(v) + 500 );
+                rbin.setVertex(i, v);
+            }
             out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
             for(Item& sh : r) {
                 Item tsh = sh.transformedShape();
-                for(auto&v : tsh) setY(v, -getY(v) + 500 );
+                for(unsigned i = 0; i < tsh.vertexCount(); i++) {
+                    auto v = tsh.vertex(i);
+                    setY(v, -getY(v) + 500 );
+                    tsh.setVertex(i, v);
+                }
                 out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape()) << std::endl;
             }
             out << "\n</svg>" << std::endl;

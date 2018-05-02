@@ -188,41 +188,48 @@ public:
 
         addBin();
 
-        while(!not_packed.empty()) {
+        if(std::all_of(not_packed.begin(),
+                       not_packed.end(),
+                       [bin_area](Item& it){ return it.area() < bin_area; }))
+        {
+            while(!not_packed.empty()) {
 
-            auto& placer = placers.back();
+                auto& placer = placers.back();
 
-            {// Fill the bin up to INITIAL_FILL_PROPORTION of its capacity
-                auto it = not_packed.begin();
+                {// Fill the bin up to INITIAL_FILL_PROPORTION of its capacity
+                    auto it = not_packed.begin();
 
-                while(it != not_packed.end() && filled_area < INITIAL_FILL_AREA)
-                {
-                    if(placer.pack(*it)) {
-                        filled_area += it->get().area();
-                        free_area = bin_area - filled_area;
-                        auto itmp = it++;
-                        not_packed.erase(itmp);
-                    } else it++;
+                    while(it != not_packed.end() &&
+                          filled_area < INITIAL_FILL_AREA)
+                    {
+                        if(placer.pack(*it)) {
+                            filled_area += it->get().area();
+                            free_area = bin_area - filled_area;
+                            auto itmp = it++;
+                            not_packed.erase(itmp);
+                        } else it++;
+                    }
                 }
+
+                // try pieses one by one
+                while(tryOneByOne(placer, waste)) waste = 0;
+
+                // try groups of 2 pieses
+                while(tryGroupsOfTwo(placer, waste)) waste = 0;
+
+                // try groups of 3 pieses
+                while(tryGroupsOfThree(placer, waste)) waste = 0;
+
+                if(waste < free_area) waste += w;
+                else if(!not_packed.empty()) addBin();
             }
 
-            // try pieses one by one
-            while(tryOneByOne(placer, waste)) waste = 0;
 
-            // try groups of 2 pieses
-            while(tryGroupsOfTwo(placer, waste)) waste = 0;
-
-            // try groups of 3 pieses
-            while(tryGroupsOfThree(placer, waste)) waste = 0;
-
-            if(waste < free_area) waste += w;
-            else if(!not_packed.empty()) addBin();
+            std::for_each(placers.begin(), placers.end(),
+                          [this](Placer& placer){
+                packed_bins_.push_back(placer.getItems());
+            });
         }
-
-        std::for_each(placers.begin(), placers.end(),
-                      [this](Placer& placer){
-            packed_bins_.push_back(placer.getItems());
-        });
     }
 };
 

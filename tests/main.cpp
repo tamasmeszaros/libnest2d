@@ -28,17 +28,21 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         std::fstream out(loc + std::to_string(i) + ".svg", std::fstream::out);
         if(out.is_open()) {
             out << svg_header;
-            Rectangle rbin(bin.width(), bin.height());
-            for(auto&v : rbin) {
+            Item rbin( Rectangle(bin.width(), bin.height()) );
+            for(unsigned i = 0; i < rbin.vertexCount(); i++) {
+                auto v = rbin.vertex(i);
                 setY(v, -getY(v)/SCALE + 500 );
                 setX(v, getX(v)/SCALE);
+                rbin.setVertex(i, v);
             }
             out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
             for(Item& sh : r) {
                 Item tsh = sh.transformedShape();
-                for(auto&v : tsh) {
+                for(unsigned i = 0; i < tsh.vertexCount(); i++) {
+                    auto v = tsh.vertex(i);
                     setY(v, -getY(v)/SCALE + 500);
                     setX(v, getX(v)/SCALE);
+                    tsh.setVertex(i, v);
                 }
                 out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape()) << std::endl;
             }
@@ -67,17 +71,21 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         std::fstream out(loc + std::to_string(i) + ".svg", std::fstream::out);
         if(out.is_open()) {
             out << svg_header;
-            Rectangle rbin(bin.width(), bin.height());
-            for(auto&v : rbin) {
+            Item rbin( Rectangle(bin.width(), bin.height()) );
+            for(unsigned i = 0; i < rbin.vertexCount(); i++) {
+                auto v = rbin.vertex(i);
                 setY(v, -getY(v)/SCALE + 500 );
                 setX(v, getX(v)/SCALE);
+                rbin.setVertex(i, v);
             }
             out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
             for(Item& sh : r) {
                 Item tsh = sh.transformedShape();
-                for(auto&v : tsh) {
+                for(unsigned i = 0; i < tsh.vertexCount(); i++) {
+                    auto v = tsh.vertex(i);
                     setY(v, -getY(v)/SCALE + 500);
                     setX(v, getX(v)/SCALE);
+                    tsh.setVertex(i, v);
                 }
                 out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape()) << std::endl;
             }
@@ -97,7 +105,11 @@ void findDegenerateCase() {
     auto input = PRINTER_PART_POLYGONS;
 
     auto scaler = [](Item& item) {
-        for(auto& v : item) { setX(v, 100*getX(v)); setY(v, 100*getY(v));}
+        for(unsigned i = 0; i < item.vertexCount(); i++) {
+            auto v = item.vertex(i);
+            setX(v, 100*getX(v)); setY(v, 100*getY(v));
+            item.setVertex(i, v);
+        }
     };
 
     auto cmp = [](const Item& t1, const Item& t2) {
@@ -153,8 +165,12 @@ void arrangeRectangles() {
     auto input = PRINTER_PART_POLYGONS;
 
     const int SCALE = 1000;
-    auto scaler = [&SCALE](Item& item) {
-        for(auto& v : item) { setX(v, SCALE*getX(v)); setY(v, SCALE*getY(v));}
+    auto scaler = [](Item& item) {
+        for(unsigned i = 0; i < item.vertexCount(); i++) {
+            auto v = item.vertex(i);
+            setX(v, 100*getX(v)); setY(v, 100*getY(v));
+            item.setVertex(i, v);
+        }
     };
 
     std::for_each(input.begin(), input.end(), scaler);

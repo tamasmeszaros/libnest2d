@@ -25,6 +25,8 @@ class _Item {
     // For caching the transformation
     mutable RawShape tr_cache_;
     mutable bool tr_cache_valid_ = false;
+    mutable double area_cache_ = 0;
+    mutable bool area_cache_valid_ = false;
 public:
 
     using ShapeType = RawShape;
@@ -42,20 +44,12 @@ public:
 
     inline std::string toString() const { return ShapeLike::toString(sh_); }
 
-    inline TVertexIterator<RawShape> begin() {
-        return ShapeLike::begin(sh_);
-    }
-
     inline TVertexConstIterator<RawShape> begin() const {
         return ShapeLike::cbegin(sh_);
     }
 
     inline TVertexConstIterator<RawShape> cbegin() const {
         return ShapeLike::cbegin(sh_);
-    }
-
-    inline TVertexIterator<RawShape> end() {
-        return ShapeLike::end(sh_);
     }
 
     inline TVertexConstIterator<RawShape> end() const {
@@ -70,8 +64,22 @@ public:
         return ShapeLike::vertex(sh_, idx);
     }
 
+    inline void setVertex(unsigned long idx,
+                          const TPoint<RawShape>& v ) BP2D_NOEXCEPT
+    {
+        invalidateCache();
+        ShapeLike::vertex(sh_, idx) = v;
+    }
+
     inline double area() const {
-        return ShapeLike::area(sh_);
+        double ret ;
+        if(area_cache_valid_) ret = area_cache_;
+        else {
+            ret = ShapeLike::area(sh_);
+            area_cache_ = ret;
+            area_cache_valid_ = true;
+        }
+        return ret;
     }
 
     inline unsigned long vertexCount() const BP2D_NOEXCEPT {
@@ -111,11 +119,9 @@ public:
 
     inline operator RawShape() const { return transformedShape(); }
 
-    inline RawShape& rawShape() BP2D_NOEXCEPT { return sh_; }
-
     inline const RawShape& rawShape() const BP2D_NOEXCEPT { return sh_; }
 
-    inline void reset() BP2D_NOEXCEPT {
+    inline void resetTransformation() BP2D_NOEXCEPT {
         has_offset_ = false; has_rotation_ = false;
     }
 
@@ -129,6 +135,13 @@ public:
     inline static bool touches(const _Item& sh1, const _Item& sh2) {
         return ShapeLike::touches(sh1.transformedShape(),
                                   sh2.transformedShape());
+    }
+
+private:
+
+    inline void invalidateCache() const BP2D_NOEXCEPT {
+        tr_cache_valid_ = false;
+        area_cache_valid_ = false;
     }
 };
 
@@ -212,8 +225,6 @@ public:
     inline void bin(const BinType& bin) { impl_.bin(bin); }
 
     inline ItemGroup getItems() { return impl_.getItems(); }
-
-//    inline double waste() const { return impl_.waste(); }
 
     inline void clearItems() { impl_.clearItems(); }
 

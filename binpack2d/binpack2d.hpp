@@ -35,9 +35,9 @@ public:
         return OrientationType<RawShape>::Value;
     }
 
-    inline _Item(const RawShape& sh): sh_(sh) {}
+    explicit inline _Item(const RawShape& sh): sh_(sh) {}
 
-    inline _Item(RawShape&& sh): sh_(std::move(sh)) {}
+    explicit inline _Item(RawShape&& sh): sh_(std::move(sh)) {}
 
     inline _Item(const std::initializer_list< TPoint<RawShape> >& il):
         sh_(ShapeLike::create<RawShape>(il)) {}
@@ -464,10 +464,14 @@ private:
             pg.push_back({});
             pg[i].reserve(items.size());
 
-            unsigned idx = 0;
             for(Item& itemA : items) {
                 auto it = from;
-                while(it != to && &(*it) != &itemA) {it++;  idx++; }
+                unsigned idx = 0;
+                while(it != to) {
+                    Item& itemB = *it;
+                    if(&itemB == &itemA) break;
+                    it++; idx++;
+                }
                 pg[i].emplace_back(idx, itemA);
             }
         }

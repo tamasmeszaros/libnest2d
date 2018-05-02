@@ -186,7 +186,7 @@ TEST(GeometryAlgorithms, LeftAndDownPolygon)
                         {65, 50},
                         {88, 60}};
 
-    Item leftp = placer.leftPoly(item);
+    Item leftp(placer.leftPoly(item));
 
     ASSERT_TRUE(ShapeLike::isValid(leftp.rawShape()).first);
     ASSERT_EQ(leftp.vertexCount(), leftControl.vertexCount());
@@ -196,7 +196,7 @@ TEST(GeometryAlgorithms, LeftAndDownPolygon)
         ASSERT_EQ(getY(leftp.vertex(i)), getY(leftControl.vertex(i)));
     }
 
-    Item downp = placer.downPoly(item);
+    Item downp(placer.downPoly(item));
 
     ASSERT_TRUE(ShapeLike::isValid(downp.rawShape()).first);
     ASSERT_EQ(downp.vertexCount(), downControl.vertexCount());
@@ -343,7 +343,7 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             }
             out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
             for(Item& sh : r) {
-                Item tsh = sh.transformedShape();
+                Item tsh(sh.transformedShape());
                 for(unsigned i = 0; i < tsh.vertexCount(); i++) {
                     auto v = tsh.vertex(i);
                     setY(v, -getY(v) + 500 );

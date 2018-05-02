@@ -37,7 +37,7 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             }
             out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
             for(Item& sh : r) {
-                Item tsh = sh.transformedShape();
+                Item tsh(sh.transformedShape());
                 for(unsigned i = 0; i < tsh.vertexCount(); i++) {
                     auto v = tsh.vertex(i);
                     setY(v, -getY(v)/SCALE + 500);
@@ -80,7 +80,7 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             }
             out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
             for(Item& sh : r) {
-                Item tsh = sh.transformedShape();
+                Item tsh(sh.transformedShape());
                 for(unsigned i = 0; i < tsh.vertexCount(); i++) {
                     auto v = tsh.vertex(i);
                     setY(v, -getY(v)/SCALE + 500);

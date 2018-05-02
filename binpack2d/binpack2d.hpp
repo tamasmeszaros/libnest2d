@@ -352,7 +352,8 @@ private:
              // a type compatible with the binpack2d::_Item template.
              // This way we can use references to input elements as they will
              // have to exist for the lifetime of this call.
-             class T = std::enable_if_t< std::is_base_of<TPItem, IT>::value, IT>
+             class T = std::enable_if_t< std::is_convertible<TPItem, IT>::value,
+                                         IT>
              >
     inline PackGroup _arrange(TIterator from, TIterator to, bool = false) {
 
@@ -371,7 +372,8 @@ private:
 
     template<class TIterator,
              class IT = remove_cvref_t<typename TIterator::value_type>,
-             class T = std::enable_if_t<!std::is_base_of<TPItem, IT>::value, IT>
+             class T = std::enable_if_t<!std::is_convertible<TPItem, IT>::value,
+                                        IT>
              >
     inline PackGroup _arrange(TIterator from, TIterator to, int = false)
     {
@@ -399,7 +401,8 @@ private:
              // a type compatible with the binpack2d::_Item template.
              // This way we can use references to input elements as they will
              // have to exist for the lifetime of this call.
-             class T = std::enable_if_t< std::is_base_of<TPItem, IT>::value, IT>
+             class T = std::enable_if_t< std::is_convertible<TPItem, IT>::value,
+                                         IT>
              >
     inline IndexedPackGroup _arrangeIndexed(TIterator from,
                                             TIterator to,
@@ -414,7 +417,8 @@ private:
 
     template<class TIterator,
              class IT = remove_cvref_t<typename TIterator::value_type>,
-             class T = std::enable_if_t<!std::is_base_of<TPItem, IT>::value, IT>
+             class T = std::enable_if_t<!std::is_convertible<TPItem, IT>::value,
+                                        IT>
              >
     inline IndexedPackGroup _arrangeIndexed(TIterator from,
                                             TIterator to,

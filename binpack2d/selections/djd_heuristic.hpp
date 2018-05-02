@@ -3,27 +3,28 @@
 
 #include <list>
 #include "../binpack2d.hpp"
+#include "selection_boilerplate.hpp"
 
 namespace binpack2d { namespace strategies {
 
 template<class RawShape>
-class _DJDHeuristic {
+class _DJDHeuristic: public SelectionBoilerplate<RawShape> {
+    using Base = SelectionBoilerplate<RawShape>;
 public:
-    using Item = _Item<RawShape>;
+    using typename Base::Item;
+    using typename Base::ItemRef;
 
     struct Config {
         unsigned max_bins;
     };
 
 private:
-    using ItemRef = std::reference_wrapper<Item>;
-    using ItemGroup = std::vector<ItemRef>;
-    using PackGroup = std::vector<ItemGroup>;
-    using Container = ItemGroup;//typename std::vector<Item>;
+    using Base::packed_bins_;
+    using ItemGroup = typename Base::ItemGroup;
 
+    using Container = ItemGroup;//typename std::vector<Item>;
     Container store_;
     Config config_;
-    PackGroup packed_bins_;
 
     static const double INITIAL_FILL_PROPORTION;
 
@@ -63,8 +64,10 @@ public:
 
         double free_area = 0;
         double filled_area = 0;
+        double waste = 0;
 
-        auto addBin = [ &placers, &free_area, &filled_area, &bin, &pconfig]()
+        // Will use a subroutine to add a new bin
+        auto addBin = [&placers, &free_area, &filled_area, &bin, &pconfig]()
         {
             placers.emplace_back(bin);
             placers.back().configure(pconfig);
@@ -72,7 +75,7 @@ public:
             filled_area = 0;
         };
 
-        auto tryOneByOne =
+        auto tryOneByOne = // Subroutine to try adding items one by one.
                 [&not_packed,  &bin_area, &free_area, &filled_area]
                 (Placer& placer, double waste)
         {
@@ -96,7 +99,7 @@ public:
             return ret;
         };
 
-        auto tryGroupsOfTwo =
+        auto tryGroupsOfTwo = // Try adding groups of two items into the bin.
                 [&not_packed, &bin_area, &free_area, &filled_area]
                 (Placer& placer, double waste)
         {
@@ -142,13 +145,16 @@ public:
                         double area_sum = item_area + item2_area;
                         if(it != it2 &&
                                 area_sum <= free_area && placer.pack(*it2))
-                        {
+                        { // Second fits as well
                             free_area -= area_sum;
                             filled_area = bin_area - free_area;
                             ret = true;
                         } else it2++;
                     }
-                    if(!ret) { placer.unpackLast(); it++; }
+                    if(!ret) {
+                        // No second item can be placed, so we have to backtrack
+                        placer.unpackLast(); it++;
+                    }
                 } else
                     it++;
 
@@ -161,7 +167,7 @@ public:
         };
 
 
-        auto tryGroupsOfThree =
+        auto tryGroupsOfThree = // Try adding groups of three items.
                 [&not_packed, &bin_area, &free_area, &filled_area]
                 (Placer& placer, double waste)
         {
@@ -182,12 +188,11 @@ public:
 
         addBin();
 
-        double waste = 0;
         while(!not_packed.empty()) {
 
             auto& placer = placers.back();
 
-            {// Fille the bin up to INITIAL_FILL_PROPORTION of its capacity
+            {// Fill the bin up to INITIAL_FILL_PROPORTION of its capacity
                 auto it = not_packed.begin();
 
                 while(it != not_packed.end() && filled_area < INITIAL_FILL_AREA)
@@ -219,16 +224,14 @@ public:
             packed_bins_.push_back(placer.getItems());
         });
     }
-
-    inline size_t binCount() const { return packed_bins_.size(); }
-
-    inline ItemGroup itemsForBin(size_t binIndex) {
-        assert(binIndex < packed_bins_.size());
-        return packed_bins_[binIndex];
-    }
-
 };
 
+/*
+ * The initial fill proportion suggested by
+ * [López-Camacho et al. 2013]\
+ * (http://www.cs.stir.ac.uk/~goc/papers/EffectiveHueristic2DAOR2013.pdf)
+ * is one third of the area of bin.
+ */
 template<class RawShape>
 const double _DJDHeuristic<RawShape>::INITIAL_FILL_PROPORTION = 1.0/3.0;
 

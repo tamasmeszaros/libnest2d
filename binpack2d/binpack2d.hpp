@@ -27,6 +27,8 @@ class _Item {
     mutable bool tr_cache_valid_ = false;
 public:
 
+    using ShapeType = RawShape;
+
     static BP2D_CONSTEXPR Orientation orientation() {
         return OrientationType<RawShape>::Value;
     }
@@ -254,7 +256,28 @@ public:
     inline ItemGroup itemsForBin(size_t binIndex) {
         return impl_.itemsForBin(binIndex);
     }
+
+    inline const ItemGroup itemsForBin(size_t binIndex) const {
+        return impl_.itemsForBin(binIndex);
+    }
 };
+
+template<class RawShape>
+using _PackGroup = std::vector<
+                        std::vector<
+                            std::reference_wrapper<_Item<RawShape>>
+                        >
+                   >;
+
+template<class RawShape>
+using _IndexedPackGroup = std::vector<
+                               std::vector<
+                                   std::pair<
+                                       unsigned,
+                                       std::reference_wrapper<_Item<RawShape>>
+                                   >
+                               >
+                          >;
 
 /**
  * The Arranger is the frontend class for the binpack2d library. It takes the
@@ -268,11 +291,16 @@ class _Arranger {
 
 public:
     using Item = typename PlacementStrategy::Item;
+    using ItemRef = std::reference_wrapper<Item>;
     using TPlacer = PlacementStrategyLike<PlacementStrategy>;
     using BinType = typename TPlacer::BinType;
     using PlacementConfig = typename TPlacer::Config;
     using SelectionConfig = typename TSel::Config;
-    using PackGroup = std::vector<typename TSel::ItemGroup>;
+
+    // PackGroup is a table where cells are pairs of an ItemRef with its
+    // appropriate index in the input
+    using IndexedPackGroup = _IndexedPackGroup<typename Item::ShapeType>;
+    using PackGroup = _PackGroup<typename Item::ShapeType>;
 
 private:
     BinType bin_;
@@ -299,6 +327,24 @@ public:
         selector_.configure(std::forward<SelectionConfig>(sconfig));
     }
 
+    template<class TIterator>
+    inline PackGroup arrange(TIterator from, TIterator to) {
+        return _arrange(from, to);
+    }
+
+    template<class TIterator>
+    inline IndexedPackGroup arrangeIndexed(TIterator from, TIterator to) {
+        return _arrangeIndexed(from, to);
+    }
+
+    template<class TIterator>
+    inline PackGroup operator() (TIterator from, TIterator to)
+    {
+        return _arrange(from, to);
+    }
+
+private:
+
     template<class TIterator,
              class IT = remove_cvref_t<typename TIterator::value_type>,
 
@@ -308,7 +354,7 @@ public:
              // have to exist for the lifetime of this call.
              class T = std::enable_if_t< std::is_base_of<TPItem, IT>::value, IT>
              >
-    inline PackGroup arrange(TIterator from, TIterator to, bool = false) {
+    inline PackGroup _arrange(TIterator from, TIterator to, bool = false) {
 
         selector_.template packItems<PlacementStrategy>(
                     from, to, bin_, pconfig_);
@@ -327,7 +373,7 @@ public:
              class IT = remove_cvref_t<typename TIterator::value_type>,
              class T = std::enable_if_t<!std::is_base_of<TPItem, IT>::value, IT>
              >
-    inline PackGroup arrange(TIterator from, TIterator to, int = false)
+    inline PackGroup _arrange(TIterator from, TIterator to, int = false)
     {
         static std::vector<TPItem> items;
 
@@ -346,11 +392,66 @@ public:
         return ret;
     }
 
-    template<class TIterator>
-    inline auto
-    operator() (TIterator from, TIterator to) -> decltype(arrange(from, to))
+    template<class TIterator,
+             class IT = remove_cvref_t<typename TIterator::value_type>,
+
+             // This funtion will be used only if the iterators are pointing to
+             // a type compatible with the binpack2d::_Item template.
+             // This way we can use references to input elements as they will
+             // have to exist for the lifetime of this call.
+             class T = std::enable_if_t< std::is_base_of<TPItem, IT>::value, IT>
+             >
+    inline IndexedPackGroup _arrangeIndexed(TIterator from,
+                                            TIterator to,
+                                            bool = false)
     {
-        return arrange(from, to);
+
+        selector_.template packItems<PlacementStrategy>(
+                    from, to, bin_, pconfig_);
+
+        return createIndexedPackGroup(from, to, selector_);
+    }
+
+    template<class TIterator,
+             class IT = remove_cvref_t<typename TIterator::value_type>,
+             class T = std::enable_if_t<!std::is_base_of<TPItem, IT>::value, IT>
+             >
+    inline IndexedPackGroup _arrangeIndexed(TIterator from,
+                                            TIterator to,
+                                            int = false)
+    {
+        static std::vector<TPItem> items;
+
+        items = {from, to};
+
+        selector_.template packItems<PlacementStrategy>(
+                    items.begin(), items.end(), bin_, pconfig_);
+
+        return createIndexedPackGroup(from, to, selector_);
+    }
+
+    template<class TIterator>
+    static IndexedPackGroup createIndexedPackGroup(TIterator from,
+                                                   TIterator to,
+                                                   TSel& selector)
+    {
+        IndexedPackGroup pg;
+        pg.reserve(selector.binCount());
+
+        for(size_t i = 0; i < selector.binCount(); i++) {
+            auto items = selector.itemsForBin(i);
+            pg.push_back({});
+            pg[i].reserve(items.size());
+
+            unsigned idx = 0;
+            for(Item& itemA : items) {
+                auto it = from;
+                while(it != to && &(*it) != &itemA) {it++;  idx++; }
+                pg[i].emplace_back(idx, itemA);
+            }
+        }
+
+        return pg;
     }
 };
 

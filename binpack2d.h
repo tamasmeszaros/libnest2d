@@ -20,6 +20,8 @@ using Segment = _Segment<PointImpl>;
 using Item = _Item<PolygonImpl>;
 using Rectangle = _Rectangle<PolygonImpl>;
 
+using PackGroup = _PackGroup<PolygonImpl>;
+
 using FillerSelection = strategies::_FillerSelection<PolygonImpl>;
 using FirstFitSelection = strategies::_FirstFitSelection<PolygonImpl>;
 using DJDHeuristic  = strategies::_DJDHeuristic<PolygonImpl>;

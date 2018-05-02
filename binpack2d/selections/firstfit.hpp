@@ -2,23 +2,23 @@
 #define FIRSTFIT_HPP
 
 #include "../binpack2d.hpp"
+#include "selection_boilerplate.hpp"
 
 namespace binpack2d { namespace strategies {
 
 template<class RawShape>
-class _FirstFitSelection {
+class _FirstFitSelection: public SelectionBoilerplate<RawShape> {
+    using Base = SelectionBoilerplate<RawShape>;
 public:
-    using Item = _Item<RawShape>;
+    using typename Base::Item;
     using Config = int; //dummy
 
 private:
-    using ItemRef = std::reference_wrapper<Item>;
-    using ItemGroup = std::vector<ItemRef>;
-    using PackGroup = std::vector<ItemGroup>;
+    using Base::packed_bins_;
+    using typename Base::ItemGroup;
     using Container = ItemGroup;//typename std::vector<_Item<RawShape>>;
 
     Container store_;
-    PackGroup packed_bins_;
 
 public:
 
@@ -67,13 +67,6 @@ public:
                       [this](Placer& placer){
             packed_bins_.push_back(placer.getItems());
         });
-    }
-
-    size_t binCount() const { return packed_bins_.size(); }
-
-    ItemGroup itemsForBin(size_t binIndex) {
-        assert(binIndex < packed_bins_.size());
-        return packed_bins_[binIndex];
     }
 
 };

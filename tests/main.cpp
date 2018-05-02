@@ -10,7 +10,7 @@
 namespace {
 using namespace binpack2d;
 using ItemGroup = std::vector<std::reference_wrapper<Item>>;
-using PackGroup = std::vector<ItemGroup>;
+//using PackGroup = std::vector<ItemGroup>;
 
 template<int SCALE, class Bin >
 void exportSVG(PackGroup& result, const Bin& bin) {
@@ -235,7 +235,7 @@ void arrangeRectangles() {
     DJDArranger arrange(bin, config /*{.min_obj_distance = 10}*/ );
 
     for(auto& it : input) {
-        auto ret = ShapeLike::isValid(it/*.rawShape()*/);
+        auto ret = ShapeLike::isValid(it.rawShape());
         std::cout << ret.second << std::endl;
     }
 

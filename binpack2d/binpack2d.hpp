@@ -17,19 +17,33 @@ namespace binpack2d {
  */
 template<class RawShape>
 class _Item {
-    RawShape sh_;
-    TPoint<RawShape> offset_;
-    Radians rotation_;
-    bool has_rotation_ = false, has_offset_ = false;
+    using Coord = TCoord<RawShape>;
+    using Vertex = TPoint<RawShape>;
 
-    // For caching the transformation
+    // The original shape that gets encapsulated.
+    RawShape sh_;
+
+    // Transformation data
+    Vertex translation_;
+    Radians rotation_;
+    Coord offset_distance_;
+
+    // Info about wheter the tranformations will have to take place
+    // This is needed because if floating point is used, it is hard to say
+    // that a zero angle is not a rotation because of testing for equality.
+    bool has_rotation_ = false, has_translation_ = false, has_offset_ = false;
+
+    // For caching the calculations as they can get pretty expensive.
     mutable RawShape tr_cache_;
     mutable bool tr_cache_valid_ = false;
     mutable double area_cache_ = 0;
     mutable bool area_cache_valid_ = false;
+    mutable RawShape offset_cache_;
+    mutable bool offset_cache_valid_ = false;
 public:
 
     using ShapeType = RawShape;
+    using Iterator = TVertexConstIterator<RawShape>;
 
     static BP2D_CONSTEXPR Orientation orientation() {
         return OrientationType<RawShape>::Value;
@@ -39,33 +53,41 @@ public:
 
     explicit inline _Item(RawShape&& sh): sh_(std::move(sh)) {}
 
-    inline _Item(const std::initializer_list< TPoint<RawShape> >& il):
+    inline _Item(const std::initializer_list< Vertex >& il):
         sh_(ShapeLike::create<RawShape>(il)) {}
 
-    inline std::string toString() const { return ShapeLike::toString(sh_); }
+    inline std::string toString() const
+    {
+        return ShapeLike::toString(sh_);
+    }
 
-    inline TVertexConstIterator<RawShape> begin() const {
+    inline Iterator begin() const
+    {
         return ShapeLike::cbegin(sh_);
     }
 
-    inline TVertexConstIterator<RawShape> cbegin() const {
+    inline Iterator cbegin() const
+    {
         return ShapeLike::cbegin(sh_);
     }
 
-    inline TVertexConstIterator<RawShape> end() const {
+    inline Iterator end() const
+    {
         return ShapeLike::cend(sh_);
     }
 
-    inline TVertexConstIterator<RawShape> cend() const {
+    inline Iterator cend() const
+    {
         return ShapeLike::cend(sh_);
     }
 
-    inline TPoint<RawShape> vertex(unsigned long idx) const BP2D_NOEXCEPT {
+    inline Vertex vertex(unsigned long idx) const
+    {
         return ShapeLike::vertex(sh_, idx);
     }
 
     inline void setVertex(unsigned long idx,
-                          const TPoint<RawShape>& v ) BP2D_NOEXCEPT
+                          const Vertex& v )
     {
         invalidateCache();
         ShapeLike::vertex(sh_, idx) = v;
@@ -75,79 +97,123 @@ public:
         double ret ;
         if(area_cache_valid_) ret = area_cache_;
         else {
-            ret = ShapeLike::area(sh_);
+            ret = ShapeLike::area(offsettedShape());
             area_cache_ = ret;
             area_cache_valid_ = true;
         }
         return ret;
     }
 
-    inline unsigned long vertexCount() const BP2D_NOEXCEPT {
+    inline unsigned long vertexCount() const {
         return ShapeLike::contourVertexCount(sh_);
     }
 
-    inline bool isPointInside(const TPoint<RawShape>& p) {
+    inline bool isPointInside(const Vertex& p)
+    {
         return ShapeLike::isInside(p, sh_);
     }
 
-    inline bool isInside(const _Item& outer) {
-        return ShapeLike::isInside(transformedShape(),
-                                   outer.transformedShape());
+    inline bool isInside(const _Item& sh) const
+    {
+        return ShapeLike::isInside(transformedShape(), sh.transformedShape());
     }
 
-    inline void translate(const TPoint<RawShape>& d) BP2D_NOEXCEPT {
-        offset_ += d; has_offset_ = true;
+    inline void translate(const Vertex& d) BP2D_NOEXCEPT
+    {
+        translation_ += d; has_translation_ = true;
         tr_cache_valid_ = false;
     }
 
-    inline void rotate(const Radians& rads) BP2D_NOEXCEPT {
+    inline void rotate(const Radians& rads) BP2D_NOEXCEPT
+    {
         rotation_ += rads;
         has_rotation_ = true;
         tr_cache_valid_ = false;
     }
 
-    inline Radians rotation() const BP2D_NOEXCEPT { return rotation_; }
-
-    inline TPoint<RawShape> translation() const BP2D_NOEXCEPT {
-        return offset_;
+    inline void addOffset(Coord distance) BP2D_NOEXCEPT
+    {
+        offset_distance_ = distance;
+        has_offset_ = true;
+        offset_cache_valid_ = false;
     }
 
-    inline RawShape transformedShape() const {
+    inline void removeOffset() BP2D_NOEXCEPT {
+        has_offset_ = false;
+        invalidateCache();
+    }
+
+    inline Radians rotation() const BP2D_NOEXCEPT
+    {
+        return rotation_;
+    }
+
+    inline TPoint<RawShape> translation() const BP2D_NOEXCEPT
+    {
+        return translation_;
+    }
+
+    inline RawShape transformedShape() const
+    {
         if(tr_cache_valid_) return tr_cache_;
 
-        RawShape cpy = sh_;
+        RawShape cpy = offsettedShape();
         if(has_rotation_) ShapeLike::rotate(cpy, rotation_);
-        if(has_offset_) ShapeLike::translate(cpy, offset_);
+        if(has_translation_) ShapeLike::translate(cpy, translation_);
         tr_cache_ = cpy; tr_cache_valid_ = true;
 
         return cpy;
     }
 
-    inline operator RawShape() const { return transformedShape(); }
+    inline operator RawShape() const
+    {
+        return transformedShape();
+    }
 
-    inline const RawShape& rawShape() const BP2D_NOEXCEPT { return sh_; }
+    inline const RawShape& rawShape() const BP2D_NOEXCEPT
+    {
+        return sh_;
+    }
 
-    inline void resetTransformation() BP2D_NOEXCEPT {
-        has_offset_ = false; has_rotation_ = false;
+    inline void resetTransformation() BP2D_NOEXCEPT
+    {
+        has_translation_ = false; has_rotation_ = false; has_offset_ = false;
     }
 
     //Static methods:
 
-    inline static bool intersects(const _Item& sh1, const _Item& sh2) {
+    inline static bool intersects(const _Item& sh1, const _Item& sh2)
+    {
         return ShapeLike::intersects(sh1.transformedShape(),
                                      sh2.transformedShape());
     }
 
-    inline static bool touches(const _Item& sh1, const _Item& sh2) {
+    inline static bool touches(const _Item& sh1, const _Item& sh2)
+    {
         return ShapeLike::touches(sh1.transformedShape(),
                                   sh2.transformedShape());
     }
 
 private:
 
-    inline void invalidateCache() const BP2D_NOEXCEPT {
+    inline const RawShape& offsettedShape() const {
+        if(has_offset_ ) {
+            if(offset_cache_valid_) return offset_cache_;
+            else {
+                offset_cache_ = sh_;
+                ShapeLike::offset(offset_cache_, offset_distance_);
+                offset_cache_valid_ = true;
+                return offset_cache_;
+            }
+        }
+        return sh_;
+    }
+
+    inline void invalidateCache() const BP2D_NOEXCEPT
+    {
         tr_cache_valid_ = false;
         area_cache_valid_ = false;
+        offset_cache_valid_ = false;
     }
 };
 
@@ -314,6 +380,8 @@ public:
     using PlacementConfig = typename TPlacer::Config;
     using SelectionConfig = typename TSel::Config;
 
+    using Unit = TCoord<typename Item::ShapeType>;
+
     // PackGroup is a table where cells are pairs of an ItemRef with its
     // appropriate index in the input
     using IndexedPackGroup = _IndexedPackGroup<typename Item::ShapeType>;
@@ -322,6 +390,7 @@ public:
 private:
     BinType bin_;
     PlacementConfig pconfig_;
+    TCoord<typename Item::ShapeType> min_obj_distance_;
 
     using SItem =  typename SelectionStrategy::Item;
     using TPItem = remove_cvref_t<Item>;
@@ -333,24 +402,28 @@ public:
              class PConf = PlacementConfig,
              class SConf = SelectionConfig>
     _Arranger(TBinType&& bin,
+              Unit min_obj_distance = 0,
               PConf&& pconfig = PConf(),
               SConf&& sconfig = SConf()):
         bin_(std::forward<TBinType>(bin)),
-        pconfig_(std::forward<PlacementConfig>(pconfig))
+        pconfig_(std::forward<PlacementConfig>(pconfig)),
+        min_obj_distance_(min_obj_distance)
     {
         static_assert( std::is_same<TPItem, TSItem>::value,
-                       "Incompatible placement and selection strategy");
+                       "Incompatible placement and selection strategy!");
 
         selector_.configure(std::forward<SelectionConfig>(sconfig));
     }
 
     template<class TIterator>
-    inline PackGroup arrange(TIterator from, TIterator to) {
+    inline PackGroup arrange(TIterator from, TIterator to)
+    {
         return _arrange(from, to);
     }
 
     template<class TIterator>
-    inline IndexedPackGroup arrangeIndexed(TIterator from, TIterator to) {
+    inline IndexedPackGroup arrangeIndexed(TIterator from, TIterator to)
+    {
         return _arrangeIndexed(from, to);
     }
 
@@ -372,13 +445,11 @@ private:
              class T = enable_if_t< std::is_convertible<TPItem, IT>::value,
                                          IT>
              >
-    inline PackGroup _arrange(TIterator from, TIterator to, bool = false) {
-
-        selector_.template packItems<PlacementStrategy>(
-                    from, to, bin_, pconfig_);
+    inline PackGroup _arrange(TIterator from, TIterator to, bool = false)
+    {
+        __arrange(from, to);
 
         PackGroup ret;
-
         for(size_t i = 0; i < selector_.binCount(); i++) {
             auto items = selector_.itemsForBin(i);
             ret.push_back(items);
@@ -395,14 +466,11 @@ private:
     inline PackGroup _arrange(TIterator from, TIterator to, int = false)
     {
         static std::vector<TPItem> items;
-
         items = {from, to};
 
-        selector_.template packItems<PlacementStrategy>(
-                    items.begin(), items.end(), bin_, pconfig_);
+        __arrange(items.begin(), items.end());
 
         PackGroup ret;
-
         for(size_t i = 0; i < selector_.binCount(); i++) {
             auto items = selector_.itemsForBin(i);
             ret.push_back(items);
@@ -425,10 +493,7 @@ private:
                                             TIterator to,
                                             bool = false)
     {
-
-        selector_.template packItems<PlacementStrategy>(
-                    from, to, bin_, pconfig_);
-
+        __arrange(from, to);
         return createIndexedPackGroup(from, to, selector_);
     }
 
@@ -442,12 +507,8 @@ private:
                                             int = false)
     {
         static std::vector<TPItem> items;
-
         items = {from, to};
-
-        selector_.template packItems<PlacementStrategy>(
-                    items.begin(), items.end(), bin_, pconfig_);
-
+        __arrange(items.begin(), items.end());
         return createIndexedPackGroup(from, to, selector_);
     }
 
@@ -477,6 +538,21 @@ private:
         }
 
         return pg;
+    }
+
+    template<class TIter> inline void __arrange(TIter from, TIter to)
+    {
+        if(min_obj_distance_ > 0) std::for_each(from, to, [this](Item& item) {
+            item.addOffset(min_obj_distance_);
+        });
+
+        selector_.template packItems<PlacementStrategy>(
+                    from, to, bin_, pconfig_);
+
+        if(min_obj_distance_ > 0) std::for_each(from, to, [this](Item& item) {
+            item.removeOffset();
+        });
+
     }
 };
 

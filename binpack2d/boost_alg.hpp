@@ -13,8 +13,8 @@
 namespace bp2d {
 
 using binpack2d::TCoord;
-using Coord = TCoord<binpack2d::PointImpl>;
 using binpack2d::PointImpl;
+using Coord = TCoord<PointImpl>;
 using binpack2d::PolygonImpl;
 using binpack2d::PathImpl;
 using binpack2d::Orientation;
@@ -373,6 +373,14 @@ inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs) {
     boost::geometry::transform(cpy, sh, translate);
 }
 
+#ifndef DISABLE_BOOST_OFFSET
+template<>
+inline void ShapeLike::offset(PolygonImpl& sh, bp2d::Coord distance) {
+    PolygonImpl cpy = sh;
+    boost::geometry::buffer(cpy, sh, distance);
+}
+#endif
+
 #ifndef DISABLE_BOOST_SERIALIZE
 template<>
 inline std::string ShapeLike::serialize<binpack2d::Formats::SVG>(
@@ -398,8 +406,7 @@ inline void ShapeLike::unserialize<binpack2d::Formats::SVG>(
 }
 #endif
 
-template<>
-inline std::pair<bool, std::string>
+template<> inline std::pair<bool, std::string>
 ShapeLike::isValid(const PolygonImpl& sh) {
     std::string message;
     bool ret = boost::geometry::is_valid(sh, message);

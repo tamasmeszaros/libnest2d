@@ -3,6 +3,9 @@
 
 #include <sstream>
 #include <unordered_map>
+#include <cassert>
+
+#include <iostream>
 
 #include "../binpack2d.hpp"
 
@@ -128,6 +131,24 @@ inline void ShapeLike::reserve(PolygonImpl& sh, unsigned long vertex_capacity) {
 //double ShapeLike::area(const PolygonImpl& sh) {
 //    return abs(ClipperLib::Area(sh.Contour));
 //}
+
+#define DISABLE_BOOST_OFFSET
+
+template<>
+inline void ShapeLike::offset(PolygonImpl& sh, TCoord<PointImpl> distance) {
+    using ClipperLib::ClipperOffset;
+    using ClipperLib::jtSquare;
+    using ClipperLib::etClosedPolygon;
+    using ClipperLib::Paths;
+
+    ClipperOffset offs;
+    Paths result;
+    offs.AddPath(sh.Contour, jtSquare, etClosedPolygon);
+    offs.Execute(result, static_cast<double>(distance));
+
+    assert(result.size() == 1);
+    sh.Contour = result.front();
+}
 
 // Tell binpack2d how to make string out of a ClipperPolygon object
 template<> std::string ShapeLike::toString(const PolygonImpl& sh);

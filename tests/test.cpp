@@ -234,11 +234,8 @@ TEST(GeometryAlgorithms, ArrangeRectanglesTight)
         {5, 5},
         {20, 20} };
 
-    // Old MSVC2013 fucker does not recognize initializer list for structs
-    BottomLeftPlacer::Config config;
-    config.min_obj_distance = 0;
 
-    Arranger arrange(Box(210, 250), config /*{.min_obj_distance = 10}*/ );
+    Arranger arrange(Box(210, 250));
 
     auto groups = arrange(rects.begin(), rects.end());
 
@@ -289,11 +286,9 @@ TEST(GeometryAlgorithms, ArrangeRectanglesLoose)
         {5, 5},
         {20, 20} };
 
-    // Old MSVC2013 fucker does not recognize initializer list for structs
-    BottomLeftPlacer::Config config;
-    config.min_obj_distance = 5;
+    Coord min_obj_distance = 5;
 
-    Arranger arrange(Box(210, 250), config /*{.min_obj_distance = 10}*/ );
+    Arranger arrange(Box(210, 250), min_obj_distance);
 
     auto groups = arrange(rects.begin(), rects.end());
 

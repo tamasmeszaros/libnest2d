@@ -27,10 +27,18 @@ using remove_cvref_t = typename remove_cvref<T>::type;
 template<bool B, class T>
 using enable_if_t = typename std::enable_if<B, T>::type;
 
+/**
+ * A useful little tool for triggering static_assert error messages e.g. when
+ * a mandatory template specialization (implementation) is missing.
+ *
+ * \tparam T A template argument that may come from and outer template method.
+ */
+template<class T> struct always_false { enum { value = false }; };
+
 const auto BP2D_CONSTEXPR Pi = 2*std::acos(0);
 
 /**
- * @brief The Double class
+ * @brief Only for the Radian and Degrees classes to behave as doubles.
  */
 class Double {
   double val_;

@@ -156,22 +156,20 @@ void findDegenerateCase() {
 void arrangeRectangles() {
     using namespace binpack2d;
 
-    BottomLeftPlacer::Config config;
-    config.min_obj_distance = 2;
-
-
 
 //    std::vector<PolygonImpl> input;
     auto input = PRINTER_PART_POLYGONS;
 
     const int SCALE = 1000;
-    auto scaler = [](Item& item) {
+    auto scaler = [&SCALE](Item& item) {
         for(unsigned i = 0; i < item.vertexCount(); i++) {
             auto v = item.vertex(i);
-            setX(v, 100*getX(v)); setY(v, 100*getY(v));
+            setX(v, SCALE*getX(v)); setY(v, SCALE*getY(v));
             item.setVertex(i, v);
         }
     };
+
+    Coord min_obj_distance = 2*SCALE;
 
     std::for_each(input.begin(), input.end(), scaler);
 
@@ -248,7 +246,7 @@ void arrangeRectangles() {
 //    };
 
     Box bin(SCALE*210, SCALE*250);
-    DJDArranger arrange(bin, config /*{.min_obj_distance = 10}*/ );
+    DJDArranger arrange(bin, min_obj_distance);
 
     for(auto& it : input) {
         auto ret = ShapeLike::isValid(it.rawShape());

@@ -16,7 +16,8 @@ if(NOT TARGET clipper)
 
             include(DownloadProject)
             download_project(   PROJ                clipper_library
-                                SVN_REPOSITORY      https://svn.code.sf.net/p/polyclipping/code/trunk
+                                SVN_REPOSITORY      https://svn.code.sf.net/p/polyclipping/code/trunk/cpp
+                                SVN_REVISION        -r540
                                 #SOURCE_SUBDIR       cpp
                                 INSTALL_COMMAND     ""
                                 CONFIGURE_COMMAND   "" # Not working, I will just add the source files
@@ -29,10 +30,10 @@ if(NOT TARGET clipper)
             # )
 
             add_library(clipper_lib STATIC
-                ${clipper_library_SOURCE_DIR}/cpp/clipper.cpp
-                ${clipper_library_SOURCE_DIR}/cpp/clipper.hpp)
+                ${clipper_library_SOURCE_DIR}/clipper.cpp
+                ${clipper_library_SOURCE_DIR}/clipper.hpp)
 
-            set(CLIPPER_INCLUDE_DIRS ${clipper_library_SOURCE_DIR}/cpp
+            set(CLIPPER_INCLUDE_DIRS ${clipper_library_SOURCE_DIR}
                 PARENT_SCOPE)
     
             set(CLIPPER_LIBRARIES clipper_lib PARENT_SCOPE)

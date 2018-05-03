@@ -122,7 +122,7 @@ protected:
     }
 
     template<class C = Coord>
-    static std::enable_if_t<std::is_floating_point<C>::value, bool>
+    static enable_if_t<std::is_floating_point<C>::value, bool>
     isInTheWayOf( const Item& item,
                   const Item& other,
                   const RawShape& scanpoly)
@@ -135,7 +135,7 @@ protected:
     }
 
     template<class C = Coord>
-    static std::enable_if_t<std::is_integral<C>::value, bool>
+    static enable_if_t<std::is_integral<C>::value, bool>
     isInTheWayOf( const Item& item,
                   const Item& other,
                   const RawShape& scanpoly)

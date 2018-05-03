@@ -17,13 +17,17 @@ namespace binpack2d {
 
 template< class T >
 struct remove_cvref {
-    typedef std::remove_cv_t<std::remove_reference_t<T>> type;
+    using type = typename std::remove_cv<
+        typename std::remove_reference<T>::type>::type;
 };
 
 template< class T >
 using remove_cvref_t = typename remove_cvref<T>::type;
 
-const auto BP2D_CONSTEXPR Pi = 2*acos(0);
+template<bool B, class T>
+using enable_if_t = typename std::enable_if<B, T>::type;
+
+const auto BP2D_CONSTEXPR Pi = 2*std::acos(0);
 
 /**
  * @brief The Double class

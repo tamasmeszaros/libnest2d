@@ -160,12 +160,21 @@ void arrangeRectangles() {
 //    std::vector<PolygonImpl> input;
     auto input = PRINTER_PART_POLYGONS;
 
-    const int SCALE = 1000;
-    auto scaler = [&SCALE](Item& item) {
+    const int SCALE = 1000000;
+
+    Box bin(210*SCALE, 250*SCALE);
+
+    auto scaler = [&SCALE, &bin](Item& item) {
+//        double max_area = 0;
         for(unsigned i = 0; i < item.vertexCount(); i++) {
             auto v = item.vertex(i);
             setX(v, SCALE*getX(v)); setY(v, SCALE*getY(v));
             item.setVertex(i, v);
+//            double area = item.area();
+//            if(max_area < area) {
+//                max_area = area;
+//                bin = item.boundingBox();
+//            }
         }
     };
 
@@ -245,7 +254,6 @@ void arrangeRectangles() {
 //        {20, 20}
 //    };
 
-    Box bin(SCALE*210, SCALE*250);
     DJDArranger arrange(bin, min_obj_distance);
 
     for(auto& it : input) {

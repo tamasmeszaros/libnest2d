@@ -19,6 +19,7 @@ template<class RawShape>
 class _Item {
     using Coord = TCoord<RawShape>;
     using Vertex = TPoint<RawShape>;
+    using Box = _Box<Vertex>;
 
     // The original shape that gets encapsulated.
     RawShape sh_;
@@ -178,6 +179,10 @@ public:
     inline void resetTransformation() BP2D_NOEXCEPT
     {
         has_translation_ = false; has_rotation_ = false; has_offset_ = false;
+    }
+
+    inline Box boundingBox() const {
+        return ShapeLike::boundingBox(transformedShape());
     }
 
     //Static methods:

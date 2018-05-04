@@ -110,7 +110,7 @@ protected:
     using Coord = TCoord<Vertex>;
 
     void setInitialPosition(Item& item) {
-        auto bb = ShapeLike::boundingBox(item.transformedShape());
+        auto bb = item.boundingBox();
 
         Vertex v = { getX(bb.maxCorner()), getY(bb.minCorner()) };
 

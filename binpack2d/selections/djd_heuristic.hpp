@@ -43,6 +43,7 @@ public:
                     PConfig&& pconfig = PConfig() )
     {
         using Placer = PlacementStrategyLike<TPlacer>;
+        using ItemList = std::list<ItemRef>;
 
         const double bin_area = ShapeLike::area<RawShape>(bin);
         const double w = bin_area * 0.1;
@@ -58,7 +59,7 @@ public:
             return i1.area() > i2.area();
         });
 
-        std::list<ItemRef> not_packed(store_.begin(), store_.end());
+        ItemList not_packed(store_.begin(), store_.end());
 
         std::vector<Placer> placers;
 
@@ -106,6 +107,8 @@ public:
             double item_area = 0, largest_area = 0, smallest_area = 0;
             double second_largest = 0, second_smallest = 0;
 
+            const auto endit = not_packed.end();
+
             if(not_packed.size() < 2)
                 return false; // No group of two items
             else {
@@ -117,7 +120,7 @@ public:
                     // the bin to the desired waste than we can end here.
 
                 smallest_area = not_packed.back().get().area();
-                itmp = not_packed.end(); std::advance(itmp, -2);
+                itmp = endit; std::advance(itmp, -2);
                 second_smallest = itmp->get().area();
             }
 
@@ -127,19 +130,19 @@ public:
 
             double largest = second_largest;
             double smallest= smallest_area;
-            while(it != not_packed.end() && !ret && free_area -
+            while(it != endit && !ret && free_area -
                   (item_area = it->get().area()) - largest <= waste )
             {
                 // if this is the last element, the next smallest is the
                 // previous item
                 auto itmp = it; std::advance(itmp, 1);
-                if(itmp == not_packed.end()) smallest = second_smallest;
+                if(itmp == endit) smallest = second_smallest;
 
                 if(item_area + smallest <= free_area && placer.pack(*it)) {
                     // First would fit
                     it2 = not_packed.begin();
                     double item2_area = 0;
-                    while(it2 != not_packed.end() && !ret && free_area -
+                    while(it2 != endit && !ret && free_area -
                           (item2_area = it2->get().area()) - item_area <= waste)
                     {
                         double area_sum = item_area + item2_area;
@@ -171,65 +174,147 @@ public:
                 [&not_packed, &bin_area, &free_area, &filled_area]
                 (Placer& placer, double waste)
         {
-//            std::array<double, 3> items_area = {0};
 
-//            std::vector< std::pair<size_t, size_t> >
-//                    largest(not_packed.size(), {0,1});
+            auto it = not_packed.begin();
+            const auto endit = not_packed.end();
 
-//            auto getTwoLargest = [&largest]()
+            using IPair = std::tuple<ItemRef, ItemRef>;
+            using ITriple = std::tuple<ItemRef, ItemRef, ItemRef>;
 
-//            auto it = not_packed.begin();
-//            while(it != not_packed.end()) {
+            std::vector<IPair> wrong_pairs;
+            std::vector<ITriple> wrong_triplets;
 
-//            }
+            auto check_pair = [&wrong_pairs](ItemRef i1, ItemRef i2) {
+                return std::any_of(wrong_pairs.begin(), wrong_pairs.end(),
+                                   [&i1, &i2](const IPair& pair){
+                    Item& pi1 = std::get<0>(pair), pi2 = std::get<1>(pair);
+                    Item& ri1 = i1, ri2 = i2;
+                    return false;
+                });
+            };
+
+            bool ret = false;
+            while (it != endit && !ret) {
+                auto first = not_packed.begin();
+                Item& largest = it == first? *std::next(it) : *first;
+
+                auto second = std::next(first);
+                Item& second_largest = it == second ? *std::next(it) : *second;
+
+                double area_of_two_largest =
+                        largest.area() + second_largest.area();
+
+                if(free_area - it->get().area() - area_of_two_largest <= waste)
+                    break;
+
+                auto last = std::prev(endit);
+                Item& smallest = it == last? *std::prev(it) : *last;
+                auto second_last = std::prev(last);
+                Item& second_smallest = it == second_last? *std::prev(it) :
+                                                           *second_last;
+                double area_of_two_smallest =
+                        smallest.area() + second_smallest.area();
+
+                if(it->get().area() + area_of_two_smallest <= free_area &&
+                        placer.pack(*it)) {
+
+                    auto it2 = not_packed.begin();
+                    double rem2_area = free_area - largest.area();
+                    double a2_sum = it->get().area() + it2->get().area();
+
+                    while(it2 != endit && !ret &&
+                          rem2_area - a2_sum <= waste) {
+
+                        if(it == it2 || check_pair(*it, *it2)) continue;
+
+                        bool can_pack2 = false;
+                        if(!placer.pack(*it2)) {
+                            placer.unpackLast();
+                            if(placer.pack(*it2)) {
+                                if(placer.pack(*it)) can_pack2 = true;
+                                else {
+                                    placer.unpackLast();
+                                    wrong_pairs.emplace_back(*it, *it2);
+                                }
+                            }
+                        } else can_pack2 = true;
+
+                        if(!can_pack2) continue;
+
+                        a2_sum = it->get().area() + it2->get().area();
+
+                        if(a2_sum + smallest.area() <= free_area &&
+                                placer.pack(*it2)) {
+                            auto it3 = not_packed.begin();
+
+                            if(it3 == it || it3 == it2) continue;
+
+                            double a3_sum = a2_sum + it3->get().area();
+                            while(it3 != endit && !ret &&
+                                  free_area - a3_sum <= waste) {
+
+                            }
+                        }
+                    }
+
+                }
+
+            }
 
             return false;
         };
 
         addBin();
 
-        if(std::all_of(not_packed.begin(),
-                       not_packed.end(),
-                       [bin_area](Item& it){ return it.area() < bin_area; }))
-        {
-            while(!not_packed.empty()) {
+        // Safety test: try to pack each item into an empty bin. If it fails
+        // then it should be removed from the not_packed list
+        { auto it = not_packed.begin();
+            while (it != not_packed.end()) {
+                Placer p(bin);
+                if(!p.pack(*it)) {
+                    auto itmp = it++;
+                    not_packed.erase(itmp);
+                } else it++;
+            }
+        }
 
-                auto& placer = placers.back();
+        while(!not_packed.empty()) {
 
-                {// Fill the bin up to INITIAL_FILL_PROPORTION of its capacity
-                    auto it = not_packed.begin();
+            auto& placer = placers.back();
 
-                    while(it != not_packed.end() &&
-                          filled_area < INITIAL_FILL_AREA)
-                    {
-                        if(placer.pack(*it)) {
-                            filled_area += it->get().area();
-                            free_area = bin_area - filled_area;
-                            auto itmp = it++;
-                            not_packed.erase(itmp);
-                        } else it++;
-                    }
+            {// Fill the bin up to INITIAL_FILL_PROPORTION of its capacity
+                auto it = not_packed.begin();
+
+                while(it != not_packed.end() &&
+                      filled_area < INITIAL_FILL_AREA)
+                {
+                    if(placer.pack(*it)) {
+                        filled_area += it->get().area();
+                        free_area = bin_area - filled_area;
+                        auto itmp = it++;
+                        not_packed.erase(itmp);
+                    } else it++;
                 }
-
-                // try pieses one by one
-                while(tryOneByOne(placer, waste)) waste = 0;
-
-                // try groups of 2 pieses
-                while(tryGroupsOfTwo(placer, waste)) waste = 0;
-
-                // try groups of 3 pieses
-                while(tryGroupsOfThree(placer, waste)) waste = 0;
-
-                if(waste < free_area) waste += w;
-                else if(!not_packed.empty()) addBin();
             }
 
+            // try pieses one by one
+            while(tryOneByOne(placer, waste)) waste = 0;
 
-            std::for_each(placers.begin(), placers.end(),
-                          [this](Placer& placer){
-                packed_bins_.push_back(placer.getItems());
-            });
+            // try groups of 2 pieses
+            while(tryGroupsOfTwo(placer, waste)) waste = 0;
+
+            // try groups of 3 pieses
+            while(tryGroupsOfThree(placer, waste)) waste = 0;
+
+            if(waste < free_area) waste += w;
+            else if(!not_packed.empty()) addBin();
         }
+
+        std::for_each(placers.begin(), placers.end(),
+                      [this](Placer& placer){
+            packed_bins_.push_back(placer.getItems());
+        });
+
     }
 };
 

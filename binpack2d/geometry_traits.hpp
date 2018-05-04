@@ -398,6 +398,12 @@ public:
     }
 
     template<class RawShape>
+    static _Box<TPoint<RawShape>> boundingBox(const _Box<TPoint<RawShape>>& box)
+    {
+        return box;
+    }
+
+    template<class RawShape>
     static THolesContainer<RawShape>& holes(RawShape& /*sh*/)
     {
         static THolesContainer<RawShape> empty;

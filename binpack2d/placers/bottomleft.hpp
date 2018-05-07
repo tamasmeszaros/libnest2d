@@ -30,6 +30,20 @@ private:
 public:
     using ItemGroup = const Container&;
 
+    class PackResult {
+        Item *item_ptr_;
+        Vertex move_;
+        Radians rot_;
+        friend class _BottomLeftPlacer;
+        PackResult(Item& item):
+            item_ptr_(&item),
+            move_(item.translation()),
+            rot_(item.rotation()) {}
+        PackResult(): item_ptr_(nullptr) {}
+    public:
+        operator bool() { return item_ptr_ != nullptr; }
+    };
+
     enum class Dir {
         LEFT,
         DOWN
@@ -48,7 +62,7 @@ public:
         bin_ = std::forward<BinType>(b);
     }
 
-    bool pack(Item& item) {
+    PackResult trypack(Item& item) {
 
         // Get initial position for item in the top right corner
         setInitialPosition(item);
@@ -75,13 +89,21 @@ public:
         if(can_be_packed) {
             Item trsh(item.transformedShape());
             for(auto& v : trsh) can_be_packed = can_be_packed &&
-                    getX(v) <= bin_.width() &&
-                    getY(v) <= bin_.height();
-
-            if(can_be_packed) items_.push_back(item);
+                    getX(v) < bin_.width() &&
+                    getY(v) < bin_.height();
         }
 
-        return can_be_packed;
+        return can_be_packed? PackResult(item) : PackResult();
+    }
+
+    bool pack(Item& item) { auto&& r = trypack(item); accept(r); return r; }
+
+    void accept(PackResult& r) {
+        if(r) {
+//            r.item_ptr_->translation(r.move_);
+//            r.item_ptr_->rotation(r.rot_);
+            items_.push_back(*(r.item_ptr_));
+        }
     }
 
     void unpackLast() { items_.pop_back(); }

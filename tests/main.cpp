@@ -6,6 +6,7 @@
 #include <binpack2d/geometries_io.hpp>
 
 #include "printer_parts.h"
+//#include "benchmark.h"
 
 namespace {
 using namespace binpack2d;
@@ -157,10 +158,59 @@ void arrangeRectangles() {
     using namespace binpack2d;
 
 
-//    std::vector<PolygonImpl> input;
+//    std::vector<Rectangle> input = {
+//        {80, 80},
+//        {110, 10},
+//        {200, 5},
+//        {80, 30},
+//        {60, 90},
+//        {70, 30},
+//        {80, 60},
+//        {60, 60},
+//        {60, 40},
+//        {40, 40},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {20, 20},
+//        {80, 80},
+//        {110, 10},
+//        {200, 5},
+//        {80, 30},
+//        {60, 90},
+//        {70, 30},
+//        {80, 60},
+//        {60, 60},
+//        {60, 40},
+//        {40, 40},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {20, 20}
+//    };
+
     auto input = PRINTER_PART_POLYGONS;
 
     const int SCALE = 1000000;
+//    const int SCALE = 1;
 
     Box bin(210*SCALE, 250*SCALE);
 
@@ -256,13 +306,20 @@ void arrangeRectangles() {
 
     DJDArranger arrange(bin, min_obj_distance);
 
-    for(auto& it : input) {
-        auto ret = ShapeLike::isValid(it.rawShape());
-        std::cout << ret.second << std::endl;
-    }
+//    Benchmark bench;
 
+//    bench.start();
     auto result = arrange(input.begin(),
                           input.end());
+
+//    bench.stop();
+
+//    std::cout << bench.getElapsedSec() << std::endl;
+
+    for(auto& it : input) {
+        auto ret = ShapeLike::isValid(it.transformedShape());
+        std::cout << ret.second << std::endl;
+    }
 
     exportSVG<SCALE>(result, bin);
 

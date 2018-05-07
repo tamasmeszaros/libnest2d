@@ -95,71 +95,90 @@ template<> struct CountourType<PolygonImpl> {
     using Type = PathImpl;
 };
 
+// Tell binpack2d how to extract the X coord from a ClipperPoint object
+template<> inline TCoord<PointImpl> PointLike::x(const PointImpl& p)
+{
+    return p.X;
+}
+
+// Tell binpack2d how to extract the Y coord from a ClipperPoint object
+template<> inline TCoord<PointImpl> PointLike::y(const PointImpl& p)
+{
+    return p.Y;
+}
 
 // Tell binpack2d how to extract the X coord from a ClipperPoint object
-template<>
-inline TCoord<PointImpl> PointLike::x(const PointImpl& p) {
+template<> inline TCoord<PointImpl>& PointLike::x(PointImpl& p)
+{
     return p.X;
 }
 
 // Tell binpack2d how to extract the Y coord from a ClipperPoint object
 template<>
-inline TCoord<PointImpl> PointLike::y(const PointImpl& p) {
+inline TCoord<PointImpl>& PointLike::y(PointImpl& p)
+{
     return p.Y;
 }
 
-// Tell binpack2d how to extract the X coord from a ClipperPoint object
 template<>
-inline TCoord<PointImpl>& PointLike::x(PointImpl& p) {
-    return p.X;
-}
-
-// Tell binpack2d how to extract the Y coord from a ClipperPoint object
-template<>
-inline TCoord<PointImpl>& PointLike::y(PointImpl& p) {
-    return p.Y;
-}
-
-
-template<>
-inline void ShapeLike::reserve(PolygonImpl& sh, unsigned long vertex_capacity) {
+inline void ShapeLike::reserve(PolygonImpl& sh, unsigned long vertex_capacity)
+{
     return sh.Contour.reserve(vertex_capacity);
 }
 
+#define DISABLE_BOOST_AREA
 // Tell binpack2d how to make string out of a ClipperPolygon object
-//template<>
-//double ShapeLike::area(const PolygonImpl& sh) {
-//    return abs(ClipperLib::Area(sh.Contour));
-//}
+template<>
+inline double ShapeLike::area(const PolygonImpl& sh) {
+    double ret = ClipperLib::Area(sh.Contour);
+//    if(OrientationType<PolygonImpl>::Value == Orientation::COUNTER_CLOCKWISE)
+//        ret = -ret;
+    return ret;
+}
 
 #define DISABLE_BOOST_OFFSET
 
 template<>
 inline void ShapeLike::offset(PolygonImpl& sh, TCoord<PointImpl> distance) {
     using ClipperLib::ClipperOffset;
-    using ClipperLib::jtSquare;
+    using ClipperLib::jtMiter;
     using ClipperLib::etClosedPolygon;
     using ClipperLib::Paths;
 
     ClipperOffset offs;
     Paths result;
-    offs.AddPath(sh.Contour, jtSquare, etClosedPolygon);
+    offs.AddPath(sh.Contour, jtMiter, etClosedPolygon);
     offs.Execute(result, static_cast<double>(distance));
+
+    // I dont know why does the offsetting revert the orientation and
+    // it removes the last vertex as well so boost will not have a closed
+    // polygon
 
     assert(result.size() == 1);
     sh.Contour = result.front();
+
+    // recreate closed polygon
+    sh.Contour.push_back(sh.Contour.front());
+
+    if(ClipperLib::Orientation(sh.Contour)) {
+        // Not clockwise then reverse the b*tch
+        ClipperLib::ReversePath(sh.Contour);
+    }
+
 }
 
 // Tell binpack2d how to make string out of a ClipperPolygon object
 template<> std::string ShapeLike::toString(const PolygonImpl& sh);
 
 template<>
-inline TVertexIterator<PolygonImpl> ShapeLike::begin(PolygonImpl& sh) {
+inline TVertexIterator<PolygonImpl> ShapeLike::begin(PolygonImpl& sh)
+{
     return sh.Contour.begin();
 }
 
 template<>
-inline TVertexIterator<PolygonImpl> ShapeLike::end(PolygonImpl& sh) {
+inline TVertexIterator<PolygonImpl> ShapeLike::end(PolygonImpl& sh)
+{
     return sh.Contour.end();
 }
 

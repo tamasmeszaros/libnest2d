@@ -98,7 +98,7 @@ public:
         double ret ;
         if(area_cache_valid_) ret = area_cache_;
         else {
-            ret = ShapeLike::area(offsettedShape());
+            ret = std::abs(ShapeLike::area(offsettedShape()));
             area_cache_ = ret;
             area_cache_valid_ = true;
         }
@@ -152,6 +152,19 @@ public:
     inline TPoint<RawShape> translation() const BP2D_NOEXCEPT
     {
         return translation_;
+    }
+
+    inline void rotation(Radians rot) BP2D_NOEXCEPT
+    {
+        rotation_ = rot;
+        has_rotation_ = true;
+        tr_cache_valid_ = false;
+    }
+
+    inline void translation(const TPoint<RawShape>& tr) BP2D_NOEXCEPT
+    {
+        translation_ = tr; has_translation_ = true;
+        tr_cache_valid_ = false;
     }
 
     inline RawShape transformedShape() const
@@ -285,6 +298,8 @@ public:
     using ItemRef = std::reference_wrapper<Item>;
     using ItemGroup = std::vector<ItemRef>;
 
+    using PackResult = typename PlacementStrategy::PackResult;
+
     PlacementStrategyLike(const BinType& bin, const Config& config = Config()):
         impl_(bin)
     {
@@ -293,7 +308,15 @@ public:
 
     inline void configure(const Config& config) { impl_.configure(config); }
 
-    inline bool pack(Item& item) { return impl_.pack(item); }
+    inline PackResult trypack(Item& item) { return impl_.trypack(item); }
+
+    inline void accept(PackResult& r) { impl_.accept(r); }
+
+    inline bool pack(Item& item) {
+        auto ret = impl_.trypack(item);
+        accept(ret);
+        return ret;
+    }
 
     inline void unpackLast() { impl_.unpackLast(); }
 
@@ -447,8 +470,7 @@ private:
              // a type compatible with the binpack2d::_Item template.
              // This way we can use references to input elements as they will
              // have to exist for the lifetime of this call.
-             class T = enable_if_t< std::is_convertible<TPItem, IT>::value,
-                                         IT>
+             class T = enable_if_t< std::is_convertible<IT, TPItem>::value, IT>
              >
     inline PackGroup _arrange(TIterator from, TIterator to, bool = false)
     {
@@ -465,8 +487,7 @@ private:
 
     template<class TIterator,
              class IT = remove_cvref_t<typename TIterator::value_type>,
-             class T = enable_if_t<!std::is_convertible<TPItem, IT>::value,
-                                        IT>
+             class T = enable_if_t<!std::is_convertible<IT, TPItem>::value, IT>
              >
     inline PackGroup _arrange(TIterator from, TIterator to, int = false)
     {
@@ -491,8 +512,7 @@ private:
              // a type compatible with the binpack2d::_Item template.
              // This way we can use references to input elements as they will
              // have to exist for the lifetime of this call.
-             class T = enable_if_t< std::is_convertible<TPItem, IT>::value,
-                                         IT>
+             class T = enable_if_t< std::is_convertible<IT, TPItem>::value, IT>
              >
     inline IndexedPackGroup _arrangeIndexed(TIterator from,
                                             TIterator to,
@@ -504,8 +524,7 @@ private:
 
     template<class TIterator,
              class IT = remove_cvref_t<typename TIterator::value_type>,
-             class T = enable_if_t<!std::is_convertible<TPItem, IT>::value,
-                                        IT>
+             class T = enable_if_t<!std::is_convertible<IT, TPItem>::value, IT>
              >
     inline IndexedPackGroup _arrangeIndexed(TIterator from,
                                             TIterator to,
@@ -548,7 +567,7 @@ private:
     template<class TIter> inline void __arrange(TIter from, TIter to)
     {
         if(min_obj_distance_ > 0) std::for_each(from, to, [this](Item& item) {
-            item.addOffset(min_obj_distance_);
+            item.addOffset(std::ceil(min_obj_distance_/2.0));
         });
 
         selector_.template packItems<PlacementStrategy>(

@@ -318,10 +318,12 @@ inline bool ShapeLike::intersects(const bp2d::Segment& s1,
     return boost::geometry::intersects(s1, s2);
 }
 
+#ifndef DISABLE_BOOST_AREA
 template<>
 inline double ShapeLike::area(const PolygonImpl& shape) {
     return boost::geometry::area(shape);
 }
+#endif
 
 template<>
 inline bool ShapeLike::isInside(const PointImpl& point,

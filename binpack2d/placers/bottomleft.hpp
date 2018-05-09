@@ -3,66 +3,63 @@
 
 #include <limits>
 
-#include "../binpack2d.hpp"
+#include "placer_boilerplate.hpp"
 
 namespace binpack2d { namespace strategies {
 
 template<class RawShape>
-class _BottomLeftPlacer {
-public:
-    using Item = _Item<RawShape>;
-    using Vertex = TPoint<RawShape>;
-    using Segment = _Segment<Vertex>;
-    using Box = _Box<Vertex>;
-    using BinType = Box;
-    using Unit = TCoord<Vertex>;
+struct BLConfig {
+    TCoord<TPoint<RawShape>> min_obj_distance = 0;
+    bool allow_rotations = false;
+};
 
-    struct Config {
-        Unit min_obj_distance = 0;
-    };
-
-private:
-    BinType bin_;
-    using Container = std::vector< std::reference_wrapper<Item> > ;
-    Container items_;
-    Config config_;
+template<class RawShape>
+class _BottomLeftPlacer: public PlacerBoilerplate<
+        _BottomLeftPlacer<RawShape>,
+        RawShape, _Box<TPoint<RawShape>>,
+        BLConfig<RawShape> >
+{
+    using Base = PlacerBoilerplate<_BottomLeftPlacer<RawShape>, RawShape,
+                                    _Box<TPoint<RawShape>>, BLConfig<RawShape>>;
+    DECLARE_PLACER(Base)
 
 public:
-    using ItemGroup = const Container&;
 
-    class PackResult {
-        Item *item_ptr_;
-        Vertex move_;
-        Radians rot_;
-        friend class _BottomLeftPlacer;
-        PackResult(Item& item):
-            item_ptr_(&item),
-            move_(item.translation()),
-            rot_(item.rotation()) {}
-        PackResult(): item_ptr_(nullptr) {}
-    public:
-        operator bool() { return item_ptr_ != nullptr; }
-    };
+    explicit _BottomLeftPlacer(const BinType& bin): Base(bin) {}
+
+    PackResult trypack(Item& item) {
+        auto r = _trypack(item);
+        if(!r && Base::config_.allow_rotations) {
+            item.rotate(Degrees(90));
+            r =_trypack(item);
+        }
+        return r;
+    }
 
     enum class Dir {
         LEFT,
         DOWN
     };
 
-    inline void configure(const Config& config) BP2D_NOEXCEPT {
-        config_ = config;
+    inline RawShape leftPoly(const Item& item) const {
+        return toWallPoly(item, Dir::LEFT);
     }
 
-    inline _BottomLeftPlacer(const BinType& bin):
-        bin_(bin) {}
-
-    inline const BinType& bin() const BP2D_NOEXCEPT { return bin_; }
-
-    template<class TBin> inline void bin(TBin&& b) {
-        bin_ = std::forward<BinType>(b);
+    inline RawShape downPoly(const Item& item) const {
+        return toWallPoly(item, Dir::DOWN);
     }
 
-    PackResult trypack(Item& item) {
+    inline Unit availableSpaceLeft(const Item& item) {
+        return availableSpace(item, Dir::LEFT);
+    }
+
+    inline Unit availableSpaceDown(const Item& item) {
+        return availableSpace(item, Dir::DOWN);
+    }
+
+protected:
+
+    PackResult _trypack(Item& item) {
 
         // Get initial position for item in the top right corner
         setInitialPosition(item);
@@ -95,45 +92,6 @@ public:
 
         return can_be_packed? PackResult(item) : PackResult();
     }
-
-    bool pack(Item& item) {
-        auto&& r = trypack(item);
-        if(r) items_.push_back(*(r.item_ptr_));
-        return r;
-    }
-
-    void accept(PackResult& r) {
-        if(r) {
-            r.item_ptr_->translation(r.move_);
-            r.item_ptr_->rotation(r.rot_);
-            items_.push_back(*(r.item_ptr_));
-        }
-    }
-
-    void unpackLast() { items_.pop_back(); }
-
-    inline ItemGroup getItems() { return items_; }
-
-    inline void clearItems() { items_.clear(); }
-
-    inline RawShape leftPoly(const Item& item) const {
-        return toWallPoly(item, Dir::LEFT);
-    }
-
-    inline RawShape downPoly(const Item& item) const {
-        return toWallPoly(item, Dir::DOWN);
-    }
-
-    inline Unit availableSpaceLeft(const Item& item) {
-        return availableSpace(item, Dir::LEFT);
-    }
-
-    inline Unit availableSpaceDown(const Item& item) {
-        return availableSpace(item, Dir::DOWN);
-    }
-
-protected:
-    using Coord = TCoord<Vertex>;
 
     void setInitialPosition(Item& item) {
         auto bb = item.boundingBox();
@@ -435,6 +393,7 @@ protected:
 
         return rsh;
     }
+
 };
 
 }

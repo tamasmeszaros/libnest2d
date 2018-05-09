@@ -394,7 +394,7 @@ using _IndexedPackGroup = std::vector<
  * inside the provided bin.
  */
 template<class PlacementStrategy, class SelectionStrategy >
-class _Arranger {
+class Arranger {
     using TSel = SelectionStrategyLike<SelectionStrategy>;
     TSel selector_;
 
@@ -427,7 +427,7 @@ public:
     template<class TBinType = BinType,
              class PConf = PlacementConfig,
              class SConf = SelectionConfig>
-    _Arranger(TBinType&& bin,
+    Arranger(TBinType&& bin,
               Unit min_obj_distance = 0,
               PConf&& pconfig = PConf(),
               SConf&& sconfig = SConf()):

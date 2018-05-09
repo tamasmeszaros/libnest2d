@@ -6,6 +6,7 @@
 #include <binpack2d/clipper_backend/clipper_backend.hpp>
 
 #include <binpack2d/placers/bottomleft.hpp>
+#include <binpack2d/placers/centering.hpp>
 #include <binpack2d/selections/firstfit.hpp>
 #include <binpack2d/selections/filler.hpp>
 #include <binpack2d/selections/djd_heuristic.hpp>
@@ -21,17 +22,20 @@ using Item = _Item<PolygonImpl>;
 using Rectangle = _Rectangle<PolygonImpl>;
 
 using PackGroup = _PackGroup<PolygonImpl>;
+using IndexedPackGroup = _IndexedPackGroup<PolygonImpl>;
 
 using FillerSelection = strategies::_FillerSelection<PolygonImpl>;
 using FirstFitSelection = strategies::_FirstFitSelection<PolygonImpl>;
 using DJDHeuristic  = strategies::_DJDHeuristic<PolygonImpl>;
 
 using BottomLeftPlacer = strategies::_BottomLeftPlacer<PolygonImpl>;
+using CenteringPlacer = strategies::_CenteringPlacer<PolygonImpl>;
 
-using FirstFitArranger = _Arranger<BottomLeftPlacer, FirstFitSelection>;
-using FillArranger = _Arranger<BottomLeftPlacer, FillerSelection>;
-using DJDArranger = _Arranger<BottomLeftPlacer, DJDHeuristic>;
-using Arranger = FillArranger;
+//using FirstFitArranger = _Arranger<BottomLeftPlacer, FirstFitSelection>;
+//using FillArranger = _Arranger<BottomLeftPlacer, FillerSelection>;
+//using DJDArranger = _Arranger<BottomLeftPlacer, DJDHeuristic>;
+//using DJDCentringArranger = _Arranger<CenteringPlacer, DJDHeuristic>;
+//using Arranger = FillArranger;
 
 }
 

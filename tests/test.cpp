@@ -235,7 +235,7 @@ TEST(GeometryAlgorithms, ArrangeRectanglesTight)
         {20, 20} };
 
 
-    Arranger arrange(Box(210, 250));
+    Arranger<BottomLeftPlacer, DJDHeuristic> arrange(Box(210, 250));
 
     auto groups = arrange(rects.begin(), rects.end());
 
@@ -288,7 +288,8 @@ TEST(GeometryAlgorithms, ArrangeRectanglesLoose)
 
     Coord min_obj_distance = 5;
 
-    Arranger arrange(Box(210, 250), min_obj_distance);
+    Arranger<BottomLeftPlacer, DJDHeuristic> arrange(Box(210, 250),
+                                                     min_obj_distance);
 
     auto groups = arrange(rects.begin(), rects.end());
 

@@ -156,15 +156,16 @@ public:
 
     inline void rotation(Radians rot) BP2D_NOEXCEPT
     {
-        rotation_ = rot;
-        has_rotation_ = true;
-        tr_cache_valid_ = false;
+        if(rotation_ != rot) {
+            rotation_ = rot; has_rotation_ = true; tr_cache_valid_ = false;
+        }
     }
 
     inline void translation(const TPoint<RawShape>& tr) BP2D_NOEXCEPT
     {
-        translation_ = tr; has_translation_ = true;
-        tr_cache_valid_ = false;
+        if(translation_ != tr) {
+            translation_ = tr; has_translation_ = true; tr_cache_valid_ = false;
+        }
     }
 
     inline RawShape transformedShape() const
@@ -300,7 +301,8 @@ public:
 
     using PackResult = typename PlacementStrategy::PackResult;
 
-    PlacementStrategyLike(const BinType& bin, const Config& config = Config()):
+    explicit PlacementStrategyLike(const BinType& bin,
+                                   const Config& config = Config()):
         impl_(bin)
     {
         configure(config);
@@ -312,11 +314,7 @@ public:
 
     inline void accept(PackResult& r) { impl_.accept(r); }
 
-    inline bool pack(Item& item) {
-        auto ret = impl_.trypack(item);
-        accept(ret);
-        return ret;
-    }
+    inline bool pack(Item& item) { return impl_.pack(item); }
 
     inline void unpackLast() { impl_.unpackLast(); }
 

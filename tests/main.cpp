@@ -6,7 +6,7 @@
 #include <binpack2d/geometries_io.hpp>
 
 #include "printer_parts.h"
-//#include "benchmark.h"
+#include "benchmark.h"
 
 namespace {
 using namespace binpack2d;
@@ -306,15 +306,15 @@ void arrangeRectangles() {
 
     DJDArranger arrange(bin, min_obj_distance);
 
-//    Benchmark bench;
+    Benchmark bench;
 
-//    bench.start();
+    bench.start();
     auto result = arrange(input.begin(),
                           input.end());
 
-//    bench.stop();
+    bench.stop();
 
-//    std::cout << bench.getElapsedSec() << std::endl;
+    std::cout << bench.getElapsedSec() << std::endl;
 
     for(auto& it : input) {
         auto ret = ShapeLike::isValid(it.transformedShape());

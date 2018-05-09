@@ -15,7 +15,8 @@ public:
     using typename Base::ItemRef;
 
     struct Config {
-        unsigned max_bins;
+        unsigned max_bins = 0;
+        bool try_reverse_order = true;
     };
 
 private:
@@ -66,6 +67,7 @@ public:
         double free_area = 0;
         double filled_area = 0;
         double waste = 0;
+        bool try_reverse = config_.try_reverse_order;
 
         // Will use a subroutine to add a new bin
         auto addBin = [&placers, &free_area, &filled_area, &bin, &pconfig]()
@@ -141,108 +143,9 @@ public:
             return ret;
         };
 
-//        auto tryGroupsOfTwo = // Try adding groups of two items into the bin.
-//                [&not_packed, &bin_area, &free_area, &filled_area, &check_pair]
-//                (Placer& placer, double waste)
-//        {
-//            double item_area = 0, largest_area = 0, smallest_area = 0;
-//            double second_largest = 0, second_smallest = 0;
-
-//            const auto endit = not_packed.end();
-
-//            if(not_packed.size() < 2)
-//                return false; // No group of two items
-//            else {
-//                largest_area = not_packed.front().get().area();
-//                auto itmp = not_packed.begin(); itmp++;
-//                second_largest = itmp->get().area();
-//                if( free_area - second_largest - largest_area > waste)
-//                    return false; // If even the largest two items do not fill
-//                    // the bin to the desired waste than we can end here.
-
-//                smallest_area = not_packed.back().get().area();
-//                itmp = endit; std::advance(itmp, -2);
-//                second_smallest = itmp->get().area();
-//            }
-
-//            bool ret = false;
-//            auto it = not_packed.begin();
-//            auto it2 = it;
-
-//            std::vector<TPair> wrong_pairs;
-
-//            double largest = second_largest;
-//            double smallest= smallest_area;
-//            while(it != endit && !ret && free_area -
-//                  (item_area = it->get().area()) - largest <= waste )
-//            {
-//                // if this is the last element, the next smallest is the
-//                // previous item
-//                auto itmp = it; std::advance(itmp, 1);
-//                if(itmp == endit) smallest = second_smallest;
-
-//                if(item_area + smallest <= free_area ) {
-//                    auto pr = placer.trypack(*it);
-
-//                    // First would fit
-//                    it2 = not_packed.begin();
-//                    double item2_area = 0;
-//                    while(it2 != endit && pr && !ret && free_area -
-//                          (item2_area = it2->get().area()) - item_area <= waste)
-//                    {
-//                        double area_sum = item_area + item2_area;
-
-//                        if(it == it2 || area_sum > free_area ||
-//                                check_pair(wrong_pairs, *it, *it2)) {
-//                            it2++; continue;
-//                        }
-
-//                        placer.accept(pr);
-//                        auto pr2 = placer.trypack(*it2);
-//                        if(!pr2) {
-//                            placer.unpackLast(); // remove first
-//                            pr2 = placer.trypack(*it2);
-//                            if(pr2) {
-//                                placer.accept(pr2);
-//                                auto pr12 = placer.trypack(*it);
-//                                if(pr12) {
-//                                    placer.accept(pr12);
-//                                    ret = true;
-//                                } else {
-//                                    placer.unpackLast();
-//                                }
-//                            }
-//                        } else {
-//                            placer.accept(pr2);
-//                            ret = true;
-//                        }
-
-//                        if(ret)
-//                        { // Second fits as well
-//                            free_area -= area_sum;
-//                            filled_area = bin_area - free_area;
-//                        } else {
-//                            wrong_pairs.emplace_back(*it, *it2);
-//                            it2++;
-//                        }
-//                    }
-//                    if(!ret) {
-//                        // No second item can be placed, so we have to backtrack
-//                        it++;
-//                    }
-//                } else
-//                    it++;
-
-//                largest = largest_area;
-//            }
-
-//            if(ret) { not_packed.erase(it); not_packed.erase(it2); }
-
-//            return ret;
-//        };
-
         auto tryGroupsOfTwo = // Try adding groups of two items into the bin.
-                [&not_packed, &bin_area, &free_area, &filled_area]
+                [&not_packed, &bin_area, &free_area, &filled_area, &check_pair,
+                 try_reverse]
                 (Placer& placer, double waste)
         {
             double item_area = 0, largest_area = 0, smallest_area = 0;
@@ -269,6 +172,8 @@ public:
             auto it = not_packed.begin();
             auto it2 = it;
 
+            std::vector<TPair> wrong_pairs;
+
             double largest = second_largest;
             double smallest= smallest_area;
             while(it != endit && !ret && free_area -
@@ -279,26 +184,55 @@ public:
                 auto itmp = it; std::advance(itmp, 1);
                 if(itmp == endit) smallest = second_smallest;
 
-                if(item_area + smallest <= free_area && placer.pack(*it)) {
+                if(item_area + smallest <= free_area ) {
+                    auto pr = placer.trypack(*it);
+
                     // First would fit
                     it2 = not_packed.begin();
                     double item2_area = 0;
-                    while(it2 != endit && !ret && free_area -
+                    while(it2 != endit && pr && !ret && free_area -
                           (item2_area = it2->get().area()) - item_area <= waste)
                     {
                         double area_sum = item_area + item2_area;
-                        if(it != it2 &&
-                                area_sum <= free_area && placer.pack(*it2))
+
+                        if(it == it2 || area_sum > free_area ||
+                                check_pair(wrong_pairs, *it, *it2)) {
+                            it2++; continue;
+                        }
+
+                        placer.accept(pr);
+                        auto pr2 = placer.trypack(*it2);
+                        if(!pr2) {
+                            placer.unpackLast(); // remove first
+                            if(try_reverse) {
+                                pr2 = placer.trypack(*it2);
+                                if(pr2) {
+                                    placer.accept(pr2);
+                                    auto pr12 = placer.trypack(*it);
+                                    if(pr12) {
+                                        placer.accept(pr12);
+                                        ret = true;
+                                    } else {
+                                        placer.unpackLast();
+                                    }
+                                }
+                            }
+                        } else {
+                            placer.accept(pr2);
+                            ret = true;
+                        }
+
+                        if(ret)
                         { // Second fits as well
                             free_area -= area_sum;
                             filled_area = bin_area - free_area;
-                            ret = true;
-                        } else it2++;
+                        } else {
+                            wrong_pairs.emplace_back(*it, *it2);
+                            it2++;
+                        }
                     }
-                    if(!ret) {
-                        // No second item can be placed, so we have to backtrack
-                        placer.unpackLast(); it++;
-                    }
+
+                    if(!ret) it++;
                 } else
                     it++;
 
@@ -310,12 +244,13 @@ public:
             return ret;
         };
 
-
         auto tryGroupsOfThree = // Try adding groups of three items.
                 [&not_packed, &bin_area, &free_area, &filled_area,
-                &check_pair, &check_triplet]
+                 &check_pair, &check_triplet, try_reverse]
                 (Placer& placer, double waste)
         {
+
+            if(not_packed.size() < 3) return false;
 
             auto it = not_packed.begin();           // from
             const auto endit = not_packed.end();    // to
@@ -360,9 +295,10 @@ public:
                 double area_of_two_smallest =
                         smallest.area() + second_smallest.area();
 
+                auto pr = placer.trypack(*it);
+
                 // Check for free area and try to pack the 1st item...
-                if(it->get().area() + area_of_two_smallest <= free_area &&
-                        placer.pack(*it)) {
+                if(pr && it->get().area() + area_of_two_smallest <= free_area) {
 
                     it2 = not_packed.begin();
                     double rem2_area = free_area - largest.area();
@@ -372,37 +308,46 @@ public:
                           rem2_area - a2_sum <= waste) {  // Drill down level 2
 
                         if(it == it2 || check_pair(wrong_pairs, *it, *it2)) {
-                            it2++;
-                            continue;
+                            it2++; continue;
+                        }
+
+                        a2_sum = it->get().area() + it2->get().area();
+                        if(a2_sum + smallest.area() > free_area) {
+                            it2++; continue;
                         }
 
                         bool can_pack2 = false;
-                        if(!placer.pack(*it2)) { // Cannot pack the second item
-                            // Try it in reverse order. Need to unpack the first
-                            placer.unpackLast();
 
-                            if(placer.pack(*it2)) {
-                                if(placer.pack(*it)) can_pack2 = true;
-                                else {
+                        placer.accept(pr);
+                        auto pr2 = placer.trypack(*it2);
+                        auto pr12 = pr;
+                        if(!pr2) {
+                            placer.unpackLast(); // remove first
+                            if(try_reverse) {
+                                pr2 = placer.trypack(*it2);
+                                if(pr2) {
+                                    placer.accept(pr2);
+                                    pr12 = placer.trypack(*it);
+                                    if(pr12) can_pack2 = true;
                                     placer.unpackLast();
                                 }
                             }
-                        } else can_pack2 = true;
+                        } else {
+                            placer.unpackLast();
+                            can_pack2 = true;
+                        }
 
                         if(!can_pack2) {
                             wrong_pairs.emplace_back(*it, *it2);
                             it2++;
                             continue;
                         }
-                        // Now we have packed a group of 2 items
 
-                        a2_sum = it->get().area() + it2->get().area();
-
-                        // the 'smallest' variable now could be identical with
+                        // Now we have packed a group of 2 items.
+                        // The 'smallest' variable now could be identical with
                         // it2 but we don't bother with that
 
-                        if(a2_sum + smallest.area() <= free_area &&
-                                placer.pack(*it2)) {
+                        if(can_pack2) {
                             it3 = not_packed.begin();
 
                             double a3_sum = a2_sum + it3->get().area();
@@ -417,15 +362,17 @@ public:
                                     continue;
                                 }
 
+                                placer.accept(pr12); placer.accept(pr2);
                                 bool can_pack3 = placer.pack(*it3);
 
                                 if(!can_pack3) {
-
-                                    // Unpack the first and second candidate
                                     placer.unpackLast();
                                     placer.unpackLast();
+                                }
 
-                                    std::array<size_t, 3> indices = {1, 2, 3};
+                                if(!can_pack3 && try_reverse) {
+
+                                    std::array<size_t, 3> indices = {0, 1, 2};
 
                                     std::array<ItemRef, 3>
                                             candidates = {*it, *it2, *it3};
@@ -449,12 +396,10 @@ public:
                                         return check;
                                     };
 
-                                    bool has_next = true;
-                                    while (!can_pack3 && has_next){
+                                    while (!can_pack3 && std::next_permutation(
+                                               indices.begin(),
+                                               indices.end())){
                                         can_pack3 = tryPack(indices);
-                                        has_next = std::next_permutation(
-                                                    indices.begin(),
-                                                    indices.end());
                                     };
                                 }
 
@@ -469,16 +414,27 @@ public:
                                 }
 
                             } // 3rd while
-                        } else { placer.unpackLast(); it2++; } // 2nd packed
+
+                            if(!ret) it2++;
+
+                        } else
+                            it2++;
+
                     } // Second while
-                } else it++; // 1st item packed
+
+                    if(!ret) it++;
+
+                } else
+                    it++;
+
             } // First while
 
-            if(ret) {
+            if(ret) { // If we eventually succeeded, remove all the packed ones.
                 not_packed.erase(it);
                 not_packed.erase(it2);
                 not_packed.erase(it3);
             }
+
             return ret;
         };
 
@@ -516,13 +472,16 @@ public:
             }
 
             // try pieses one by one
-            while(tryOneByOne(placer, waste)) waste = 0;
+            while(tryOneByOne(placer, waste))
+                waste = 0;
 
             // try groups of 2 pieses
-            while(tryGroupsOfTwo(placer, waste)) waste = 0;
+            while(tryGroupsOfTwo(placer, waste))
+                waste = 0;
 
             // try groups of 3 pieses
-//            while(tryGroupsOfThree(placer, waste)) waste = 0;
+            while(tryGroupsOfThree(placer, waste))
+                waste = 0;
 
             if(waste < free_area) waste += w;
             else if(!not_packed.empty()) addBin();

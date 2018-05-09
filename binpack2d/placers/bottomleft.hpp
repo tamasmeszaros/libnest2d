@@ -96,12 +96,16 @@ public:
         return can_be_packed? PackResult(item) : PackResult();
     }
 
-    bool pack(Item& item) { auto&& r = trypack(item); accept(r); return r; }
+    bool pack(Item& item) {
+        auto&& r = trypack(item);
+        if(r) items_.push_back(*(r.item_ptr_));
+        return r;
+    }
 
     void accept(PackResult& r) {
         if(r) {
-//            r.item_ptr_->translation(r.move_);
-//            r.item_ptr_->rotation(r.rot_);
+            r.item_ptr_->translation(r.move_);
+            r.item_ptr_->rotation(r.rot_);
             items_.push_back(*(r.item_ptr_));
         }
     }

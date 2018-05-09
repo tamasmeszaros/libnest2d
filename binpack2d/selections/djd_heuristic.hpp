@@ -7,6 +7,10 @@
 
 namespace binpack2d { namespace strategies {
 
+/**
+ * Selection heuristic based on [López-Camacho]\
+ * (http://www.cs.stir.ac.uk/~goc/papers/EffectiveHueristic2DAOR2013.pdf)
+ */
 template<class RawShape>
 class _DJDHeuristic: public SelectionBoilerplate<RawShape> {
     using Base = SelectionBoilerplate<RawShape>;
@@ -14,8 +18,17 @@ public:
     using typename Base::Item;
     using typename Base::ItemRef;
 
+    /**
+     * @brief The Config for DJD heuristic.
+     */
     struct Config {
+        /// Max number of bins.
         unsigned max_bins = 0;
+
+        /**
+         * If true, the algorithm will try to place pair and driplets in all
+         * possible order.
+         */
         bool try_reverse_order = true;
     };
 
@@ -27,6 +40,8 @@ private:
     Container store_;
     Config config_;
 
+    // The initial fill proportion of the bin area that will be filled before
+    // trying items one by one, or pairs or triplets.
     static const double INITIAL_FILL_PROPORTION;
 
 public:
@@ -298,134 +313,127 @@ public:
                 auto pr = placer.trypack(*it);
 
                 // Check for free area and try to pack the 1st item...
-                if(pr && it->get().area() + area_of_two_smallest <= free_area) {
+                if(!pr || it->get().area() + area_of_two_smallest > free_area) {
+                    it++; continue;
+                }
 
-                    it2 = not_packed.begin();
-                    double rem2_area = free_area - largest.area();
-                    double a2_sum = it->get().area() + it2->get().area();
+                it2 = not_packed.begin();
+                double rem2_area = free_area - largest.area();
+                double a2_sum = it->get().area() + it2->get().area();
 
-                    while(it2 != endit && !ret &&
-                          rem2_area - a2_sum <= waste) {  // Drill down level 2
+                while(it2 != endit && !ret &&
+                      rem2_area - a2_sum <= waste) {  // Drill down level 2
 
-                        if(it == it2 || check_pair(wrong_pairs, *it, *it2)) {
-                            it2++; continue;
-                        }
+                    if(it == it2 || check_pair(wrong_pairs, *it, *it2)) {
+                        it2++; continue;
+                    }
 
-                        a2_sum = it->get().area() + it2->get().area();
-                        if(a2_sum + smallest.area() > free_area) {
-                            it2++; continue;
-                        }
+                    a2_sum = it->get().area() + it2->get().area();
+                    if(a2_sum + smallest.area() > free_area) {
+                        it2++; continue;
+                    }
 
-                        bool can_pack2 = false;
+                    bool can_pack2 = false;
 
-                        placer.accept(pr);
-                        auto pr2 = placer.trypack(*it2);
-                        auto pr12 = pr;
-                        if(!pr2) {
-                            placer.unpackLast(); // remove first
-                            if(try_reverse) {
-                                pr2 = placer.trypack(*it2);
-                                if(pr2) {
-                                    placer.accept(pr2);
-                                    pr12 = placer.trypack(*it);
-                                    if(pr12) can_pack2 = true;
-                                    placer.unpackLast();
-                                }
+                    placer.accept(pr);
+                    auto pr2 = placer.trypack(*it2);
+                    auto pr12 = pr;
+                    if(!pr2) {
+                        placer.unpackLast(); // remove first
+                        if(try_reverse) {
+                            pr2 = placer.trypack(*it2);
+                            if(pr2) {
+                                placer.accept(pr2);
+                                pr12 = placer.trypack(*it);
+                                if(pr12) can_pack2 = true;
+                                placer.unpackLast();
                             }
-                        } else {
+                        }
+                    } else {
+                        placer.unpackLast();
+                        can_pack2 = true;
+                    }
+
+                    if(!can_pack2) {
+                        wrong_pairs.emplace_back(*it, *it2);
+                        it2++;
+                        continue;
+                    }
+
+                    // Now we have packed a group of 2 items.
+                    // The 'smallest' variable now could be identical with
+                    // it2 but we don't bother with that
+
+                    if(!can_pack2) { it2++; continue; }
+
+                    it3 = not_packed.begin();
+
+                    double a3_sum = a2_sum + it3->get().area();
+
+                    while(it3 != endit && !ret &&
+                          free_area - a3_sum <= waste) { // 3rd level
+
+                        if(it3 == it || it3 == it2 ||
+                                check_triplet(wrong_triplets, *it, *it2, *it3))
+                        { it3++; continue; }
+
+                        placer.accept(pr12); placer.accept(pr2);
+                        bool can_pack3 = placer.pack(*it3);
+
+                        if(!can_pack3) {
                             placer.unpackLast();
-                            can_pack2 = true;
+                            placer.unpackLast();
                         }
 
-                        if(!can_pack2) {
-                            wrong_pairs.emplace_back(*it, *it2);
-                            it2++;
-                            continue;
+                        if(!can_pack3 && try_reverse) {
+
+                            std::array<size_t, 3> indices = {0, 1, 2};
+                            std::array<ItemRef, 3>
+                                    candidates = {*it, *it2, *it3};
+
+                            auto tryPack = [&placer, &candidates](
+                                    const decltype(indices)& idx)
+                            {
+                                std::array<bool, 3> packed = {false};
+
+                                for(auto id : idx) packed[id] =
+                                        placer.pack(candidates[id]);
+
+                                bool check =
+                                std::all_of(packed.begin(),
+                                            packed.end(),
+                                            [](bool b) { return b; });
+
+                                if(!check) for(bool b : packed) if(b)
+                                        placer.unpackLast();
+
+                                return check;
+                            };
+
+                            while (!can_pack3 && std::next_permutation(
+                                       indices.begin(),
+                                       indices.end())){
+                                can_pack3 = tryPack(indices);
+                            };
                         }
 
-                        // Now we have packed a group of 2 items.
-                        // The 'smallest' variable now could be identical with
-                        // it2 but we don't bother with that
+                        if(can_pack3) {
+                            // finishit
+                            free_area -= a3_sum;
+                            filled_area = bin_area - free_area;
+                            ret = true;
+                        } else {
+                            wrong_triplets.emplace_back(*it, *it2, *it3);
+                            it3++;
+                        }
 
-                        if(can_pack2) {
-                            it3 = not_packed.begin();
+                    } // 3rd while
 
-                            double a3_sum = a2_sum + it3->get().area();
+                    if(!ret) it2++;
 
-                            while(it3 != endit && !ret &&
-                                  free_area - a3_sum <= waste) { // 3rd level
+                } // Second while
 
-                                if(it3 == it || it3 == it2 ||
-                                        check_triplet(wrong_triplets,
-                                                      *it, *it2, *it3)) {
-                                    it3++;
-                                    continue;
-                                }
-
-                                placer.accept(pr12); placer.accept(pr2);
-                                bool can_pack3 = placer.pack(*it3);
-
-                                if(!can_pack3) {
-                                    placer.unpackLast();
-                                    placer.unpackLast();
-                                }
-
-                                if(!can_pack3 && try_reverse) {
-
-                                    std::array<size_t, 3> indices = {0, 1, 2};
-
-                                    std::array<ItemRef, 3>
-                                            candidates = {*it, *it2, *it3};
-
-                                    auto tryPack = [&placer, &candidates](
-                                            const decltype(indices)& idx)
-                                    {
-                                        std::array<bool, 3> packed = {false};
-
-                                        for(auto id : idx) packed[id] =
-                                                placer.pack(candidates[id]);
-
-                                        bool check =
-                                        std::all_of(packed.begin(),
-                                                    packed.end(),
-                                                    [](bool b) { return b; });
-
-                                        if(!check) for(bool b : packed) if(b)
-                                                placer.unpackLast();
-
-                                        return check;
-                                    };
-
-                                    while (!can_pack3 && std::next_permutation(
-                                               indices.begin(),
-                                               indices.end())){
-                                        can_pack3 = tryPack(indices);
-                                    };
-                                }
-
-                                if(can_pack3) {
-                                    // finishit
-                                    free_area -= a3_sum;
-                                    filled_area = bin_area - free_area;
-                                    ret = true;
-                                } else {
-                                    wrong_triplets.emplace_back(*it, *it2, *it3);
-                                    it3++;
-                                }
-
-                            } // 3rd while
-
-                            if(!ret) it2++;
-
-                        } else
-                            it2++;
-
-                    } // Second while
-
-                    if(!ret) it++;
-
-                } else
-                    it++;
+                if(!ret) it++;
 
             } // First while
 
@@ -496,7 +504,7 @@ public:
 
 /*
  * The initial fill proportion suggested by
- * [López-Camacho et al. 2013]\
+ * [López-Camacho]\
  * (http://www.cs.stir.ac.uk/~goc/papers/EffectiveHueristic2DAOR2013.pdf)
  * is one third of the area of bin.
  */

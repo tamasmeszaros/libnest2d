@@ -6,6 +6,7 @@
 #include <binpack2d/clipper_backend/clipper_backend.hpp>
 
 #include <binpack2d/placers/bottomleft.hpp>
+#include <binpack2d/placers/nofitpoly.hpp>
 #include <binpack2d/placers/centering.hpp>
 #include <binpack2d/selections/firstfit.hpp>
 #include <binpack2d/selections/filler.hpp>
@@ -30,12 +31,7 @@ using DJDHeuristic  = strategies::_DJDHeuristic<PolygonImpl>;
 
 using BottomLeftPlacer = strategies::_BottomLeftPlacer<PolygonImpl>;
 using CenteringPlacer = strategies::_CenteringPlacer<PolygonImpl>;
-
-//using FirstFitArranger = _Arranger<BottomLeftPlacer, FirstFitSelection>;
-//using FillArranger = _Arranger<BottomLeftPlacer, FillerSelection>;
-//using DJDArranger = _Arranger<BottomLeftPlacer, DJDHeuristic>;
-//using DJDCentringArranger = _Arranger<CenteringPlacer, DJDHeuristic>;
-//using Arranger = FillArranger;
+using NofitPolyPlacer = strategies::_NofitPolyPlacer<PolygonImpl>;
 
 }
 

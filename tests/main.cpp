@@ -304,7 +304,7 @@ void arrangeRectangles() {
 //        {20, 20}
 //    };
 
-    Arranger<CenteringPlacer, DJDHeuristic> arrange(bin, min_obj_distance);
+    Arranger<BottomLeftPlacer, DJDHeuristic> arrange(bin, min_obj_distance);
 
     Benchmark bench;
 

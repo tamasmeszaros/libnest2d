@@ -199,57 +199,55 @@ public:
                 auto itmp = it; std::advance(itmp, 1);
                 if(itmp == endit) smallest = second_smallest;
 
-                if(item_area + smallest <= free_area ) {
-                    auto pr = placer.trypack(*it);
+                if(item_area + smallest > free_area ) { it++; continue; }
 
-                    // First would fit
-                    it2 = not_packed.begin();
-                    double item2_area = 0;
-                    while(it2 != endit && pr && !ret && free_area -
-                          (item2_area = it2->get().area()) - item_area <= waste)
-                    {
-                        double area_sum = item_area + item2_area;
+                auto pr = placer.trypack(*it);
 
-                        if(it == it2 || area_sum > free_area ||
-                                check_pair(wrong_pairs, *it, *it2)) {
-                            it2++; continue;
-                        }
+                // First would fit
+                it2 = not_packed.begin();
+                double item2_area = 0;
+                while(it2 != endit && pr && !ret && free_area -
+                      (item2_area = it2->get().area()) - item_area <= waste)
+                {
+                    double area_sum = item_area + item2_area;
 
-                        placer.accept(pr);
-                        auto pr2 = placer.trypack(*it2);
-                        if(!pr2) {
-                            placer.unpackLast(); // remove first
-                            if(try_reverse) {
-                                pr2 = placer.trypack(*it2);
-                                if(pr2) {
-                                    placer.accept(pr2);
-                                    auto pr12 = placer.trypack(*it);
-                                    if(pr12) {
-                                        placer.accept(pr12);
-                                        ret = true;
-                                    } else {
-                                        placer.unpackLast();
-                                    }
-                                }
-                            }
-                        } else {
-                            placer.accept(pr2);
-                            ret = true;
-                        }
-
-                        if(ret)
-                        { // Second fits as well
-                            free_area -= area_sum;
-                            filled_area = bin_area - free_area;
-                        } else {
-                            wrong_pairs.emplace_back(*it, *it2);
-                            it2++;
-                        }
+                    if(it == it2 || area_sum > free_area ||
+                            check_pair(wrong_pairs, *it, *it2)) {
+                        it2++; continue;
                     }
 
-                    if(!ret) it++;
-                } else
-                    it++;
+                    placer.accept(pr);
+                    auto pr2 = placer.trypack(*it2);
+                    if(!pr2) {
+                        placer.unpackLast(); // remove first
+                        if(try_reverse) {
+                            pr2 = placer.trypack(*it2);
+                            if(pr2) {
+                                placer.accept(pr2);
+                                auto pr12 = placer.trypack(*it);
+                                if(pr12) {
+                                    placer.accept(pr12);
+                                    ret = true;
+                                } else {
+                                    placer.unpackLast();
+                                }
+                            }
+                        }
+                    } else {
+                        placer.accept(pr2); ret = true;
+                    }
+
+                    if(ret)
+                    { // Second fits as well
+                        free_area -= area_sum;
+                        filled_area = bin_area - free_area;
+                    } else {
+                        wrong_pairs.emplace_back(*it, *it2);
+                        it2++;
+                    }
+                }
+
+                if(!ret) it++;
 
                 largest = largest_area;
             }

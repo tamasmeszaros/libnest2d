@@ -33,9 +33,8 @@ set(BINPACK2D_SRCFILES binpack2d/binpack2d.cpp
     binpack2d/geometries_io.hpp
     binpack2d/common.hpp
     binpack2d/placers/placer_boilerplate.hpp
-    binpack2d/placers/bottomleft.hpp
-    binpack2d/placers/centering.hpp
-    binpack2d/placers/nofitpoly.hpp
+    binpack2d/placers/bottomleftplacer.hpp
+    binpack2d/placers/nfpplacer.hpp
     binpack2d/placers/geometries_nofitpolygon.hpp
     binpack2d/selections/selection_boilerplate.hpp
     binpack2d/selections/filler.hpp

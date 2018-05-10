@@ -5,6 +5,7 @@
 // for now we set it statically to clipper backend
 #include <binpack2d/clipper_backend/clipper_backend.hpp>
 
+#include <binpack2d/binpack2d.hpp>
 #include <binpack2d/placers/bottomleft.hpp>
 #include <binpack2d/placers/nofitpoly.hpp>
 #include <binpack2d/placers/centering.hpp>

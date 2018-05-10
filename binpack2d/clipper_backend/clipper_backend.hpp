@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-#include "../binpack2d.hpp"
+#include "../geometry_traits.hpp"
 
 #include <clipper.hpp>
 
@@ -42,34 +42,7 @@ inline PointImpl operator-(const PointImpl& p1, const PointImpl& p2) {
     return ret;
 }
 
-class HoleCache {
-    friend class ShapeLike;
-    std::unordered_map< const PolygonImpl*, ClipperLib::Paths> map;
-
-    ClipperLib::Paths& _getHoles(const PolygonImpl* p) {
-        ClipperLib::Paths& paths = map[p];
-
-        if(paths.size() != p->Childs.size()) {
-            paths.reserve(p->Childs.size());
-
-            for(auto np : p->Childs) {
-                paths.emplace_back(np->Contour);
-            }
-        }
-
-        return paths;
-    }
-
-    ClipperLib::Paths& getHoles(PolygonImpl& p) {
-        return _getHoles(&p);
-    }
-
-    const ClipperLib::Paths& getHoles(const PolygonImpl& p) {
-        return _getHoles(&p);
-    }
-};
-
-extern HoleCache holeCache;
+//extern HoleCache holeCache;
 
 // Type of coordinate units used by Clipper
 template<> struct CoordType<PointImpl> {
@@ -212,16 +185,11 @@ template<>
 PolygonImpl ShapeLike::create( std::initializer_list< PointImpl > il);
 
 template<>
-inline const THolesContainer<PolygonImpl>& ShapeLike::holes(
-        const PolygonImpl& sh)
-{
-    return holeCache.getHoles(sh);
-}
+const THolesContainer<PolygonImpl>& ShapeLike::holes(
+        const PolygonImpl& sh);
 
 template<>
-inline THolesContainer<PolygonImpl>& ShapeLike::holes(PolygonImpl& sh) {
-    return holeCache.getHoles(sh);
-}
+THolesContainer<PolygonImpl>& ShapeLike::holes(PolygonImpl& sh);
 
 template<>
 inline TCountour<PolygonImpl>& ShapeLike::getHole(PolygonImpl& sh,

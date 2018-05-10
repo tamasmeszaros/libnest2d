@@ -470,6 +470,13 @@ public:
     }
 
     template<class RawShape>
+    static RawShape& minkowskiAdd(RawShape& sh, const RawShape& /*other*/) {
+        static_assert(always_false<RawShape>::value,
+                      "ShapeLike::minkowskiAdd() unimplemented!");
+        return sh;
+    }
+
+    template<class RawShape>
     static std::pair<bool, std::string> isValid(const RawShape& /*sh*/) {
         return {false, "ShapeLike::isValid() unimplemented"};
     }

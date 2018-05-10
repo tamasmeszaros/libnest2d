@@ -126,20 +126,20 @@ inline void ShapeLike::reserve(PolygonImpl& sh, unsigned long vertex_capacity)
     return sh.Contour.reserve(vertex_capacity);
 }
 
-#define DISABLE_BOOST_AREA
 // Tell binpack2d how to make string out of a ClipperPolygon object
 template<>
 inline double ShapeLike::area(const PolygonImpl& sh) {
+    #define DISABLE_BOOST_AREA
     double ret = ClipperLib::Area(sh.Contour);
 //    if(OrientationType<PolygonImpl>::Value == Orientation::COUNTER_CLOCKWISE)
 //        ret = -ret;
     return ret;
 }
 
-#define DISABLE_BOOST_OFFSET
-
 template<>
 inline void ShapeLike::offset(PolygonImpl& sh, TCoord<PointImpl> distance) {
+    #define DISABLE_BOOST_OFFSET
+
     using ClipperLib::ClipperOffset;
     using ClipperLib::jtMiter;
     using ClipperLib::etClosedPolygon;
@@ -165,6 +165,14 @@ inline void ShapeLike::offset(PolygonImpl& sh, TCoord<PointImpl> distance) {
         ClipperLib::ReversePath(sh.Contour);
     }
 
+}
+
+template<>
+inline PolygonImpl& ShapeLike::minkowskiAdd(PolygonImpl& sh,
+                                     const PolygonImpl& /*other*/)
+{
+    #define DISABLE_BOOST_MINKOWSKI_ADD
+    return sh;
 }
 
 // Tell binpack2d how to make string out of a ClipperPolygon object

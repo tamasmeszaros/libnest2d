@@ -383,6 +383,14 @@ inline void ShapeLike::offset(PolygonImpl& sh, bp2d::Coord distance) {
 }
 #endif
 
+#ifndef DISABLE_BOOST_MINKOWSKI_ADD
+template<>
+inline PolygonImpl& ShapeLike::minkowskiAdd(PolygonImpl& sh,
+                                     const PolygonImpl& /*other*/) {
+    return sh;
+}
+#endif
+
 #ifndef DISABLE_BOOST_SERIALIZE
 template<>
 inline std::string ShapeLike::serialize<binpack2d::Formats::SVG>(

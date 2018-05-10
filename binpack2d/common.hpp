@@ -35,7 +35,7 @@ using enable_if_t = typename std::enable_if<B, T>::type;
  */
 template<class T> struct always_false { enum { value = false }; };
 
-const auto BP2D_CONSTEXPR Pi = 2*std::acos(0);
+const auto BP2D_CONSTEXPR Pi = 3.141592653589793238463; // 2*std::acos(0);
 
 /**
  * @brief Only for the Radian and Degrees classes to behave as doubles.

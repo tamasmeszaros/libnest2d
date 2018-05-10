@@ -84,16 +84,5 @@ inline bool operator==(const Radians& rads, const Degrees& deg) {
     return deg == rads;
 }
 
-class UnimplementedException : public std::exception
-{
-    std::string info_;
-    mutable std::string basic_txt_;
-public:
-
-    UnimplementedException(const std::string& info = ""): info_(info) {}
-
-    virtual char const * what() const BP2D_NOEXCEPT;
-};
-
 }
 #endif // BP2D_CONFIG_HPP

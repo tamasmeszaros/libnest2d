@@ -385,7 +385,11 @@ protected:
 
             if(dir == Dir::LEFT) addOthers();
             else reverseAddOthers();*/
-            throw UnimplementedException("Counter clockwise toWallPoly()");
+
+            static_assert(OrientationType<RawShape>::Value ==
+                          Orientation::CLOCKWISE,
+                          "Counter clockwise toWallPoly() Unimplemented!");
+
         }
 
         // Close the polygon

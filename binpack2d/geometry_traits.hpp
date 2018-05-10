@@ -477,6 +477,9 @@ public:
     }
 
     template<class RawShape>
+    static RawShape& noFitPolygon(RawShape& sh, const RawShape& /*other*/);
+
+    template<class RawShape>
     static std::pair<bool, std::string> isValid(const RawShape& /*sh*/) {
         return {false, "ShapeLike::isValid() unimplemented"};
     }

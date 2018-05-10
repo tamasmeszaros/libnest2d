@@ -142,9 +142,18 @@ inline void ShapeLike::offset(PolygonImpl& sh, TCoord<PointImpl> distance) {
 
 template<>
 inline PolygonImpl& ShapeLike::minkowskiAdd(PolygonImpl& sh,
-                                     const PolygonImpl& /*other*/)
+                                            const PolygonImpl& other)
 {
     #define DISABLE_BOOST_MINKOWSKI_ADD
+
+    ClipperLib::Paths solution;
+
+    ClipperLib::MinkowskiSum(sh.Contour, other.Contour, solution, true);
+
+    assert(solution.size() == 1);
+
+    sh.Contour = solution.front();
+
     return sh;
 }
 

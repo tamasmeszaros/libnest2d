@@ -385,8 +385,8 @@ inline void ShapeLike::offset(PolygonImpl& sh, bp2d::Coord distance) {
 
 #ifndef DISABLE_BOOST_MINKOWSKI_ADD
 template<>
-inline PolygonImpl& ShapeLike::minkowskiAdd(PolygonImpl& sh,
-                                     const PolygonImpl& /*other*/) {
+inline PolygonImpl& Nfp::minkowskiAdd(PolygonImpl& sh,
+                                      const PolygonImpl& /*other*/) {
     return sh;
 }
 #endif

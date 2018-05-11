@@ -26,7 +26,7 @@ option(BINPACK2D_UNITTESTS "If enabled, googletest framework will be downloaded
 #    "Libraries needed to compile the test executable for binpack2d.")
 
 
-set(BINPACK2D_SRCFILES binpack2d/binpack2d.cpp
+set(BINPACK2D_SRCFILES
     binpack2d/binpack2d.hpp       # Templates only
     binpack2d.h         # Exports ready made types using template arguments
     binpack2d/geometry_traits.hpp
@@ -35,7 +35,7 @@ set(BINPACK2D_SRCFILES binpack2d/binpack2d.cpp
     binpack2d/placers/placer_boilerplate.hpp
     binpack2d/placers/bottomleftplacer.hpp
     binpack2d/placers/nfpplacer.hpp
-    binpack2d/placers/geometries_nofitpolygon.hpp
+    binpack2d/geometries_nfp.hpp
     binpack2d/selections/selection_boilerplate.hpp
     binpack2d/selections/filler.hpp
     binpack2d/selections/firstfit.hpp
@@ -62,7 +62,7 @@ if((NOT BINPACK2D_GEOMETRIES_TARGET) OR (BINPACK2D_GEOMETRIES_TARGET STREQUAL ""
                                    binpack2d/boost_alg.hpp)
 
 else()
-    message(STATUS "Binpack2D backend target is: ${BINPACK2D_GEOMETRIES_TARGET}")
+    message(STATUS "Binpack2D backend is: ${BINPACK2D_GEOMETRIES_TARGET}")
 endif()
 
 add_library(binpack2d STATIC ${BINPACK2D_SRCFILES} )

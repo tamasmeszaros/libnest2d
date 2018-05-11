@@ -98,6 +98,8 @@ public:
 
     inline RawPoint& first() BP2D_NOEXCEPT { return p1; }
     inline RawPoint& second() BP2D_NOEXCEPT { return p2; }
+
+    inline Radians angleToXaxis() const;
 };
 
 class PointLike {
@@ -224,6 +226,24 @@ void setY(RawPoint& p, const TCoord<RawPoint>& val) {
     PointLike::y<RawPoint>(p) = val;
 }
 
+template<class RawPoint>
+inline Radians _Segment<RawPoint>::angleToXaxis() const
+{
+    TCoord<RawPoint> dx = getX(second()) - getX(first());
+    TCoord<RawPoint> dy = getY(second()) - getY(first());
+
+    if(dx == 0 && dy >= 0) return Pi/2;
+    if(dx == 0 && dy < 0) return 3*Pi/2;
+    if(dy == 0 && dx >= 0) return 0;
+    if(dy == 0 && dx < 0) return Pi;
+
+    double ddx = static_cast<double>(dx);
+    auto s = std::signbit(ddx);
+    double a = std::atan(ddx/dy);
+    if(s) a += Pi;
+    return a;
+}
+
 template<class RawShape>
 struct HolesContainer {
     using Type = std::vector<RawShape>;
@@ -257,8 +277,7 @@ enum class Formats {
     SVG
 };
 
-class ShapeLike {
-public:
+struct ShapeLike {
 
     template<class RawShape>
     static RawShape create( std::initializer_list< TPoint<RawShape> > il)
@@ -470,21 +489,12 @@ public:
     }
 
     template<class RawShape>
-    static RawShape& minkowskiAdd(RawShape& sh, const RawShape& /*other*/) {
-        static_assert(always_false<RawShape>::value,
-                      "ShapeLike::minkowskiAdd() unimplemented!");
-        return sh;
-    }
-
-    template<class RawShape>
-    static RawShape& noFitPolygon(RawShape& sh, const RawShape& /*other*/);
-
-    template<class RawShape>
     static std::pair<bool, std::string> isValid(const RawShape& /*sh*/) {
         return {false, "ShapeLike::isValid() unimplemented"};
     }
 
 };
+
 
 }
 

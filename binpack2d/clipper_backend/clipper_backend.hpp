@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "../geometry_traits.hpp"
+#include "../geometries_nfp.hpp"
 
 #include <clipper.hpp>
 
@@ -141,7 +142,7 @@ inline void ShapeLike::offset(PolygonImpl& sh, TCoord<PointImpl> distance) {
 }
 
 template<>
-inline PolygonImpl& ShapeLike::minkowskiAdd(PolygonImpl& sh,
+inline PolygonImpl& Nfp::minkowskiAdd(PolygonImpl& sh,
                                             const PolygonImpl& other)
 {
     #define DISABLE_BOOST_MINKOWSKI_ADD

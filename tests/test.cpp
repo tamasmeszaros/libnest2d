@@ -5,6 +5,7 @@
 #include <binpack2d.h>
 #include "printer_parts.h"
 #include <binpack2d/geometries_io.hpp>
+#include <binpack2d/geometries_nfp.hpp>
 
 TEST(BasicFunctionality, Angles)
 {
@@ -314,8 +315,9 @@ TEST(GeometryAlgorithms, ArrangeRectanglesLoose)
 namespace {
 using namespace binpack2d;
 
-template<class Bin>
-void exportSVG(std::vector<std::reference_wrapper<Item>>& result, const Bin& bin, int idx) {
+template<unsigned long SCALE = 1, class Bin>
+void exportSVG(std::vector<std::reference_wrapper<Item>>& result, const Bin& bin, int idx = 0) {
+
 
     std::string loc = "out";
 
@@ -334,7 +336,8 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             Item rbin( Rectangle(bin.width(), bin.height()) );
             for(unsigned i = 0; i < rbin.vertexCount(); i++) {
                 auto v = rbin.vertex(i);
-                setY(v, -getY(v) + 500 );
+                setY(v, -getY(v)/SCALE + 500 );
+                setX(v, getX(v)/SCALE);
                 rbin.setVertex(i, v);
             }
             out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
@@ -342,7 +345,8 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                 Item tsh(sh.transformedShape());
                 for(unsigned i = 0; i < tsh.vertexCount(); i++) {
                     auto v = tsh.vertex(i);
-                    setY(v, -getY(v) + 500 );
+                    setY(v, -getY(v)/SCALE + 500);
+                    setX(v, getX(v)/SCALE);
                     tsh.setVertex(i, v);
                 }
                 out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape()) << std::endl;
@@ -395,6 +399,74 @@ TEST(GeometryAlgorithms, BottomLeftStressTest) {
     }
 }
 
+TEST(GeometryAlgorithms, nfpConvexConvex) {
+    using namespace binpack2d;
+
+    const unsigned long SCALE = 1;
+
+    Box bin(210*SCALE, 250*SCALE);
+
+    Item stationary = {
+        {120, 114},
+        {130, 114},
+        {130, 103},
+        {128, 96},
+        {122, 96},
+        {120, 103},
+        {120, 114}
+    };
+
+    Item orbiter = {
+        {72, 147},
+        {94, 151},
+        {178, 151},
+        {178, 59},
+        {72, 59},
+        {72, 147}
+    };
+
+    orbiter.translate({210*SCALE, 0});
+
+    auto&& nfp = Nfp::noFitPolygon(stationary.rawShape(),
+                                   orbiter.transformedShape());
+
+    auto v = ShapeLike::isValid(nfp);
+
+    if(!v.first) {
+        std::cout << v.second << std::endl;
+    }
+
+    ASSERT_TRUE(v.first);
+
+    Item infp(nfp);
+
+    int i = 0;
+    auto rorbiter = orbiter.transformedShape();
+    auto vo = *(ShapeLike::begin(rorbiter));
+    for(auto v : infp) {
+        auto dx = getX(v) - getX(vo);
+        auto dy = getY(v) - getY(vo);
+
+        Item tmp = orbiter;
+
+        tmp.translate({dx, dy});
+
+        bool notinside = !tmp.isInside(stationary);
+        bool notintersecting = !Item::intersects(tmp, stationary);
+
+        if(!(notinside && notintersecting)) {
+            std::vector<std::reference_wrapper<Item>> inp = {
+                std::ref(stationary), std::ref(tmp), std::ref(infp)
+            };
+
+            exportSVG<SCALE>(inp, bin, i++);
+        }
+
+        //ASSERT_TRUE(notintersecting);
+        ASSERT_TRUE(notinside);
+    }
+
+}
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

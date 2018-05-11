@@ -1,4 +1,4 @@
-if(NOT TARGET clipper)
+if(NOT TARGET clipper) # If there is a clipper target in the parent project we are good to go.
 
     find_package(Clipper QUIET)
 
@@ -39,7 +39,8 @@ if(NOT TARGET clipper)
             set(CLIPPER_LIBRARIES clipper_lib PARENT_SCOPE)
 
         else()
-            message(FATAL_ERROR "Can't find clipper library and no SVN client found to download.")
+            message(FATAL_ERROR "Can't find clipper library and no SVN client found to download.
+                You can download the clipper sources and define a clipper target in your project, that will work for binpack2d.")
         endif()
     endif()
 else()

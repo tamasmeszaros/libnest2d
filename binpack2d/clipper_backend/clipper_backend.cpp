@@ -4,7 +4,8 @@ namespace binpack2d {
 
 namespace  {
 class HoleCache {
-    friend class binpack2d::ShapeLike;
+    friend struct binpack2d::ShapeLike;
+
     std::unordered_map< const PolygonImpl*, ClipperLib::Paths> map;
 
     ClipperLib::Paths& _getHoles(const PolygonImpl* p) {

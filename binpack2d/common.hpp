@@ -58,9 +58,9 @@ class Degrees;
 class Radians: public Double {
 public:
     Radians(double rads = Double() ): Double(rads) {}
-    Radians(const Degrees& degs);
+    inline Radians(const Degrees& degs);
 
-    operator Degrees();
+    inline operator Degrees();
     inline double toDegrees();
 };
 
@@ -83,6 +83,12 @@ inline bool operator==(const Degrees& deg, const Radians& rads) {
 inline bool operator==(const Radians& rads, const Degrees& deg) {
     return deg == rads;
 }
+
+inline Radians::operator Degrees() { return *this * 180/Pi; }
+
+inline Radians::Radians(const Degrees &degs): Double( degs * Pi/180) {}
+
+inline double Radians::toDegrees() { return operator Degrees(); }
 
 }
 #endif // BP2D_CONFIG_HPP

@@ -228,9 +228,7 @@ protected:
                     }
                 }
             }
-        }
 
-        if(!items_in_the_way.empty()) {
             auto first = item.begin();
             auto next = first + 1;
             auto endit = item.end();
@@ -356,41 +354,28 @@ protected:
 
         // Final polygon construction...
 
-        if( Item::orientation() == Orientation::CLOCKWISE ) {
-            // Clockwise polygon construction
+        static_assert(OrientationType<RawShape>::Value ==
+                      Orientation::CLOCKWISE,
+                      "Counter clockwise toWallPoly() Unimplemented!");
 
-            ShapeLike::addVertex(rsh, topleft_vertex);
+        // Clockwise polygon construction
 
-            if(dir == Dir::LEFT) reverseAddOthers();
-            else {
-                ShapeLike::addVertex(rsh, getX(topleft_vertex), 0);
-                ShapeLike::addVertex(rsh, getX(bottomleft_vertex), 0);
-            }
+        ShapeLike::addVertex(rsh, topleft_vertex);
 
-            ShapeLike::addVertex(rsh, bottomleft_vertex);
-
-            if(dir == Dir::LEFT) {
-                ShapeLike::addVertex(rsh, 0, getY(bottomleft_vertex));
-                ShapeLike::addVertex(rsh, 0, getY(topleft_vertex));
-            }
-            else reverseAddOthers();
-
-        } else { // Counter clockwise polygon construction
-            /*ShapeLike::addVertex(rsh, topleft_vertex);
-
-            ShapeLike::addVertex(rsh, 0, getCoord(topleft_vertex));
-            ShapeLike::addVertex(rsh, 0, getCoord(bottomleft_vertex));
-
-            ShapeLike::addVertex(rsh, bottomleft_vertex);
-
-            if(dir == Dir::LEFT) addOthers();
-            else reverseAddOthers();*/
-
-            static_assert(OrientationType<RawShape>::Value ==
-                          Orientation::CLOCKWISE,
-                          "Counter clockwise toWallPoly() Unimplemented!");
-
+        if(dir == Dir::LEFT) reverseAddOthers();
+        else {
+            ShapeLike::addVertex(rsh, getX(topleft_vertex), 0);
+            ShapeLike::addVertex(rsh, getX(bottomleft_vertex), 0);
         }
+
+        ShapeLike::addVertex(rsh, bottomleft_vertex);
+
+        if(dir == Dir::LEFT) {
+            ShapeLike::addVertex(rsh, 0, getY(bottomleft_vertex));
+            ShapeLike::addVertex(rsh, 0, getY(topleft_vertex));
+        }
+        else reverseAddOthers();
+
 
         // Close the polygon
         ShapeLike::addVertex(rsh, topleft_vertex);

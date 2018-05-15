@@ -132,7 +132,12 @@ public:
     }
 
     /**
-     * @brief Get o copy of an outer vertex whithin the carried shape.
+     * @brief Get a copy of an outer vertex whithin the carried shape.
+     *
+     * Note that the vertex considered here is taken from the original shape
+     * that this item is constructed from. This means that no transformation is
+     * applied to the shape in this call.
+     *
      * @param idx The index of the requested vertex.
      * @return A copy of the requested vertex.
      */
@@ -145,7 +150,7 @@ public:
      * @brief Modify a vertex.
      *
      * Note that this method will invalidate every cached calculation result
-     * including polygon offset and transformation.
+     * including polygon offset and transformations.
      *
      * @param idx The index of the requested vertex.
      * @param v The new vertex data.

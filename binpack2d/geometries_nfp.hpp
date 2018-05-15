@@ -89,9 +89,6 @@ static RawShape noFitPolygon(const RawShape& sh, const RawShape& other) {
             tmp = std::next(tmp);
         }
 
-//        ShapeLike::addVertex(rsh, edgelist.front().first());
-//        ShapeLike::addVertex(rsh, edgelist.front().second());
-
         return rsh;
     };
 

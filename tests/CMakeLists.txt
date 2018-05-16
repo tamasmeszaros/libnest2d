@@ -31,7 +31,7 @@ else()
     include_directories(${GTEST_INCLUDE_DIRS} )
 endif()
 
-include_directories("${CMAKE_SOURCE_DIR}")
+include_directories(${LIBNEST2D_HEADERS})
 add_executable(bp2d_tests test.cpp printer_parts.h printer_parts.cpp)
 target_link_libraries(bp2d_tests libnest2d
     ${GTEST_LIBRARIES}

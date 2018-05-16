@@ -24,7 +24,7 @@ namespace libnest2d {
  */
 template<class RawShape>
 class _Item {
-    using Coord = TCoord<RawShape>;
+    using Coord = TCoord<TPoint<RawShape>>;
     using Vertex = TPoint<RawShape>;
     using Box = _Box<Vertex>;
 
@@ -606,7 +606,7 @@ public:
     using PlacementConfig = typename TPlacer::Config;
     using SelectionConfig = typename TSel::Config;
 
-    using Unit = TCoord<typename Item::ShapeType>;
+    using Unit = TCoord<TPoint<typename Item::ShapeType>>;
 
     using IndexedPackGroup = _IndexedPackGroup<typename Item::ShapeType>;
     using PackGroup = _PackGroup<typename Item::ShapeType>;

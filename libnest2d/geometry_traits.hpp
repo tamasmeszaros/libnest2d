@@ -9,7 +9,7 @@
 
 #include "common.hpp"
 
-namespace binpack2d {
+namespace libnest2d {
 
 /// Getting the coordinate data type for a geometry class.
 template<class GeomClass> struct CoordType { using Type = long; };

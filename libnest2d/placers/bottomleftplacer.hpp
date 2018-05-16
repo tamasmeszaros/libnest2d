@@ -5,7 +5,7 @@
 
 #include "placer_boilerplate.hpp"
 
-namespace binpack2d { namespace strategies {
+namespace libnest2d { namespace strategies {
 
 template<class RawShape>
 struct BLConfig {

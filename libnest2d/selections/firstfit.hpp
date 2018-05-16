@@ -1,13 +1,13 @@
-#ifndef FILLER_HPP
-#define FILLER_HPP
+#ifndef FIRSTFIT_HPP
+#define FIRSTFIT_HPP
 
-#include "../binpack2d.hpp"
+#include "../libnest2d.hpp"
 #include "selection_boilerplate.hpp"
 
-namespace binpack2d { namespace strategies {
+namespace libnest2d { namespace strategies {
 
 template<class RawShape>
-class _FillerSelection: public SelectionBoilerplate<RawShape> {
+class _FirstFitSelection: public SelectionBoilerplate<RawShape> {
     using Base = SelectionBoilerplate<RawShape>;
 public:
     using typename Base::Item;
@@ -16,7 +16,8 @@ public:
 private:
     using Base::packed_bins_;
     using typename Base::ItemGroup;
-    using Container = ItemGroup;
+    using Container = ItemGroup;//typename std::vector<_Item<RawShape>>;
+
     Container store_;
 
 public:
@@ -32,9 +33,13 @@ public:
                    PConfig&& pconfig = PConfig())
     {
 
+        using Placer = PlacementStrategyLike<TPlacer>;
+
         store_.clear();
         store_.reserve(last-first);
         packed_bins_.clear();
+
+        std::vector<Placer> placers;
 
         std::copy(first, last, std::back_inserter(store_));
 
@@ -44,29 +49,29 @@ public:
 
         std::sort(store_.begin(), store_.end(), sortfunc);
 
-//        Container a = {store_[0], store_[1], store_[4], store_[5] };
-////        a.insert(a.end(), store_.end()-10, store_.end());
-//        store_ = a;
-
-        PlacementStrategyLike<TPlacer> placer(bin);
-        placer.configure(pconfig);
-
-        bool was_packed = false;
         for(auto& item : store_ ) {
-            if(!placer.pack(item))  {
-                packed_bins_.push_back(placer.getItems());
-                placer.clearItems();
-                was_packed = placer.pack(item);
-            } else was_packed = true;
+            bool was_packed = false;
+            while(!was_packed) {
+
+                for(size_t j = 0; j < placers.size() && !was_packed; j++)
+                    was_packed = placers[j].pack(item);
+
+                if(!was_packed) {
+                    placers.emplace_back(bin);
+                    placers.back().configure(pconfig);
+                }
+            }
         }
 
-        if(was_packed) {
+        std::for_each(placers.begin(), placers.end(),
+                      [this](Placer& placer){
             packed_bins_.push_back(placer.getItems());
-        }
+        });
     }
+
 };
 
 }
 }
 
-#endif //BOTTOMLEFT_HPP
+#endif // FIRSTFIT_HPP

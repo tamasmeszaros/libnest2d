@@ -40,7 +40,7 @@ if(NOT TARGET clipper) # If there is a clipper target in the parent project we a
 
         else()
             message(FATAL_ERROR "Can't find clipper library and no SVN client found to download.
-                You can download the clipper sources and define a clipper target in your project, that will work for binpack2d.")
+                You can download the clipper sources and define a clipper target in your project, that will work for libnest2d.")
         endif()
     endif()
 else()

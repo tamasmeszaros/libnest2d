@@ -2,10 +2,9 @@
 #define DJD_HEURISTIC_HPP
 
 #include <list>
-#include "../binpack2d.hpp"
 #include "selection_boilerplate.hpp"
 
-namespace binpack2d { namespace strategies {
+namespace libnest2d { namespace strategies {
 
 /**
  * Selection heuristic based on [López-Camacho]\

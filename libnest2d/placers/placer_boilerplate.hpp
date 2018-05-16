@@ -1,9 +1,9 @@
 #ifndef PLACER_BOILERPLATE_HPP
 #define PLACER_BOILERPLATE_HPP
 
-#include "../binpack2d.hpp"
+#include "../libnest2d.hpp"
 
-namespace binpack2d { namespace strategies {
+namespace libnest2d { namespace strategies {
 
 struct EmptyConfig {};
 

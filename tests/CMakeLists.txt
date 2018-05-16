@@ -33,16 +33,16 @@ endif()
 
 include_directories("${CMAKE_SOURCE_DIR}")
 add_executable(bp2d_tests test.cpp printer_parts.h printer_parts.cpp)
-target_link_libraries(bp2d_tests binpack2d
+target_link_libraries(bp2d_tests libnest2d
     ${GTEST_LIBRARIES}
 )
 
-if(DEFINED BINPACK2D_TEST_LIBRARIES)
-    target_link_libraries(bp2d_tests ${BINPACK2D_TEST_LIBRARIES})
+if(DEFINED LIBNEST2D_TEST_LIBRARIES)
+    target_link_libraries(bp2d_tests ${LIBNEST2D_TEST_LIBRARIES})
 endif()
 
 add_test(gtests bp2d_tests)
 
 add_executable(main main.cpp printer_parts.cpp printer_parts.h)
-target_link_libraries(main binpack2d)
+target_link_libraries(main libnest2d)
 target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR})

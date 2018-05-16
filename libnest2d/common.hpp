@@ -1,5 +1,5 @@
-#ifndef BP2D_CONFIG_HPP
-#define BP2D_CONFIG_HPP
+#ifndef LIBNEST2D_CONFIG_HPP
+#define LIBNEST2D_CONFIG_HPP
 
 #if defined(_MSC_VER) &&  _MSC_VER <= 1800 || __cplusplus < 201103L
     #define BP2D_NOEXCEPT
@@ -13,7 +13,7 @@
 #include <string>
 #include <cmath>
 
-namespace binpack2d {
+namespace libnest2d {
 
 template< class T >
 struct remove_cvref {
@@ -91,4 +91,4 @@ inline Radians::Radians(const Degrees &degs): Double( degs * Pi/180) {}
 inline double Radians::toDegrees() { return operator Degrees(); }
 
 }
-#endif // BP2D_CONFIG_HPP
+#endif // LIBNEST2D_CONFIG_HPP

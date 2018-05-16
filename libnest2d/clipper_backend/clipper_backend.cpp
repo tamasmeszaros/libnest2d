@@ -1,10 +1,10 @@
 #include "clipper_backend.hpp"
 
-namespace binpack2d {
+namespace libnest2d {
 
 namespace  {
 class HoleCache {
-    friend struct binpack2d::ShapeLike;
+    friend struct libnest2d::ShapeLike;
 
     std::unordered_map< const PolygonImpl*, ClipperLib::Paths> map;
 

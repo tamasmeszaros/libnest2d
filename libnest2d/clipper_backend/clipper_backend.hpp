@@ -12,7 +12,7 @@
 
 #include <clipper.hpp>
 
-namespace binpack2d {
+namespace libnest2d {
 
 // Aliases for convinience
 using PointImpl = ClipperLib::IntPoint;

@@ -8,23 +8,23 @@
 #include <boost/geometry.hpp>
 
 // this should be removed to not confuse the compiler
-// #include <binpack2d.h>
+// #include <libnest2d.h>
 
 namespace bp2d {
 
-using binpack2d::TCoord;
-using binpack2d::PointImpl;
+using libnest2d::TCoord;
+using libnest2d::PointImpl;
 using Coord = TCoord<PointImpl>;
-using binpack2d::PolygonImpl;
-using binpack2d::PathImpl;
-using binpack2d::Orientation;
-using binpack2d::OrientationType;
-using binpack2d::getX;
-using binpack2d::getY;
-using binpack2d::setX;
-using binpack2d::setY;
-using Box = binpack2d::_Box<PointImpl>;
-using Segment = binpack2d::_Segment<PointImpl>;
+using libnest2d::PolygonImpl;
+using libnest2d::PathImpl;
+using libnest2d::Orientation;
+using libnest2d::OrientationType;
+using libnest2d::getX;
+using libnest2d::getY;
+using libnest2d::setX;
+using libnest2d::setY;
+using Box = libnest2d::_Box<PointImpl>;
+using Segment = libnest2d::_Segment<PointImpl>;
 
 }
 
@@ -64,24 +64,24 @@ template<> struct dimension<bp2d::PointImpl>: boost::mpl::int_<2> {};
 template<>
 struct access<bp2d::PointImpl, 0 > {
     static inline bp2d::Coord get(bp2d::PointImpl const& a) {
-        return binpack2d::getX(a);
+        return libnest2d::getX(a);
     }
 
     static inline void set(bp2d::PointImpl& a,
                            bp2d::Coord const& value) {
-        binpack2d::setX(a, value);
+        libnest2d::setX(a, value);
     }
 };
 
 template<>
 struct access<bp2d::PointImpl, 1 > {
     static inline bp2d::Coord get(bp2d::PointImpl const& a) {
-        return binpack2d::getY(a);
+        return libnest2d::getY(a);
     }
 
     static inline void set(bp2d::PointImpl& a,
                            bp2d::Coord const& value) {
-        binpack2d::setY(a, value);
+        libnest2d::setY(a, value);
     }
 };
 
@@ -229,11 +229,11 @@ template<> struct tag<bp2d::PolygonImpl> {
 
 template<> struct exterior_ring<bp2d::PolygonImpl> {
     static inline bp2d::PathImpl& get(bp2d::PolygonImpl& p) {
-        return binpack2d::ShapeLike::getContour(p);
+        return libnest2d::ShapeLike::getContour(p);
     }
 
     static inline bp2d::PathImpl const& get(bp2d::PolygonImpl const& p) {
-        return binpack2d::ShapeLike::getContour(p);
+        return libnest2d::ShapeLike::getContour(p);
     }
 };
 
@@ -246,26 +246,26 @@ template<> struct ring_mutable_type<bp2d::PolygonImpl> {
 };
 
 template<> struct interior_const_type<bp2d::PolygonImpl> {
-   using type = const binpack2d::THolesContainer<bp2d::PolygonImpl>&;
+   using type = const libnest2d::THolesContainer<bp2d::PolygonImpl>&;
 };
 
 template<> struct interior_mutable_type<bp2d::PolygonImpl> {
-   using type = binpack2d::THolesContainer<bp2d::PolygonImpl>&;
+   using type = libnest2d::THolesContainer<bp2d::PolygonImpl>&;
 };
 
 template<>
 struct interior_rings<bp2d::PolygonImpl> {
 
-    static inline binpack2d::THolesContainer<bp2d::PolygonImpl>& get(
+    static inline libnest2d::THolesContainer<bp2d::PolygonImpl>& get(
             bp2d::PolygonImpl& p)
     {
-        return binpack2d::ShapeLike::holes(p);
+        return libnest2d::ShapeLike::holes(p);
     }
 
-    static inline const binpack2d::THolesContainer<bp2d::PolygonImpl>& get(
+    static inline const libnest2d::THolesContainer<bp2d::PolygonImpl>& get(
             bp2d::PolygonImpl const& p)
     {
-        return binpack2d::ShapeLike::holes(p);
+        return libnest2d::ShapeLike::holes(p);
     }
 };
 
@@ -280,7 +280,7 @@ struct range_value<bp2d::PathImpl> {
 
 }   // boost
 
-namespace binpack2d { // Now the algorithms that boost can provide...
+namespace libnest2d { // Now the algorithms that boost can provide...
 
 template<>
 inline double PointLike::distance(const PointImpl& p1,
@@ -393,7 +393,7 @@ inline PolygonImpl& Nfp::minkowskiAdd(PolygonImpl& sh,
 
 #ifndef DISABLE_BOOST_SERIALIZE
 template<>
-inline std::string ShapeLike::serialize<binpack2d::Formats::SVG>(
+inline std::string ShapeLike::serialize<libnest2d::Formats::SVG>(
         const PolygonImpl& sh)
 {
 
@@ -409,7 +409,7 @@ inline std::string ShapeLike::serialize<binpack2d::Formats::SVG>(
 
 #ifndef DISABLE_BOOST_UNSERIALIZE
 template<>
-inline void ShapeLike::unserialize<binpack2d::Formats::SVG>(
+inline void ShapeLike::unserialize<libnest2d::Formats::SVG>(
         PolygonImpl& sh,
         const std::string& str)
 {

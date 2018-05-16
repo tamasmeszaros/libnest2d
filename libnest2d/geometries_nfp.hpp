@@ -4,7 +4,7 @@
 #include "geometry_traits.hpp"
 #include <algorithm>
 
-namespace binpack2d {
+namespace libnest2d {
 
 struct Nfp {
 

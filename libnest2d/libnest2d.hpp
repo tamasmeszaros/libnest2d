@@ -1,5 +1,5 @@
-#ifndef BINPACK2D_HPP
-#define BINPACK2D_HPP
+#ifndef LIBNEST2D_HPP
+#define LIBNEST2D_HPP
 
 #include <memory>
 #include <vector>
@@ -10,7 +10,7 @@
 
 #include "geometry_traits.hpp"
 
-namespace binpack2d {
+namespace libnest2d {
 
 /**
  * \brief An item to be placed on a bin.
@@ -799,4 +799,4 @@ private:
 
 }
 
-#endif // BINPACK2D_HPP
+#endif // LIBNEST2D_HPP

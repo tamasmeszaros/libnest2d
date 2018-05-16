@@ -2,15 +2,15 @@
 #include "gmock/gmock.h"
 #include <fstream>
 
-#include <binpack2d.h>
+#include <libnest2d.h>
 #include "printer_parts.h"
-#include <binpack2d/geometries_io.hpp>
-#include <binpack2d/geometries_nfp.hpp>
+#include <libnest2d/geometries_io.hpp>
+#include <libnest2d/geometries_nfp.hpp>
 
 TEST(BasicFunctionality, Angles)
 {
 
-    using namespace binpack2d;
+    using namespace libnest2d;
 
     Degrees deg(180);
     Radians rad(deg);
@@ -29,7 +29,7 @@ TEST(BasicFunctionality, Angles)
 // Simple test, does not use gmock
 TEST(BasicFunctionality, creationAndDestruction)
 {
-    using namespace binpack2d;
+    using namespace libnest2d;
 
     Item sh = { {0, 0}, {1, 0}, {1, 1}, {0, 1} };
 
@@ -52,7 +52,7 @@ TEST(BasicFunctionality, creationAndDestruction)
 }
 
 TEST(GeometryAlgorithms, Distance) {
-    using namespace binpack2d;
+    using namespace libnest2d;
 
     Point p1 = {0, 0};
 
@@ -102,7 +102,7 @@ TEST(GeometryAlgorithms, Distance) {
 }
 
 TEST(GeometryAlgorithms, Area) {
-    using namespace binpack2d;
+    using namespace libnest2d;
 
     Rectangle rect(10, 10);
 
@@ -115,7 +115,7 @@ TEST(GeometryAlgorithms, Area) {
 }
 
 TEST(GeometryAlgorithms, IsPointInsidePolygon) {
-    using namespace binpack2d;
+    using namespace libnest2d;
 
     Rectangle rect(10, 10);
 
@@ -160,8 +160,8 @@ TEST(GeometryAlgorithms, IsPointInsidePolygon) {
 // Simple test, does not use gmock
 TEST(GeometryAlgorithms, LeftAndDownPolygon)
 {
-    using namespace binpack2d;
-    using namespace binpack2d;
+    using namespace libnest2d;
+    using namespace libnest2d;
 
     Box bin(100, 100);
     BottomLeftPlacer placer(bin);
@@ -211,7 +211,7 @@ TEST(GeometryAlgorithms, LeftAndDownPolygon)
 // Simple test, does not use gmock
 TEST(GeometryAlgorithms, ArrangeRectanglesTight)
 {
-    using namespace binpack2d;
+    using namespace libnest2d;
 
     std::vector<Rectangle> rects = {
         {80, 80},
@@ -262,7 +262,7 @@ TEST(GeometryAlgorithms, ArrangeRectanglesTight)
 
 TEST(GeometryAlgorithms, ArrangeRectanglesLoose)
 {
-    using namespace binpack2d;
+    using namespace libnest2d;
 
 //    std::vector<Rectangle> rects = { {40, 40}, {10, 10}, {20, 20} };
     std::vector<Rectangle> rects = {
@@ -313,7 +313,7 @@ TEST(GeometryAlgorithms, ArrangeRectanglesLoose)
 }
 
 namespace {
-using namespace binpack2d;
+using namespace libnest2d;
 
 template<unsigned long SCALE = 1, class Bin>
 void exportSVG(std::vector<std::reference_wrapper<Item>>& result, const Bin& bin, int idx = 0) {
@@ -361,7 +361,7 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 }
 
 TEST(GeometryAlgorithms, BottomLeftStressTest) {
-    using namespace binpack2d;
+    using namespace libnest2d;
 
     auto input = PRINTER_PART_POLYGONS;
 
@@ -400,7 +400,7 @@ TEST(GeometryAlgorithms, BottomLeftStressTest) {
 }
 
 TEST(GeometryAlgorithms, nfpConvexConvex) {
-    using namespace binpack2d;
+    using namespace libnest2d;
 
     const unsigned long SCALE = 1;
 

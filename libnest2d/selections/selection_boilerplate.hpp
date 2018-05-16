@@ -1,9 +1,9 @@
 #ifndef SELECTION_BOILERPLATE_HPP
 #define SELECTION_BOILERPLATE_HPP
 
-#include "../binpack2d.hpp"
+#include "../libnest2d.hpp"
 
-namespace binpack2d {
+namespace libnest2d {
 namespace strategies {
 
 template<class RawShape>

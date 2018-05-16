@@ -2,14 +2,14 @@
 #include <fstream>
 #include <string>
 
-#include <binpack2d.h>
-#include <binpack2d/geometries_io.hpp>
+#include <libnest2d.h>
+#include <libnest2d/geometries_io.hpp>
 
 #include "printer_parts.h"
 #include "benchmark.h"
 
 namespace {
-using namespace binpack2d;
+using namespace libnest2d;
 using ItemGroup = std::vector<std::reference_wrapper<Item>>;
 //using PackGroup = std::vector<ItemGroup>;
 
@@ -101,7 +101,7 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 
 void findDegenerateCase() {
-    using namespace binpack2d;
+    using namespace libnest2d;
 
     auto input = PRINTER_PART_POLYGONS;
 
@@ -155,7 +155,7 @@ void findDegenerateCase() {
 }
 
 void arrangeRectangles() {
-    using namespace binpack2d;
+    using namespace libnest2d;
 
 
 //    std::vector<Rectangle> input = {

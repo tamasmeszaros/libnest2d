@@ -69,15 +69,13 @@ add_library(libnest2d STATIC ${LIBNEST2D_SRCFILES} )
 target_link_libraries(libnest2d ${LIBNEST2D_GEOMETRIES_TARGET})
 target_include_directories(libnest2d PUBLIC ${CMAKE_SOURCE_DIR})
 
+set(LIBNEST2D_HEADERS ${CMAKE_CURRENT_SOURCE_DIR})
+
 get_directory_property(hasParent PARENT_DIRECTORY)
 if(hasParent)
-    set(LIBNEST2D_HEADERS ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
-else()
-    set(LIBNEST2D_HEADERS ${CMAKE_CURRENT_SOURCE_DIR})
+    set(LIBNEST2D_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 endif()
 
 if(LIBNEST2D_UNITTESTS)
     add_subdirectory(tests)
 endif()
-
-

@@ -1,10 +1,10 @@
 
 # Try to find existing GTest installation
-find_package(GTest QUIET)
+find_package(GTest 1.8)
 
 if(NOT GTEST_FOUND)
     # Go and download google test framework, integrate it with the build
-    set(GTEST_LIBRARIES gtest gmock)
+    set(GTEST_BOTH_LIBRARIES gtest gmock)
 
     if (CMAKE_VERSION VERSION_LESS 3.2)
         set(UPDATE_DISCONNECTED_IF_AVAILABLE "")
@@ -28,13 +28,15 @@ if(NOT GTEST_FOUND)
                      )
 
 else()
-    include_directories(${GTEST_INCLUDE_DIRS} )
+    find_package(Threads REQUIRED)
+    list(APPEND GTEST_BOTH_LIBRARIES Threads::Threads)
+    include_directories(${GTEST_INCLUDE_DIRS})
 endif()
 
 include_directories(BEFORE ${LIBNEST2D_HEADERS})
 add_executable(bp2d_tests test.cpp printer_parts.h printer_parts.cpp)
-target_link_libraries(bp2d_tests libnest2d
-    ${GTEST_LIBRARIES}
+target_link_libraries(bp2d_tests libnest2d_static
+    ${GTEST_BOTH_LIBRARIES}
 )
 
 if(DEFINED LIBNEST2D_TEST_LIBRARIES)

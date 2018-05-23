@@ -102,8 +102,9 @@ public:
     inline Radians angleToXaxis() const;
 };
 
-class PointLike {
-public:
+// This struct serves as a namespace. The only difference is that is can be
+// used in friend declarations.
+struct PointLike {
 
     template<class RawPoint>
     static TCoord<RawPoint> x(const RawPoint& p)
@@ -133,7 +134,7 @@ public:
     static double distance(const RawPoint& /*p1*/, const RawPoint& /*p2*/)
     {
         static_assert(always_false<RawPoint>::value,
-                      "PointLike::distance(point, point) unimplemented");
+                      "PointLike::distance(point, point) unimplemented!");
         return 0;
     }
 
@@ -142,7 +143,7 @@ public:
                            const _Segment<RawPoint>& /*s*/)
     {
         static_assert(always_false<RawPoint>::value,
-                      "PointLike::distance(point, segment) unimplemented");
+                      "PointLike::distance(point, segment) unimplemented!");
         return 0;
     }
 
@@ -277,6 +278,8 @@ enum class Formats {
     SVG
 };
 
+// This struct serves as a namespace. The only difference is that is can be
+// used in friend declarations.
 struct ShapeLike {
 
     template<class RawShape>
@@ -348,7 +351,7 @@ struct ShapeLike {
     static std::string serialize(const RawShape& /*sh*/)
     {
         static_assert(always_false<RawShape>::value,
-                      "ShapeLike::serialize() unimplemented");
+                      "ShapeLike::serialize() unimplemented!");
         return "";
     }
 
@@ -356,14 +359,14 @@ struct ShapeLike {
     static void unserialize(RawShape& /*sh*/, const std::string& /*str*/)
     {
         static_assert(always_false<RawShape>::value,
-                      "ShapeLike::unserialize() unimplemented");
+                      "ShapeLike::unserialize() unimplemented!");
     }
 
     template<class RawShape>
     static double area(const RawShape& /*sh*/)
     {
         static_assert(always_false<RawShape>::value,
-                      "ShapeLike::area() unimplemented");
+                      "ShapeLike::area() unimplemented!");
         return 0;
     }
 
@@ -378,7 +381,7 @@ struct ShapeLike {
     static bool intersects(const RawShape& /*sh*/, const RawShape& /*sh*/)
     {
         static_assert(always_false<RawShape>::value,
-                      "ShapeLike::intersects() unimplemented");
+                      "ShapeLike::intersects() unimplemented!");
         return false;
     }
 
@@ -387,7 +390,7 @@ struct ShapeLike {
                          const RawShape& /*shape*/)
     {
         static_assert(always_false<RawShape>::value,
-                      "ShapeLike::isInside(point, shape) unimplemented");
+                      "ShapeLike::isInside(point, shape) unimplemented!");
         return false;
     }
 
@@ -396,7 +399,7 @@ struct ShapeLike {
                          const RawShape& /*shape*/)
     {
         static_assert(always_false<RawShape>::value,
-                      "ShapeLike::isInside(shape, shape) unimplemented");
+                      "ShapeLike::isInside(shape, shape) unimplemented!");
         return false;
     }
 
@@ -405,7 +408,7 @@ struct ShapeLike {
                          const RawShape& /*shape*/)
     {
         static_assert(always_false<RawShape>::value,
-                      "ShapeLike::touches(shape, shape) unimplemented");
+                      "ShapeLike::touches(shape, shape) unimplemented!");
         return false;
     }
 
@@ -413,13 +416,21 @@ struct ShapeLike {
     static _Box<TPoint<RawShape>> boundingBox(const RawShape& /*sh*/)
     {
         static_assert(always_false<RawShape>::value,
-                      "ShapeLike::boundingBox(shape) unimplemented");
+                      "ShapeLike::boundingBox(shape) unimplemented!");
     }
 
     template<class RawShape>
     static _Box<TPoint<RawShape>> boundingBox(const _Box<TPoint<RawShape>>& box)
     {
         return box;
+    }
+
+    template<class RawShape>
+    static RawShape convexHull(const RawShape& /*sh*/)
+    {
+        static_assert(always_false<RawShape>::value,
+                      "ShapeLike::convexHull(shape) unimplemented!");
+        return RawShape();
     }
 
     template<class RawShape>
@@ -471,14 +482,14 @@ struct ShapeLike {
     static void rotate(RawShape& /*sh*/, const Radians& /*rads*/)
     {
         static_assert(always_false<RawShape>::value,
-                      "ShapeLike::rotate() unimplemented");
+                      "ShapeLike::rotate() unimplemented!");
     }
 
     template<class RawShape, class RawPoint>
     static void translate(RawShape& /*sh*/, const RawPoint& /*offs*/)
     {
         static_assert(always_false<RawShape>::value,
-                      "ShapeLike::translate() unimplemented");
+                      "ShapeLike::translate() unimplemented!");
     }
 
     template<class RawShape>
@@ -490,7 +501,7 @@ struct ShapeLike {
 
     template<class RawShape>
     static std::pair<bool, std::string> isValid(const RawShape& /*sh*/) {
-        return {false, "ShapeLike::isValid() unimplemented"};
+        return {false, "ShapeLike::isValid() unimplemented!"};
     }
 
 };

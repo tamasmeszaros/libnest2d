@@ -201,6 +201,8 @@ public:
         return ShapeLike::isInside(transformedShape(), sh.transformedShape());
     }
 
+    inline bool isInside(const _Box<RawShape>& box);
+
     inline void translate(const Vertex& d) BP2D_NOEXCEPT
     {
         translation_ += d; has_translation_ = true;
@@ -366,6 +368,12 @@ public:
         return getY(vertex(2));
     }
 };
+
+template<class RawShape>
+inline bool _Item<RawShape>::isInside(const _Box<RawShape>& box) {
+    _Rectangle<RawShape> rect(box.width(), box.height());
+    return _Item<RawShape>::isInside(rect);
+}
 
 /**
  * \brief A wrapper interface (trait) class for any placement strategy provider.

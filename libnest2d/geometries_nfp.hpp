@@ -11,8 +11,14 @@ struct Nfp {
 template<class RawShape>
 static RawShape& minkowskiAdd(RawShape& sh, const RawShape& /*other*/) {
     static_assert(always_false<RawShape>::value,
-                  "ShapeLike::minkowskiAdd() unimplemented!");
+                  "Nfp::minkowskiAdd() unimplemented!");
     return sh;
+}
+
+template<class RawShape>
+static RawShape merge(const RawShape& sh1, const RawShape& sh2) {
+    static_assert(always_false<RawShape>::value,
+                  "Nfp::merge() unimplemented!");
 }
 
 template<class RawShape>

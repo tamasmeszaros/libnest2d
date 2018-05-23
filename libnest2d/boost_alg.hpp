@@ -29,8 +29,8 @@ using Segment = libnest2d::_Segment<PointImpl>;
 }
 
 /**
- * We have to make all the binpack2d geometry types available to boost. The real
- * models of the geometries remain the same if a conforming model for binpack2d
+ * We have to make all the libnest2d geometry types available to boost. The real
+ * models of the geometries remain the same if a conforming model for libnest2d
  * was defined by the library client. Boost is used only as an optional
  * implementer of some algorithms that can be implemented by the model itself
  * if a faster alternative exists.
@@ -184,10 +184,10 @@ template<> struct indexed_access<bp2d::Segment, 1, 1> {
 
 
 /* ************************************************************************** */
-/* Polygon concept adaptaion ************************************************ */
+/* Polygon concept adaptation *********************************************** */
 /* ************************************************************************** */
 
-// Connversion between binpack2d::Orientation and order_selector ///////////////
+// Connversion between libnest2d::Orientation and order_selector ///////////////
 
 template<bp2d::Orientation> struct ToBoostOrienation {};
 
@@ -296,7 +296,7 @@ inline double PointLike::distance(const PointImpl& p,
     return boost::geometry::distance(p, seg);
 }
 
-// Tell binpack2d how to make string out of a ClipperPolygon object
+// Tell libnest2d how to make string out of a ClipperPolygon object
 template<>
 inline bool ShapeLike::intersects(const PathImpl& sh1,
                                   const PathImpl& sh2)
@@ -304,14 +304,14 @@ inline bool ShapeLike::intersects(const PathImpl& sh1,
     return boost::geometry::intersects(sh1, sh2);
 }
 
-// Tell binpack2d how to make string out of a ClipperPolygon object
+// Tell libnest2d how to make string out of a ClipperPolygon object
 template<>
 inline bool ShapeLike::intersects(const PolygonImpl& sh1,
                                   const PolygonImpl& sh2) {
     return boost::geometry::intersects(sh1, sh2);
 }
 
-// Tell binpack2d how to make string out of a ClipperPolygon object
+// Tell libnest2d how to make string out of a ClipperPolygon object
 template<>
 inline bool ShapeLike::intersects(const bp2d::Segment& s1,
                                   const bp2d::Segment& s2) {
@@ -346,15 +346,28 @@ inline bool ShapeLike::touches( const PolygonImpl& sh1,
     return boost::geometry::touches(sh1, sh2);
 }
 
+#ifndef DISABLE_BOOST_BOUNDING_BOX
 template<>
 inline bp2d::Box ShapeLike::boundingBox(const PolygonImpl& sh) {
     bp2d::Box b;
     boost::geometry::envelope(sh, b);
     return b;
 }
+#endif
+
+#ifndef DISABLE_BOOST_CONVEX_HULL
+template<>
+inline PolygonImpl ShapeLike::convexHull(const PolygonImpl& sh)
+{
+    PolygonImpl ret;
+    boost::geometry::convex_hull(sh, ret);
+    return ret;
+}
+#endif
 
 template<>
-inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads) {
+inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads)
+{
     namespace trans = boost::geometry::strategy::transform;
 
     PolygonImpl cpy = sh;
@@ -365,7 +378,8 @@ inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads) {
 }
 
 template<>
-inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs) {
+inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs)
+{
     namespace trans = boost::geometry::strategy::transform;
 
     PolygonImpl cpy = sh;
@@ -377,16 +391,29 @@ inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs) {
 
 #ifndef DISABLE_BOOST_OFFSET
 template<>
-inline void ShapeLike::offset(PolygonImpl& sh, bp2d::Coord distance) {
+inline void ShapeLike::offset(PolygonImpl& sh, bp2d::Coord distance)
+{
     PolygonImpl cpy = sh;
     boost::geometry::buffer(cpy, sh, distance);
+}
+#endif
+
+#ifndef DISABLE_BOOST_NFP_MERGE
+template<>
+inline PolygonImpl Nfp::merge(const PolygonImpl& sh1, const PolygonImpl& sh2)
+{
+    std::vector<PolygonImpl> retv;
+    boost::geometry::union_(sh1, sh2, retv);
+    PolygonImpl ret(std::move(retv.front()));
+    return ret;
 }
 #endif
 
 #ifndef DISABLE_BOOST_MINKOWSKI_ADD
 template<>
 inline PolygonImpl& Nfp::minkowskiAdd(PolygonImpl& sh,
-                                      const PolygonImpl& /*other*/) {
+                                      const PolygonImpl& /*other*/)
+{
     return sh;
 }
 #endif
@@ -417,7 +444,8 @@ inline void ShapeLike::unserialize<libnest2d::Formats::SVG>(
 #endif
 
 template<> inline std::pair<bool, std::string>
-ShapeLike::isValid(const PolygonImpl& sh) {
+ShapeLike::isValid(const PolygonImpl& sh)
+{
     std::string message;
     bool ret = boost::geometry::is_valid(sh, message);
 

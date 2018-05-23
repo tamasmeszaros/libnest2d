@@ -71,6 +71,8 @@ target_link_libraries(libnest2d_static PRIVATE ${LIBNEST2D_GEOMETRIES_TARGET})
 target_link_libraries(libnest2d PRIVATE ${LIBNEST2D_GEOMETRIES_TARGET})
 target_include_directories(libnest2d_static PUBLIC ${CMAKE_SOURCE_DIR})
 target_include_directories(libnest2d PUBLIC ${CMAKE_SOURCE_DIR})
+set_target_properties(libnest2d PROPERTIES PREFIX "")
+set_target_properties(libnest2d_static PROPERTIES PREFIX "")
 
 set(LIBNEST2D_HEADERS ${CMAKE_CURRENT_SOURCE_DIR})
 

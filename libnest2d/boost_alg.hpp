@@ -404,6 +404,7 @@ inline PolygonImpl Nfp::merge(const PolygonImpl& sh1, const PolygonImpl& sh2)
 {
     std::vector<PolygonImpl> retv;
     boost::geometry::union_(sh1, sh2, retv);
+//    assert(retv.size() > 0);
     PolygonImpl ret(std::move(retv.front()));
     return ret;
 }
@@ -425,7 +426,7 @@ inline std::string ShapeLike::serialize<libnest2d::Formats::SVG>(
 {
 
     std::stringstream ss;
-    std::string style = "fill: orange; stroke: black; stroke-width: 1px;";
+    std::string style = "fill: none; stroke: black; stroke-width: 1px;";
     auto svg_data = boost::geometry::svg(sh, style);
 
     ss << svg_data << std::endl;

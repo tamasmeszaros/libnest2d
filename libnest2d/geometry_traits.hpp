@@ -81,6 +81,8 @@ public:
 
     inline TCoord<RawPoint> width() const BP2D_NOEXCEPT;
     inline TCoord<RawPoint> height() const BP2D_NOEXCEPT;
+
+    inline RawPoint center() const BP2D_NOEXCEPT;
 };
 
 template<class RawPoint>
@@ -245,6 +247,21 @@ inline Radians _Segment<RawPoint>::angleToXaxis() const
     return a;
 }
 
+template<class RawPoint>
+inline RawPoint _Box<RawPoint>::center() const BP2D_NOEXCEPT {
+    auto& minc = minCorner();
+    auto& maxc = maxCorner();
+
+    using Coord = TCoord<RawPoint>;
+
+    RawPoint ret =  {
+        static_cast<Coord>( std::round((getX(minc) + getX(maxc))/2.0) ),
+        static_cast<Coord>( std::round((getY(minc) + getY(maxc))/2.0) )
+    };
+
+    return ret;
+}
+
 template<class RawShape>
 struct HolesContainer {
     using Type = std::vector<RawShape>;
@@ -259,7 +276,7 @@ struct CountourType {
 };
 
 template<class RawShape>
-using TCountour = typename CountourType<remove_cvref_t<RawShape>>::Type;
+using TContour = typename CountourType<remove_cvref_t<RawShape>>::Type;
 
 enum class Orientation {
     CLOCKWISE,
@@ -283,7 +300,7 @@ enum class Formats {
 struct ShapeLike {
 
     template<class RawShape>
-    static RawShape create( std::initializer_list< TPoint<RawShape> > il)
+    static RawShape create(std::initializer_list< TPoint<RawShape> > il)
     {
         return RawShape(il);
     }
@@ -323,25 +340,6 @@ struct ShapeLike {
     }
 
     template<class RawShape>
-    static TPoint<RawShape>& vertex(RawShape& sh, unsigned long idx)
-    {
-        return *(begin(sh) + idx);
-    }
-
-    template<class RawShape>
-    static const TPoint<RawShape>& vertex(const RawShape& sh,
-                                          unsigned long idx)
-    {
-        return *(cbegin(sh) + idx);
-    }
-
-    template<class RawShape>
-    static size_t contourVertexCount(const RawShape& sh)
-    {
-        return cend(sh) - cbegin(sh);
-    }
-
-    template<class RawShape>
     static std::string toString(const RawShape& /*sh*/)
     {
         return "";
@@ -367,13 +365,6 @@ struct ShapeLike {
     {
         static_assert(always_false<RawShape>::value,
                       "ShapeLike::area() unimplemented!");
-        return 0;
-    }
-
-    template<class RawShape>
-    static double area(const _Box<TPoint<RawShape>>& box)
-    {
-        return box.width() * box.height();
         return 0;
     }
 
@@ -420,12 +411,6 @@ struct ShapeLike {
     }
 
     template<class RawShape>
-    static _Box<TPoint<RawShape>> boundingBox(const _Box<TPoint<RawShape>>& box)
-    {
-        return box;
-    }
-
-    template<class RawShape>
     static RawShape convexHull(const RawShape& /*sh*/)
     {
         static_assert(always_false<RawShape>::value,
@@ -448,13 +433,13 @@ struct ShapeLike {
     }
 
     template<class RawShape>
-    static TCountour<RawShape>& getHole(RawShape& sh, unsigned long idx)
+    static TContour<RawShape>& getHole(RawShape& sh, unsigned long idx)
     {
         return holes(sh)[idx];
     }
 
     template<class RawShape>
-    static const TCountour<RawShape>& getHole(const RawShape& sh,
+    static const TContour<RawShape>& getHole(const RawShape& sh,
                                               unsigned long idx)
     {
         return holes(sh)[idx];
@@ -467,13 +452,13 @@ struct ShapeLike {
     }
 
     template<class RawShape>
-    static TCountour<RawShape>& getContour(RawShape& sh)
+    static TContour<RawShape>& getContour(RawShape& sh)
     {
         return sh;
     }
 
     template<class RawShape>
-    static const TCountour<RawShape>& getContour(const RawShape& sh)
+    static const TContour<RawShape>& getContour(const RawShape& sh)
     {
         return sh;
     }
@@ -504,7 +489,82 @@ struct ShapeLike {
         return {false, "ShapeLike::isValid() unimplemented!"};
     }
 
+    // *************************************************************************
+    // No need to implement these
+    // *************************************************************************
+
+    template<class RawShape>
+    static inline _Box<TPoint<RawShape>> boundingBox(
+            const _Box<TPoint<RawShape>>& box)
+    {
+        return box;
+    }
+
+    template<class RawShape>
+    static inline double area(const _Box<TPoint<RawShape>>& box)
+    {
+        return box.width() * box.height();
+    }
+
+    template<class RawShape> // Potential O(1) implementation may exist
+    static inline TPoint<RawShape>& vertex(RawShape& sh, unsigned long idx)
+    {
+        return *(begin(sh) + idx);
+    }
+
+    template<class RawShape> // Potential O(1) implementation may exist
+    static inline const TPoint<RawShape>& vertex(const RawShape& sh,
+                                          unsigned long idx)
+    {
+        return *(cbegin(sh) + idx);
+    }
+
+    template<class RawShape>
+    static inline size_t contourVertexCount(const RawShape& sh)
+    {
+        return cend(sh) - cbegin(sh);
+    }
+
+    template<class RawShape, class Fn>
+    static inline void foreachContourVertex(RawShape& sh, Fn fn) {
+        for(auto it = begin(sh); it != end(sh); ++it) fn(*it);
+    }
+
+    template<class RawShape, class Fn>
+    static inline void foreachHoleVertex(RawShape& sh, Fn fn) {
+        for(int i = 0; i < holeCount(sh); ++i) {
+            auto& h = getHole(sh, i);
+            for(auto it = begin(h); it != end(h); ++it) fn(*it);
+        }
+    }
+
+    template<class RawShape, class Fn>
+    static inline void foreachContourVertex(const RawShape& sh, Fn fn) {
+        for(auto it = cbegin(sh); it != cend(sh); ++it) fn(*it);
+    }
+
+    template<class RawShape, class Fn>
+    static inline void foreachHoleVertex(const RawShape& sh, Fn fn) {
+        for(int i = 0; i < holeCount(sh); ++i) {
+            auto& h = getHole(sh, i);
+            for(auto it = cbegin(h); it != cend(h); ++it) fn(*it);
+        }
+    }
+
+    template<class RawShape, class Fn>
+    static inline void foreachVertex(RawShape& sh, Fn fn) {
+        foreachContourVertex(sh, fn);
+        foreachHoleVertex(sh, fn);
+    }
+
+    template<class RawShape, class Fn>
+    static inline void foreachVertex(const RawShape& sh, Fn fn) {
+        foreachContourVertex(sh, fn);
+        foreachHoleVertex(sh, fn);
+    }
+
 };
+
 
 
 }

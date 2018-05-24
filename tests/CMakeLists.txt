@@ -46,5 +46,5 @@ endif()
 add_test(gtests bp2d_tests)
 
 add_executable(main EXCLUDE_FROM_ALL main.cpp printer_parts.cpp printer_parts.h)
-target_link_libraries(main libnest2d)
+target_link_libraries(main libnest2d_static)
 target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR})

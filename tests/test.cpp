@@ -112,6 +112,18 @@ TEST(GeometryAlgorithms, Area) {
 
     ASSERT_EQ(rect2.area(), 10000);
 
+    Item item = {
+        {61, 97},
+        {70, 151},
+        {176, 151},
+        {189, 138},
+        {189, 59},
+        {70, 59},
+        {61, 77},
+        {61, 97}
+    };
+
+    ASSERT_TRUE(ShapeLike::area(item.transformedShape()) > 0 );
 }
 
 TEST(GeometryAlgorithms, IsPointInsidePolygon) {
@@ -406,17 +418,18 @@ TEST(GeometryAlgorithms, nfpConvexConvex) {
 
     Box bin(210*SCALE, 250*SCALE);
 
-    Item stationary = {
-        {120, 114},
-        {130, 114},
-        {130, 103},
-        {128, 96},
-        {122, 96},
-        {120, 103},
-        {120, 114}
+    Item orbiter = {
+        {61, 97},
+        {70, 151},
+        {176, 151},
+        {189, 138},
+        {189, 59},
+        {70, 59},
+        {61, 77},
+        {61, 97}
     };
 
-    Item orbiter = {
+    Item stationary = {
         {72, 147},
         {94, 151},
         {178, 151},
@@ -442,7 +455,8 @@ TEST(GeometryAlgorithms, nfpConvexConvex) {
 
     int i = 0;
     auto rorbiter = orbiter.transformedShape();
-    auto vo = *(ShapeLike::begin(rorbiter));
+    auto vo = Nfp::referenceVertex(rorbiter);
+
     for(auto v : infp) {
         auto dx = getX(v) - getX(vo);
         auto dy = getY(v) - getY(vo);
@@ -452,7 +466,8 @@ TEST(GeometryAlgorithms, nfpConvexConvex) {
         tmp.translate({dx, dy});
 
         bool notinside = !tmp.isInside(stationary);
-        bool notintersecting = !Item::intersects(tmp, stationary);
+        bool notintersecting = !Item::intersects(tmp, stationary) ||
+                                Item::touches(tmp, stationary);
 
         if(!(notinside && notintersecting)) {
             std::vector<std::reference_wrapper<Item>> inp = {
@@ -462,10 +477,9 @@ TEST(GeometryAlgorithms, nfpConvexConvex) {
             exportSVG<SCALE>(inp, bin, i++);
         }
 
-        //ASSERT_TRUE(notintersecting);
+        ASSERT_TRUE(notintersecting);
         ASSERT_TRUE(notinside);
     }
-
 }
 
 int main(int argc, char **argv) {

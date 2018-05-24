@@ -76,7 +76,6 @@ protected:
     BinType bin_;
     Container items_;
     Cfg config_;
-
 };
 
 

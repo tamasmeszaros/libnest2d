@@ -206,13 +206,39 @@ void arrangeRectangles() {
 //        {5, 5},
 //        {20, 20}
 //    };
+    std::vector<Rectangle> input = {
+            {20, 20},
+            {40, 40},
+            {20, 10}
+    };
 
-    auto input = PRINTER_PART_POLYGONS;
+//    auto input = PRINTER_PART_POLYGONS;
 
-    const int SCALE = 1000000;
-//    const int SCALE = 1;
+//    std::vector<libnest2d::Item> input = {
+//        {
+//            {61, 97},
+//            {70, 151},
+//            {176, 151},
+//            {189, 138},
+//            {189, 59},
+//            {70, 59},
+//            {61, 77},
+//            {61, 97}
+//        },
+//        {
+//            {72, 147},
+//            {94, 151},
+//            {178, 151},
+//            {178, 59},
+//            {72, 59},
+//            {72, 147}
+//        }
+//    };
 
-    Box bin(210*SCALE, 250*SCALE);
+//    const int SCALE = 1000000;
+    const int SCALE = 1;
+
+    Box bin(500*SCALE, 500*SCALE);
 
     auto scaler = [&SCALE, &bin](Item& item) {
 //        double max_area = 0;
@@ -228,11 +254,11 @@ void arrangeRectangles() {
         }
     };
 
-    Coord min_obj_distance = 2*SCALE;
+    Coord min_obj_distance = 0;
 
     std::for_each(input.begin(), input.end(), scaler);
 
-    Arranger<BottomLeftPlacer, DJDHeuristic> arrange(bin, min_obj_distance);
+    Arranger<NfpPlacer, DJDHeuristic> arrange(bin, min_obj_distance);
 
     Benchmark bench;
 

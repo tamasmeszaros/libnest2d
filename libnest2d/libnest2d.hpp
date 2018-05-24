@@ -174,7 +174,7 @@ public:
         double ret ;
         if(area_cache_valid_) ret = area_cache_;
         else {
-            ret = std::abs(ShapeLike::area(offsettedShape()));
+            ret = ShapeLike::area(offsettedShape());
             area_cache_ = ret;
             area_cache_valid_ = true;
         }
@@ -201,7 +201,7 @@ public:
         return ShapeLike::isInside(transformedShape(), sh.transformedShape());
     }
 
-    inline bool isInside(const _Box<RawShape>& box);
+    inline bool isInside(const _Box<TPoint<RawShape>>& box);
 
     inline void translate(const Vertex& d) BP2D_NOEXCEPT
     {
@@ -370,7 +370,7 @@ public:
 };
 
 template<class RawShape>
-inline bool _Item<RawShape>::isInside(const _Box<RawShape>& box) {
+inline bool _Item<RawShape>::isInside(const _Box<TPoint<RawShape>>& box) {
     _Rectangle<RawShape> rect(box.width(), box.height());
     return _Item<RawShape>::isInside(rect);
 }

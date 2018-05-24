@@ -100,14 +100,29 @@ inline void ShapeLike::reserve(PolygonImpl& sh, unsigned long vertex_capacity)
     return sh.Contour.reserve(vertex_capacity);
 }
 
+#define DISABLE_BOOST_AREA
+
+namespace _smartarea {
+template<Orientation o>
+inline double area(const PolygonImpl& sh) {
+    return std::nan("");
+}
+
+template<>
+inline double area<Orientation::CLOCKWISE>(const PolygonImpl& sh) {
+    return -ClipperLib::Area(sh.Contour);
+}
+
+template<>
+inline double area<Orientation::COUNTER_CLOCKWISE>(const PolygonImpl& sh) {
+    return ClipperLib::Area(sh.Contour);
+}
+}
+
 // Tell binpack2d how to make string out of a ClipperPolygon object
 template<>
 inline double ShapeLike::area(const PolygonImpl& sh) {
-    #define DISABLE_BOOST_AREA
-    double ret = ClipperLib::Area(sh.Contour);
-//    if(OrientationType<PolygonImpl>::Value == Orientation::COUNTER_CLOCKWISE)
-//        ret = -ret;
-    return ret;
+    return _smartarea::area<OrientationType<PolygonImpl>::Value>(sh);
 }
 
 template<>
@@ -202,14 +217,14 @@ template<>
 THolesContainer<PolygonImpl>& ShapeLike::holes(PolygonImpl& sh);
 
 template<>
-inline TCountour<PolygonImpl>& ShapeLike::getHole(PolygonImpl& sh,
+inline TContour<PolygonImpl>& ShapeLike::getHole(PolygonImpl& sh,
                                                   unsigned long idx)
 {
     return sh.Childs[idx]->Contour;
 }
 
 template<>
-inline const TCountour<PolygonImpl>& ShapeLike::getHole(const PolygonImpl& sh,
+inline const TContour<PolygonImpl>& ShapeLike::getHole(const PolygonImpl& sh,
                                                         unsigned long idx) {
     return sh.Childs[idx]->Contour;
 }

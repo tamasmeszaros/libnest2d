@@ -419,23 +419,35 @@ TEST(GeometryAlgorithms, nfpConvexConvex) {
     Box bin(210*SCALE, 250*SCALE);
 
     Item orbiter = {
-        {61, 97},
-        {70, 151},
-        {176, 151},
-        {189, 138},
-        {189, 59},
-        {70, 59},
-        {61, 77},
-        {61, 97}
+        {117, 107},
+        {118, 109},
+        {120, 112},
+        {122, 113},
+        {128, 113},
+        {130, 112},
+        {132, 109},
+        {133, 107},
+        {133, 103},
+        {132, 101},
+        {130, 98},
+        {128, 97},
+        {122, 97},
+        {120, 98},
+        {118, 101},
+        {117, 103},
+        {117, 107}
     };
 
     Item stationary = {
-        {72, 147},
-        {94, 151},
-        {178, 151},
-        {178, 59},
-        {72, 59},
-        {72, 147}
+        {102, 116},
+        {111, 126},
+        {114, 126},
+        {144, 106},
+        {148, 100},
+        {148, 85},
+        {147, 84},
+        {102, 84},
+        {102, 116},
     };
 
     orbiter.translate({210*SCALE, 0});
@@ -456,6 +468,8 @@ TEST(GeometryAlgorithms, nfpConvexConvex) {
     int i = 0;
     auto rorbiter = orbiter.transformedShape();
     auto vo = Nfp::referenceVertex(rorbiter);
+
+    ASSERT_TRUE(stationary.isInside(infp));
 
     for(auto v : infp) {
         auto dx = getX(v) - getX(vo);

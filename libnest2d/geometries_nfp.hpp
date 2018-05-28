@@ -3,31 +3,70 @@
 
 #include "geometry_traits.hpp"
 #include <algorithm>
+#include <vector>
 
 namespace libnest2d {
 
 struct Nfp {
 
 template<class RawShape>
-static RawShape& minkowskiAdd(RawShape& sh, const RawShape& /*other*/) {
+using Shapes = typename ShapeLike::Shapes<RawShape>;
+
+template<class RawShape>
+static RawShape& minkowskiAdd(RawShape& sh, const RawShape& /*other*/)
+{
     static_assert(always_false<RawShape>::value,
                   "Nfp::minkowskiAdd() unimplemented!");
     return sh;
 }
 
 template<class RawShape>
-static RawShape merge(const RawShape& sh1, const RawShape& sh2) {
+static Shapes<RawShape> merge(const RawShape& sh1, const RawShape& sh2)
+{
     static_assert(always_false<RawShape>::value,
-                  "Nfp::merge() unimplemented!");
+                  "Nfp::merge(shape, shape) unimplemented!");
 }
 
 template<class RawShape>
-static TPoint<RawShape> referenceVertex(const RawShape& sh) {
+static Shapes<RawShape> merge(const Shapes<RawShape>& shc, const RawShape& sh)
+{
+    static_assert(always_false<RawShape>::value,
+                  "Nfp::merge(shapes, shape) unimplemented!");
+}
+
+template<class RawShape>
+inline static TPoint<RawShape> referenceVertex(const RawShape& sh)
+{
+    return downmostLeftVertex(sh);
+}
+
+template<class RawShape>
+static TPoint<RawShape> downmostLeftVertex(const RawShape& sh) {
     using Vertex = TPoint<RawShape>;
     using Coord = TCoord<Vertex>;
 
     // find min x and min y vertex
     auto it = std::min_element(ShapeLike::cbegin(sh), ShapeLike::cend(sh),
+                               [](const Vertex& v1,
+                                  const Vertex& v2)
+    {
+        auto diff = getX(v1) - getX(v2);
+        if(std::abs(diff) <= std::numeric_limits<Coord>::epsilon())
+            return getY(v1) < getY(v2);
+
+        return diff < 0;
+    });
+
+    return *it;
+}
+
+template<class RawShape>
+static TPoint<RawShape> upmostRightVertex(const RawShape& sh) {
+    using Vertex = TPoint<RawShape>;
+    using Coord = TCoord<Vertex>;
+
+    // find min x and min y vertex
+    auto it = std::max_element(ShapeLike::cbegin(sh), ShapeLike::cend(sh),
                                [](const Vertex& v1,
                                   const Vertex& v2)
     {
@@ -102,12 +141,16 @@ static RawShape noFitPolygon(const RawShape& sh, const RawShape& other) {
         ShapeLike::addVertex(rsh, edgelist.front().first());
         ShapeLike::addVertex(rsh, edgelist.front().second());
 
-        auto tmp = std::next(ShapeLike::begin(rsh));
+//        auto upright = upmostRightVertex(sh);
+//        ShapeLike::addVertex(rsh, upright);
+
+        auto tmp = /*ShapeLike::begin(rsh);*/  std::next(ShapeLike::begin(rsh));
 
         // Construct final nfp by placing each edge to the end of the previous
-        for(auto eit = std::next(edgelist.begin());
+        for(auto eit = /*edgelist.begin();*/ std::next(edgelist.begin());
             eit != edgelist.end();
-            ++eit) {
+            ++eit)
+        {
 
             auto dx = getX(*tmp) - getX(eit->first());
             auto dy = getY(*tmp) - getY(eit->first());
@@ -145,6 +188,21 @@ static RawShape noFitPolygon(const RawShape& sh, const RawShape& other) {
     }
 
     return rsh;
+}
+
+template<class RawShape>
+static inline Shapes<RawShape> noFitPolygon(const Shapes<RawShape>& shapes,
+                                            const RawShape& other)
+{
+    assert(shapes.size() >= 1);
+    auto shit = shapes.begin();
+
+    Shapes<RawShape> ret;
+    ret.emplace_back(noFitPolygon(*shit, other));
+
+    while(++shit != shapes.end()) ret = merge(ret, noFitPolygon(*shit, other));
+
+    return ret;
 }
 
 };

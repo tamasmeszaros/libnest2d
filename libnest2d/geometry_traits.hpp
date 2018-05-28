@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <array>
 #include <vector>
+#include <numeric>
 #include <limits>
 
 #include "common.hpp"
@@ -300,6 +301,9 @@ enum class Formats {
 struct ShapeLike {
 
     template<class RawShape>
+    using Shapes = std::vector<RawShape>;
+
+    template<class RawShape>
     static RawShape create(std::initializer_list< TPoint<RawShape> > il)
     {
         return RawShape(il);
@@ -411,10 +415,25 @@ struct ShapeLike {
     }
 
     template<class RawShape>
+    static _Box<TPoint<RawShape>> boundingBox(const Shapes<RawShape>& /*sh*/)
+    {
+        static_assert(always_false<RawShape>::value,
+                      "ShapeLike::boundingBox(shapes) unimplemented!");
+    }
+
+    template<class RawShape>
     static RawShape convexHull(const RawShape& /*sh*/)
     {
         static_assert(always_false<RawShape>::value,
                       "ShapeLike::convexHull(shape) unimplemented!");
+        return RawShape();
+    }
+
+    template<class RawShape>
+    static RawShape convexHull(const Shapes<RawShape>& /*sh*/)
+    {
+        static_assert(always_false<RawShape>::value,
+                      "ShapeLike::convexHull(shapes) unimplemented!");
         return RawShape();
     }
 
@@ -506,6 +525,17 @@ struct ShapeLike {
         return box.width() * box.height();
     }
 
+    template<class RawShape>
+    static double area(const Shapes<RawShape>& shapes)
+    {
+        double ret = 0;
+        std::accumulate(shapes.first(), shapes.end(),
+                        [](const RawShape& a, const RawShape& b) {
+            return area(a) + area(b);
+        });
+        return ret;
+    }
+
     template<class RawShape> // Potential O(1) implementation may exist
     static inline TPoint<RawShape>& vertex(RawShape& sh, unsigned long idx)
     {
@@ -564,8 +594,6 @@ struct ShapeLike {
     }
 
 };
-
-
 
 }
 

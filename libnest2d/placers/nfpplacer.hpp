@@ -32,8 +32,7 @@ class _NofitPolyPlacer: public PlacerBoilerplate<_NofitPolyPlacer<RawShape>,
 
     using Box = _Box<TPoint<RawShape>>;
 
-    // Store a merged polygon of all the packed items
-    RawShape merged_;
+    static std::vector<_Item<RawShape>> dbg_items_;
 
 public:
 
@@ -47,6 +46,7 @@ public:
 
         if(items_.empty()) {
             setInitialPosition(item);
+            can_pack = item.isInside(bin_);
         } else {
 
             // place the new item outside of the print bed to make sure it is
@@ -54,7 +54,23 @@ public:
             placeOutsideOfBin(item);
 
             auto trsh = item.transformedShape();
-            RawShape nfp = Nfp::noFitPolygon(merged_, trsh);
+            Nfp::Shapes<RawShape> nfps;
+//            for(Item& sh : items_) {
+//                nfps = Nfp::merge(nfps, Nfp::noFitPolygon(sh.transformedShape(),
+//                                                          trsh));
+//            }
+
+            for(Item& sh : items_) {
+                nfps.emplace_back(sh.transformedShape());
+            }
+            auto hull = ShapeLike::convexHull(nfps);
+//            nfps = Nfp::noFitPolygon(nfps, trsh);
+            auto nfp = Nfp::noFitPolygon(hull, trsh);
+
+//            if(items_.size() > 1) {
+//            dbg_items_.emplace_back(nfp);
+//            dbg_items_.emplace_back(hull);
+//            }
 
             double min_area = std::numeric_limits<double>::max();
             Vertex tr = {0, 0};
@@ -62,6 +78,7 @@ public:
             auto iv = Nfp::referenceVertex(trsh);
 
             // place item on each the edge of this nfp
+//            for(auto& nfp : nfps)
             ShapeLike::foreachContourVertex(nfp, [&]
                                             (Vertex& v)
             {
@@ -71,13 +88,20 @@ public:
                 Item placeditem(trsh);
                 placeditem.translate(Vertex(dx, dy));
 
-                if( (can_pack = placeditem.isInside(bin_)) ) {
-                    auto&& m = Nfp::merge(merged_,
-                                          placeditem.transformedShape());
+                if( placeditem.isInside(bin_) ) {
+                    Nfp::Shapes<RawShape> m;
+                    m.reserve(items_.size());
 
-                    double a = ShapeLike::area(ShapeLike::convexHull(m));
+                    for(Item& pi : items_)
+                        m.emplace_back(pi.transformedShape());
+                    m.emplace_back(placeditem.transformedShape());
+
+                    auto b = ShapeLike::boundingBox(m);
+
+                    double a = std::max(b.height(), b.width());
 
                     if(a < min_area) {
+                        can_pack = true;
                         min_area = a;
                         tr = {dx, dy};
                     }
@@ -94,21 +118,12 @@ public:
         return ret;
     }
 
-    bool pack(Item& item) {
-        auto&& r = trypack(item);
-        if(r) accept(r);
-        return r;
-    }
-
-    inline void accept(PackResult& r) {
-        if(r) {
-            r.item_ptr_->translation(r.move_);
-            r.item_ptr_->rotation(r.rot_);
-            merged_ = items_.empty()? r.item_ptr_->transformedShape() :
-                        Nfp::merge(merged_, r.item_ptr_->transformedShape());
-            items_.push_back(*(r.item_ptr_));
-        }
-    }
+#ifndef NDEBUG
+//    inline typename Base::ItemGroup getItems() {
+//        items_.insert(items_.end(), dbg_items_.begin(), dbg_items_.end());
+//        return items_;
+//    }
+#endif
 
 private:
 
@@ -143,6 +158,10 @@ private:
     }
 
 };
+
+template<class RawShape>
+std::vector<_Item<RawShape>> _NofitPolyPlacer<RawShape>::dbg_items_ = {};
+
 
 }
 }

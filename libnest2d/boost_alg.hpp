@@ -25,6 +25,7 @@ using libnest2d::setX;
 using libnest2d::setY;
 using Box = libnest2d::_Box<PointImpl>;
 using Segment = libnest2d::_Segment<PointImpl>;
+using Shapes = libnest2d::Nfp::Shapes<PolygonImpl>;
 
 }
 
@@ -269,16 +270,33 @@ struct interior_rings<bp2d::PolygonImpl> {
     }
 };
 
+/* ************************************************************************** */
+/* MultiPolygon concept adaptation ****************************************** */
+/* ************************************************************************** */
+
+template<> struct tag<bp2d::Shapes> {
+    using type = multi_polygon_tag;
+};
+
 }   // traits
 }   // geometry
 
-// This is an addition to the ring implementation
+// This is an addition to the ring implementation of Polygon concept
 template<>
 struct range_value<bp2d::PathImpl> {
     using type = bp2d::PointImpl;
 };
 
+template<>
+struct range_value<bp2d::Shapes> {
+    using type = bp2d::PolygonImpl;
+};
+
 }   // boost
+
+/* ************************************************************************** */
+/* Algorithms *************************************************************** */
+/* ************************************************************************** */
 
 namespace libnest2d { // Now the algorithms that boost can provide...
 
@@ -353,6 +371,13 @@ inline bp2d::Box ShapeLike::boundingBox(const PolygonImpl& sh) {
     boost::geometry::envelope(sh, b);
     return b;
 }
+
+template<>
+inline bp2d::Box ShapeLike::boundingBox(const bp2d::Shapes& shapes) {
+    bp2d::Box b;
+    boost::geometry::envelope(shapes, b);
+    return b;
+}
 #endif
 
 #ifndef DISABLE_BOOST_CONVEX_HULL
@@ -361,6 +386,14 @@ inline PolygonImpl ShapeLike::convexHull(const PolygonImpl& sh)
 {
     PolygonImpl ret;
     boost::geometry::convex_hull(sh, ret);
+    return ret;
+}
+
+template<>
+inline PolygonImpl ShapeLike::convexHull(const bp2d::Shapes& shapes)
+{
+    PolygonImpl ret;
+    boost::geometry::convex_hull(shapes, ret);
     return ret;
 }
 #endif
@@ -400,13 +433,20 @@ inline void ShapeLike::offset(PolygonImpl& sh, bp2d::Coord distance)
 
 #ifndef DISABLE_BOOST_NFP_MERGE
 template<>
-inline PolygonImpl Nfp::merge(const PolygonImpl& sh1, const PolygonImpl& sh2)
+inline bp2d::Shapes Nfp::merge(const PolygonImpl& sh1, const PolygonImpl& sh2)
 {
-    std::vector<PolygonImpl> retv;
+    bp2d::Shapes retv;
     boost::geometry::union_(sh1, sh2, retv);
-//    assert(retv.size() > 0);
-    PolygonImpl ret(std::move(retv.front()));
-    return ret;
+    return retv;
+}
+
+template<>
+inline bp2d::Shapes Nfp::merge(const bp2d::Shapes& shapes,
+                               const PolygonImpl& sh)
+{
+    bp2d::Shapes retv;
+    boost::geometry::union_(shapes, sh, retv);
+    return retv;
 }
 #endif
 

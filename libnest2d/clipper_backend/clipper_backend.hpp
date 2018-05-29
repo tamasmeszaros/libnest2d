@@ -37,6 +37,13 @@ inline PointImpl& operator -=(PointImpl& p, const PointImpl& pa ) {
     return p;
 }
 
+inline PointImpl operator -(PointImpl& p ) {
+    PointImpl ret = p;
+    ret.X = -ret.X;
+    ret.Y = -ret.Y;
+    return ret;
+}
+
 inline PointImpl operator-(const PointImpl& p1, const PointImpl& p2) {
     PointImpl ret = p1;
     ret -= p2;

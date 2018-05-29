@@ -233,18 +233,20 @@ void setY(RawPoint& p, const TCoord<RawPoint>& val) {
 template<class RawPoint>
 inline Radians _Segment<RawPoint>::angleToXaxis() const
 {
+    static const double Pi_2 = 2*Pi;
     TCoord<RawPoint> dx = getX(second()) - getX(first());
     TCoord<RawPoint> dy = getY(second()) - getY(first());
 
-    if(dx == 0 && dy >= 0) return Pi/2;
-    if(dx == 0 && dy < 0) return 3*Pi/2;
-    if(dy == 0 && dx >= 0) return 0;
-    if(dy == 0 && dx < 0) return Pi;
+    double a = std::atan2(dy, dx);
+//    if(dx == 0 && dy >= 0) return Pi/2;
+//    if(dx == 0 && dy < 0) return 3*Pi/2;
+//    if(dy == 0 && dx >= 0) return 0;
+//    if(dy == 0 && dx < 0) return Pi;
 
-    double ddx = static_cast<double>(dx);
-    auto s = std::signbit(ddx);
-    double a = std::atan(ddx/dy);
-    if(s) a += Pi;
+//    double ddx = static_cast<double>(dx);
+    auto s = std::signbit(a);
+//    double a = std::atan(ddx/dy);
+    if(s) a += Pi_2;
     return a;
 }
 

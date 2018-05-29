@@ -96,13 +96,19 @@ static RawShape noFitPolygon(const RawShape& sh, const RawShape& other) {
     {
         RawShape other = cother;
 
+        auto dml_sh = downmostLeftVertex(sh);
+        auto uml_other = upmostRightVertex(other);
+        auto d = dml_sh - uml_other;
+
         // Make the other polygon counter-clockwise
         for(auto shit = ShapeLike::begin(other);
             shit != ShapeLike::end(other); ++shit ) {
             auto& v = *shit;
-            setX(v, -getX(v));
-            setY(v, -getY(v));
+            v += d;
+//            setX(v, -getX(v));
+//            setY(v, -getY(v));
         }
+        std::reverse(ShapeLike::begin(other), ShapeLike::end(other));
 
         RawShape rsh;   // Final nfp placeholder
         std::vector<Edge> edgelist;
@@ -141,13 +147,10 @@ static RawShape noFitPolygon(const RawShape& sh, const RawShape& other) {
         ShapeLike::addVertex(rsh, edgelist.front().first());
         ShapeLike::addVertex(rsh, edgelist.front().second());
 
-//        auto upright = upmostRightVertex(sh);
-//        ShapeLike::addVertex(rsh, upright);
-
-        auto tmp = /*ShapeLike::begin(rsh);*/  std::next(ShapeLike::begin(rsh));
+        auto tmp = std::next(ShapeLike::begin(rsh));
 
         // Construct final nfp by placing each edge to the end of the previous
-        for(auto eit = /*edgelist.begin();*/ std::next(edgelist.begin());
+        for(auto eit = std::next(edgelist.begin());
             eit != edgelist.end();
             ++eit)
         {

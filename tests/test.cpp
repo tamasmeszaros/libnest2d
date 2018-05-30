@@ -108,7 +108,8 @@ TEST(GeometryAlgorithms, Distance) {
 
     auto check = [](Coord val, Coord expected) {
         if(std::is_floating_point<Coord>::value)
-            ASSERT_DOUBLE_EQ(static_cast<double>(val), expected);
+            ASSERT_DOUBLE_EQ(static_cast<double>(val),
+                             static_cast<double>(expected));
         else
             ASSERT_EQ(val, expected);
     };
@@ -449,6 +450,103 @@ TEST(GeometryAlgorithms, BottomLeftStressTest) {
     }
 }
 
+namespace {
+
+struct ItemPair {
+    Item orbiter;
+    Item stationary;
+};
+
+std::vector<ItemPair> nfp_testdata = {
+    {
+        {
+            {80, 50},
+            {100, 70},
+            {120, 50},
+            {80, 50}
+        },
+        {
+            {10, 10},
+            {10, 40},
+            {40, 40},
+            {40, 10},
+            {10, 10}
+        }
+    },
+    {
+        {
+            {80, 50},
+            {60, 70},
+            {80, 90},
+            {120, 90},
+            {140, 70},
+            {120, 50},
+            {80, 50}
+        },
+        {
+            {10, 10},
+            {10, 40},
+            {40, 40},
+            {40, 10},
+            {10, 10}
+        }
+    },
+    {
+        {
+            {40, 10},
+            {30, 10},
+            {20, 20},
+            {20, 30},
+            {30, 40},
+            {40, 40},
+            {50, 30},
+            {50, 20},
+            {40, 10}
+        },
+        {
+            {80, 0},
+            {80, 30},
+            {110, 30},
+            {110, 0},
+            {80, 0}
+        }
+    },
+    {
+        {
+            {117, 107},
+            {118, 109},
+            {120, 112},
+            {122, 113},
+            {128, 113},
+            {130, 112},
+            {132, 109},
+            {133, 107},
+            {133, 103},
+            {132, 101},
+            {130, 98},
+            {128, 97},
+            {122, 97},
+            {120, 98},
+            {118, 101},
+            {117, 103},
+            {117, 107}
+        },
+        {
+            {102, 116},
+            {111, 126},
+            {114, 126},
+            {144, 106},
+            {148, 100},
+            {148, 85},
+            {147, 84},
+            {102, 84},
+            {102, 116},
+        }
+    }
+};
+
+}
+
 TEST(GeometryAlgorithms, nfpConvexConvex) {
     using namespace libnest2d;
 
@@ -456,134 +554,56 @@ TEST(GeometryAlgorithms, nfpConvexConvex) {
 
     Box bin(210*SCALE, 250*SCALE);
 
-//    Item orbiter = {
-//        {80, 50},
-//        {100, 70},
-//        {120, 50},
-//        {80, 50}
-//    };
+    int testcase = 0;
+    for(auto& td : nfp_testdata) {
+        auto orbiter = td.orbiter;
+        auto stationary = td.stationary;
+        testcase++;
 
-//    Item stationary = {
-//        {10, 10},
-//        {10, 40},
-//        {40, 40},
-//        {40, 10},
-//        {10, 10}
-//    };
+        orbiter.translate({210*SCALE, 0});
 
-//    Item orbiter = {
-//        {80, 50},
-//        {60, 70},
-//        {80, 90},
-//        {120, 90},
-//        {140, 70},
-//        {120, 50},
-//        {80, 50}
-//    };
+        auto&& nfp = Nfp::noFitPolygon(stationary.rawShape(),
+                                       orbiter.transformedShape());
 
-//    Item stationary = {
-//        {10, 10},
-//        {10, 40},
-//        {40, 40},
-//        {40, 10},
-//        {10, 10}
-//    };
+        auto v = ShapeLike::isValid(nfp);
 
-//    Item orbiter = {
-//        {40, 10},
-//        {30, 10},
-//        {20, 20},
-//        {20, 30},
-//        {30, 40},
-//        {40, 40},
-//        {50, 30},
-//        {50, 20},
-//        {40, 10}
-//    };
+        if(!v.first) {
+            std::cout << v.second << std::endl;
+        }
 
-//    Item stationary = {
-//        {80, 0},
-//        {80, 30},
-//        {110, 30},
-//        {110, 0},
-//        {80, 0}
-//    };
+        ASSERT_TRUE(v.first);
 
-    Item orbiter = {
-        {117, 107},
-        {118, 109},
-        {120, 112},
-        {122, 113},
-        {128, 113},
-        {130, 112},
-        {132, 109},
-        {133, 107},
-        {133, 103},
-        {132, 101},
-        {130, 98},
-        {128, 97},
-        {122, 97},
-        {120, 98},
-        {118, 101},
-        {117, 103},
-        {117, 107}
-    };
+        Item infp(nfp);
 
-    Item stationary = {
-        {102, 116},
-        {111, 126},
-        {114, 126},
-        {144, 106},
-        {148, 100},
-        {148, 85},
-        {147, 84},
-        {102, 84},
-        {102, 116},
-    };
+        int i = 0;
+        auto rorbiter = orbiter.transformedShape();
+        auto vo = Nfp::referenceVertex(rorbiter);
 
-    orbiter.translate({210*SCALE, 0});
+        ASSERT_TRUE(stationary.isInside(infp));
 
-    auto&& nfp = Nfp::noFitPolygon(stationary.rawShape(),
-                                   orbiter.transformedShape());
+        for(auto v : infp) {
+            auto dx = getX(v) - getX(vo);
+            auto dy = getY(v) - getY(vo);
 
-    auto v = ShapeLike::isValid(nfp);
+            Item tmp = orbiter;
 
-    if(!v.first) {
-        std::cout << v.second << std::endl;
-    }
+            tmp.translate({dx, dy});
 
-//    ASSERT_TRUE(v.first);
+            bool notinside = !tmp.isInside(stationary);
+            bool notintersecting = !Item::intersects(tmp, stationary) ||
+                                    Item::touches(tmp, stationary);
 
-    Item infp(nfp);
+            if(!(notinside && notintersecting)) {
+                std::vector<std::reference_wrapper<Item>> inp = {
+                    std::ref(stationary), std::ref(tmp), std::ref(infp)
+                };
 
-    int i = 0;
-    auto rorbiter = orbiter.transformedShape();
-    auto vo = Nfp::referenceVertex(rorbiter);
+                exportSVG<SCALE>(inp, bin, testcase*i++);
+            }
 
-//    ASSERT_TRUE(stationary.isInside(infp)/* || Item::intersects(infp, stationary)*/);
-
-    for(auto v : infp) {
-        auto dx = getX(v) - getX(vo);
-        auto dy = getY(v) - getY(vo);
-
-        Item tmp = orbiter;
-
-        tmp.translate({dx, dy});
-
-        bool notinside = !tmp.isInside(stationary);
-        bool notintersecting = !Item::intersects(tmp, stationary) ||
-                                Item::touches(tmp, stationary);
-
-//        if(!(notinside && notintersecting)) {
-            std::vector<std::reference_wrapper<Item>> inp = {
-                std::ref(stationary), std::ref(tmp), std::ref(infp)
-            };
-
-            exportSVG<SCALE>(inp, bin, i++);
-//        }
-
-//        ASSERT_TRUE(notintersecting);
-//        ASSERT_TRUE(notinside);
+            ASSERT_TRUE(notintersecting);
+            ASSERT_TRUE(notinside);
+        }
     }
 }
 

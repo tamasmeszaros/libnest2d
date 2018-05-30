@@ -330,7 +330,7 @@ class _Rectangle: public _Item<RawShape> {
     using TO = Orientation;
 public:
 
-    using Unit =  TCoord<RawShape>;
+    using Unit = TCoord<TPoint<RawShape>>;
 
     template<TO o = OrientationType<RawShape>::Value>
     inline _Rectangle(Unit width, Unit height,

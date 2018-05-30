@@ -524,7 +524,7 @@ struct ShapeLike {
     template<class RawShape>
     static inline double area(const _Box<TPoint<RawShape>>& box)
     {
-        return box.width() * box.height();
+        return static_cast<double>(box.width() * box.height());
     }
 
     template<class RawShape>

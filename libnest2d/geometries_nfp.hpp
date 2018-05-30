@@ -37,45 +37,25 @@ static Shapes<RawShape> merge(const Shapes<RawShape>& shc, const RawShape& sh)
 template<class RawShape>
 inline static TPoint<RawShape> referenceVertex(const RawShape& sh)
 {
-    return downmostLeftVertex(sh);
+    return rightmostUpVertex(sh);
 }
 
 template<class RawShape>
-static TPoint<RawShape> downmostLeftVertex(const RawShape& sh) {
-    using Vertex = TPoint<RawShape>;
-    using Coord = TCoord<Vertex>;
+static TPoint<RawShape> leftmostDownVertex(const RawShape& sh) {
 
     // find min x and min y vertex
     auto it = std::min_element(ShapeLike::cbegin(sh), ShapeLike::cend(sh),
-                               [](const Vertex& v1,
-                                  const Vertex& v2)
-    {
-        auto diff = getX(v1) - getX(v2);
-        if(std::abs(diff) <= std::numeric_limits<Coord>::epsilon())
-            return getY(v1) < getY(v2);
-
-        return diff < 0;
-    });
+                               _vsort<RawShape>);
 
     return *it;
 }
 
 template<class RawShape>
-static TPoint<RawShape> upmostRightVertex(const RawShape& sh) {
-    using Vertex = TPoint<RawShape>;
-    using Coord = TCoord<Vertex>;
+static TPoint<RawShape> rightmostUpVertex(const RawShape& sh) {
 
     // find min x and min y vertex
     auto it = std::max_element(ShapeLike::cbegin(sh), ShapeLike::cend(sh),
-                               [](const Vertex& v1,
-                                  const Vertex& v2)
-    {
-        auto diff = getX(v1) - getX(v2);
-        if(std::abs(diff) <= std::numeric_limits<Coord>::epsilon())
-            return getY(v1) < getY(v2);
-
-        return diff < 0;
-    });
+                               _vsort<RawShape>);
 
     return *it;
 }
@@ -96,18 +76,7 @@ static RawShape noFitPolygon(const RawShape& sh, const RawShape& other) {
     {
         RawShape other = cother;
 
-        auto dml_sh = downmostLeftVertex(sh);
-        auto uml_other = upmostRightVertex(other);
-        auto d = dml_sh - uml_other;
-
         // Make the other polygon counter-clockwise
-        for(auto shit = ShapeLike::begin(other);
-            shit != ShapeLike::end(other); ++shit ) {
-            auto& v = *shit;
-            v += d;
-//            setX(v, -getX(v));
-//            setY(v, -getY(v));
-        }
         std::reverse(ShapeLike::begin(other), ShapeLike::end(other));
 
         RawShape rsh;   // Final nfp placeholder
@@ -154,15 +123,45 @@ static RawShape noFitPolygon(const RawShape& sh, const RawShape& other) {
             eit != edgelist.end();
             ++eit)
         {
+            auto d = *tmp - eit->first();
+            auto p = eit->second() + d;
 
-            auto dx = getX(*tmp) - getX(eit->first());
-            auto dy = getY(*tmp) - getY(eit->first());
-
-            ShapeLike::addVertex(rsh, getX(eit->second())+dx,
-                                      getY(eit->second())+dy );
+            ShapeLike::addVertex(rsh, p);
 
             tmp = std::next(tmp);
         }
+
+        // Now we have an nfp somewhere in the dark. We need to get it
+        // to the right position around the stationary shape.
+        // This is done by choosing the leftmost lowest vertex of the
+        // orbiting polygon to be touched with the rightmost upper
+        // vertex of the stationary polygon. In this configuration, the
+        // reference vertex of the orbiting polygon (which can be dragged around
+        // the nfp) will be its rightmost upper vertex that coincides with the
+        // rightmost upper vertex of the nfp. No proof provided other than Jonas
+        // Lindmark's reasoning about the reference vertex of nfp in his thesis
+        // ("No fit polygon problem" - section 2.1.9)
+
+        auto csh = sh;  // Copy sh, we will sort the verices in the copy
+        auto& cmp = _vsort<RawShape>;
+        std::sort(ShapeLike::begin(csh), ShapeLike::end(csh), cmp);
+        std::sort(ShapeLike::begin(other), ShapeLike::end(other), cmp);
+
+        // leftmost lower vertex of the stationary polygon
+        auto& touch_sh = *(std::prev(ShapeLike::end(csh)));
+        // rightmost upper vertex of the orbiting polygon
+        auto& touch_other = *(ShapeLike::begin(other));
+
+        // Calculate the difference and move the orbiter to the touch position.
+        auto dtouch = touch_sh - touch_other;
+        auto top_other = *(std::prev(ShapeLike::end(other))) + dtouch;
+
+        // Get the righmost upper vertex of the nfp and move it to the RMU of
+        // the orbiter because they should coincide.
+        auto&& top_nfp = rightmostUpVertex(rsh);
+        auto dnfp = top_other - top_nfp;
+        std::for_each(ShapeLike::begin(rsh), ShapeLike::end(rsh),
+                      [&dnfp](Vertex& v) { v+= dnfp; } );
 
         return rsh;
     };
@@ -206,6 +205,21 @@ static inline Shapes<RawShape> noFitPolygon(const Shapes<RawShape>& shapes,
     while(++shit != shapes.end()) ret = merge(ret, noFitPolygon(*shit, other));
 
     return ret;
+}
+
+private:
+
+// Do not specialize this...
+template<class RawShape>
+static inline bool _vsort(const TPoint<RawShape>& v1,
+                          const TPoint<RawShape>& v2)
+{
+    using Coord = TCoord<TPoint<RawShape>>;
+    auto diff = getY(v1) - getY(v2);
+    if(std::abs(diff) <= std::numeric_limits<Coord>::epsilon())
+        return getX(v1) < getX(v2);
+
+    return diff < 0;
 }
 
 };

@@ -1,11 +1,11 @@
 
 # Try to find existing GTest installation
-find_package(GTest 1.7 QUIET)
+#find_package(GTest 1.7 QUIET)
 
 if(NOT GTEST_FOUND)
     message(STATUS "GTest not found so downloading...")
     # Go and download google test framework, integrate it with the build
-    set(GTEST_LIBS_TO_LINK gtest)
+    set(GTEST_LIBS_TO_LINK gtest gtest_main)
 
     if (CMAKE_VERSION VERSION_LESS 3.2)
         set(UPDATE_DISCONNECTED_IF_AVAILABLE "")
@@ -32,7 +32,7 @@ if(NOT GTEST_FOUND)
 
 else()
     find_package(Threads REQUIRED)
-    list(APPEND GTEST_LIBS_TO_LINK Threads::Threads)
+    set(GTEST_LIBS_TO_LINK  ${GTEST_BOTH_LIBRARIES}  Threads::Threads)
 endif()
 
 add_executable(bp2d_tests test.cpp printer_parts.h printer_parts.cpp)

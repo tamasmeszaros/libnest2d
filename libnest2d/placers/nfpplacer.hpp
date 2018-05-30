@@ -55,17 +55,17 @@ public:
 
             auto trsh = item.transformedShape();
             Nfp::Shapes<RawShape> nfps;
-//            for(Item& sh : items_) {
-//                nfps = Nfp::merge(nfps, Nfp::noFitPolygon(sh.transformedShape(),
-//                                                          trsh));
-//            }
-
             for(Item& sh : items_) {
-                nfps.emplace_back(sh.transformedShape());
+                nfps = Nfp::merge(nfps, Nfp::noFitPolygon(sh.transformedShape(),
+                                                          trsh));
             }
-            auto hull = ShapeLike::convexHull(nfps);
+
+//            for(Item& sh : items_) {
+//                nfps.emplace_back(sh.transformedShape());
+//            }
+//            auto hull = ShapeLike::convexHull(nfps);
 //            nfps = Nfp::noFitPolygon(nfps, trsh);
-            auto nfp = Nfp::noFitPolygon(hull, trsh);
+//            auto nfp = Nfp::noFitPolygon(hull, trsh);
 
 //            if(items_.size() > 1) {
 //            dbg_items_.emplace_back(nfp);
@@ -78,7 +78,7 @@ public:
             auto iv = Nfp::referenceVertex(trsh);
 
             // place item on each the edge of this nfp
-//            for(auto& nfp : nfps)
+            for(auto& nfp : nfps)
             ShapeLike::foreachContourVertex(nfp, [&]
                                             (Vertex& v)
             {

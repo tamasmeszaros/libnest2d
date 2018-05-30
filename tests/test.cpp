@@ -1,5 +1,4 @@
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
+#include <gtest/gtest.h>
 #include <fstream>
 
 #include <libnest2d.h>
@@ -542,6 +541,72 @@ std::vector<ItemPair> nfp_testdata = {
             {102, 84},
             {102, 116},
         }
+    },
+    {
+        {
+            {99, 122},
+            {108, 140},
+            {110, 142},
+            {139, 142},
+            {151, 122},
+            {151, 102},
+            {142, 70},
+            {139, 68},
+            {111, 68},
+            {108, 70},
+            {99, 102},
+            {99, 122},
+        },
+        {
+            {107, 124},
+            {128, 125},
+            {133, 125},
+            {136, 124},
+            {140, 121},
+            {142, 119},
+            {143, 116},
+            {143, 109},
+            {141, 93},
+            {139, 89},
+            {136, 86},
+            {134, 85},
+            {108, 85},
+            {107, 86},
+            {107, 124},
+        }
+    },
+    {
+        {
+            {91, 100},
+            {94, 144},
+            {117, 153},
+            {118, 153},
+            {159, 112},
+            {159, 110},
+            {156, 66},
+            {133, 57},
+            {132, 57},
+            {91, 98},
+            {91, 100},
+        },
+        {
+            {101, 90},
+            {103, 98},
+            {107, 113},
+            {114, 125},
+            {115, 126},
+            {135, 126},
+            {136, 125},
+            {144, 114},
+            {149, 90},
+            {149, 89},
+            {148, 87},
+            {145, 84},
+            {105, 84},
+            {102, 87},
+            {101, 89},
+            {101, 90},
+        }
     }
 };
 
@@ -550,14 +615,15 @@ std::vector<ItemPair> nfp_testdata = {
 TEST(GeometryAlgorithms, nfpConvexConvex) {
     using namespace libnest2d;
 
-    const unsigned long SCALE = 1;
+    const Coord SCALE = 1;
 
     Box bin(210*SCALE, 250*SCALE);
 
     int testcase = 0;
-    for(auto& td : nfp_testdata) {
-        auto orbiter = td.orbiter;
-        auto stationary = td.stationary;
+
+    auto& exportfun = exportSVG<SCALE, Box>;
+
+    auto onetest = [&](Item& orbiter, Item& stationary){
         testcase++;
 
         orbiter.translate({210*SCALE, 0});
@@ -598,12 +664,24 @@ TEST(GeometryAlgorithms, nfpConvexConvex) {
                     std::ref(stationary), std::ref(tmp), std::ref(infp)
                 };
 
-                exportSVG<SCALE>(inp, bin, testcase*i++);
+                exportfun(inp, bin, testcase*i++);
             }
 
             ASSERT_TRUE(notintersecting);
             ASSERT_TRUE(notinside);
         }
+    };
+
+    for(auto& td : nfp_testdata) {
+        auto orbiter = td.orbiter;
+        auto stationary = td.stationary;
+        onetest(orbiter, stationary);
+    }
+
+    for(auto& td : nfp_testdata) {
+        auto orbiter = td.stationary;
+        auto stationary = td.orbiter;
+        onetest(orbiter, stationary);
     }
 }
 

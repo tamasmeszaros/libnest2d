@@ -622,7 +622,7 @@ public:
 private:
     BinType bin_;
     PlacementConfig pconfig_;
-    TCoord<typename Item::ShapeType> min_obj_distance_;
+    Unit min_obj_distance_;
 
     using SItem =  typename SelectionStrategy::Item;
     using TPItem = remove_cvref_t<Item>;
@@ -792,7 +792,7 @@ private:
     template<class TIter> inline void __arrange(TIter from, TIter to)
     {
         if(min_obj_distance_ > 0) std::for_each(from, to, [this](Item& item) {
-            item.addOffset(std::ceil(min_obj_distance_/2.0));
+            item.addOffset(static_cast<Unit>(std::ceil(min_obj_distance_/2.0)));
         });
 
         selector_.template packItems<PlacementStrategy>(

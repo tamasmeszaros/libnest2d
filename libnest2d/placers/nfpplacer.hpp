@@ -98,7 +98,8 @@ public:
 
                     auto b = ShapeLike::boundingBox(m);
 
-                    double a = std::max(b.height(), b.width());
+                    auto a = static_cast<double>(std::max(b.height(),
+                                                          b.width()));
 
                     if(a < min_area) {
                         can_pack = true;

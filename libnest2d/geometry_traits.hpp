@@ -311,6 +311,18 @@ struct ShapeLike {
         return RawShape(il);
     }
 
+    template<class RawShape>
+    static RawShape create(const TContour<RawShape>& contour)
+    {
+        return RawShape(contour);
+    }
+
+    template<class RawShape>
+    static RawShape create(TContour<RawShape>&& contour)
+    {
+        return RawShape(contour);
+    }
+
     // Optional, does nothing by default
     template<class RawShape>
     static void reserve(RawShape& /*sh*/,  unsigned long /*vertex_capacity*/) {}

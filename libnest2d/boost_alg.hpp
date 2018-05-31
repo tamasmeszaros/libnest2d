@@ -479,7 +479,8 @@ inline std::string ShapeLike::serialize<libnest2d::Formats::SVG>(
         auto& v = *it;
         ring.emplace_back(getX(v)*scale, getY(v)*scale);
     };
-    Polygonf poly({ring});
+    Polygonf poly;
+    poly.outer() = ring;
     auto svg_data = boost::geometry::svg(poly, style);
 
     ss << svg_data << std::endl;

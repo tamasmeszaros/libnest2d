@@ -4,7 +4,7 @@
 #include <vector>
 #include <clipper.hpp>
 
-using TestData = std::vector<std::initializer_list< ClipperLib::IntPoint >>;
+using TestData = std::vector<ClipperLib::Path>;
 
 extern const TestData PRINTER_PART_POLYGONS;
 extern const TestData STEGOSAUR_POLYGONS;

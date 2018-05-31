@@ -14,50 +14,6 @@ using namespace libnest2d;
 using ItemGroup = std::vector<std::reference_wrapper<Item>>;
 //using PackGroup = std::vector<ItemGroup>;
 
-template<int SCALE, class Bin >
-void exportSVG(PackGroup& result, const Bin& bin) {
-
-    std::string loc = "out";
-
-    static std::string svg_header =
-R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
-<svg height="500" width="500" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-)raw";
-
-    int i = 0;
-    for(auto r : result) {
-        std::fstream out(loc + std::to_string(i) + ".svg", std::fstream::out);
-        if(out.is_open()) {
-            out << svg_header;
-            Item rbin( Rectangle(bin.width(), bin.height()) );
-            for(unsigned i = 0; i < rbin.vertexCount(); i++) {
-                auto v = rbin.vertex(i);
-                setY(v, -getY(v) + 500*SCALE);
-                rbin.setVertex(i, v);
-            }
-            out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape(),
-                                                      1.0/SCALE)
-                << std::endl;
-            for(Item& sh : r) {
-                Item tsh(sh.transformedShape());
-                for(unsigned i = 0; i < tsh.vertexCount(); i++) {
-                    auto v = tsh.vertex(i);
-                    setY(v, -getY(v) + 500*SCALE);
-                    tsh.setVertex(i, v);
-                }
-                out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape(),
-                                                          1.0/SCALE)
-                    << std::endl;
-            }
-            out << "\n</svg>" << std::endl;
-        }
-        out.close();
-
-        i++;
-    }
-}
-
 template< int SCALE, class Bin>
 void exportSVG(ItemGroup& result, const Bin& bin, int idx) {
 
@@ -103,7 +59,8 @@ std::vector<libnest2d::Item>& _parts(std::vector<libnest2d::Item>& ret,
 {
     if(ret.empty()) {
         ret.reserve(data.size());
-        for(auto& inp : data) ret.emplace_back(inp);
+        for(auto& inp : data)
+            ret.emplace_back(inp);
     }
 
     return ret;
@@ -176,7 +133,7 @@ void findDegenerateCase() {
 void arrangeRectangles() {
     using namespace libnest2d;
 
-    auto& input = prusaParts();
+    auto input = stegoParts();
 
     const int SCALE = 1000000;
 
@@ -184,7 +141,7 @@ void arrangeRectangles() {
 
     Coord min_obj_distance = 6*SCALE;
 
-    Arranger<BottomLeftPlacer, DJDHeuristic> arrange(bin, min_obj_distance);
+    Arranger<NfpPlacer, DJDHeuristic> arrange(bin, min_obj_distance);
 
     arrange.progressIndicator([](unsigned r){
         std::cout << "Remaining items: " << r << std::endl;

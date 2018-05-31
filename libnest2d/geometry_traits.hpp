@@ -352,7 +352,7 @@ struct ShapeLike {
     }
 
     template<Formats, class RawShape>
-    static std::string serialize(const RawShape& /*sh*/)
+    static std::string serialize(const RawShape& /*sh*/, double scale=1)
     {
         static_assert(always_false<RawShape>::value,
                       "ShapeLike::serialize() unimplemented!");

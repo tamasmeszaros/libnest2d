@@ -81,21 +81,21 @@ TEST(BasicFunctionality, creationAndDestruction)
 
     Item sh = { {0, 0}, {1, 0}, {1, 1}, {0, 1} };
 
-    ASSERT_EQ(sh.vertexCount(), 4);
+    ASSERT_EQ(sh.vertexCount(), 4u);
 
     Item sh2 ({ {0, 0}, {1, 0}, {1, 1}, {0, 1} });
 
-    ASSERT_EQ(sh2.vertexCount(), 4);
+    ASSERT_EQ(sh2.vertexCount(), 4u);
 
     // copy
     Item sh3 = sh2;
 
-    ASSERT_EQ(sh3.vertexCount(), 4);
+    ASSERT_EQ(sh3.vertexCount(), 4u);
 
     sh2 = {};
 
-    ASSERT_EQ(sh2.vertexCount(), 0);
-    ASSERT_EQ(sh3.vertexCount(), 4);
+    ASSERT_EQ(sh2.vertexCount(), 0u);
+    ASSERT_EQ(sh3.vertexCount(), 4u);
 
 }
 
@@ -301,7 +301,7 @@ TEST(GeometryAlgorithms, ArrangeRectanglesTight)
 
     auto groups = arrange(rects.begin(), rects.end());
 
-    ASSERT_EQ(groups.size(), 1);
+    ASSERT_EQ(groups.size(), 1u);
     ASSERT_EQ(groups[0].size(), rects.size());
 
     // check for no intersections, no containment:
@@ -355,7 +355,7 @@ TEST(GeometryAlgorithms, ArrangeRectanglesLoose)
 
     auto groups = arrange(rects.begin(), rects.end());
 
-    ASSERT_EQ(groups.size(), 1);
+    ASSERT_EQ(groups.size(), 1u);
     ASSERT_EQ(groups[0].size(), rects.size());
 
     // check for no intersections, no containment:
@@ -626,13 +626,13 @@ std::vector<ItemPair> nfp_testdata = {
 TEST(GeometryAlgorithms, nfpConvexConvex) {
     using namespace libnest2d;
 
-    const Coord SCALE = 1;
+    const Coord SCALE = 1000000;
 
     Box bin(210*SCALE, 250*SCALE);
 
     int testcase = 0;
 
-    auto& exportfun = exportSVG<SCALE, Box>;
+    auto& exportfun = exportSVG<1, Box>;
 
     auto onetest = [&](Item& orbiter, Item& stationary){
         testcase++;

@@ -491,6 +491,9 @@ public:
 
 };
 
+// The progress function will be called with the number of placed items
+using ProgressFunction = std::function<void(unsigned)>;
+
 /**
  * A wrapper interface (trait) class for any selections strategy provider.
  */
@@ -515,6 +518,14 @@ public:
     inline void configure(const Config& config) {
         impl_.configure(config);
     }
+
+    /**
+     * @brief A function callback which should be called whenewer an item or
+     * a group of items where succesfully packed.
+     * @param fn A function callback object taking one unsigned integer as the
+     * number of the remaining items to pack.
+     */
+    void progressIndicator(ProgressFunction fn) { impl_.progressIndicator(fn); }
 
     /**
      * \brief A method to start the calculation on the input sequence.
@@ -686,6 +697,12 @@ public:
     inline PackGroup operator() (TIterator from, TIterator to)
     {
         return _arrange(from, to);
+    }
+
+    /// Set a progress indicatior function object for the selector.
+    inline void progressIndicator(ProgressFunction func)
+    {
+        selector_.progressIndicator(func);
     }
 
 private:

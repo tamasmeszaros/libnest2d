@@ -462,12 +462,25 @@ inline PolygonImpl& Nfp::minkowskiAdd(PolygonImpl& sh,
 #ifndef DISABLE_BOOST_SERIALIZE
 template<>
 inline std::string ShapeLike::serialize<libnest2d::Formats::SVG>(
-        const PolygonImpl& sh)
+        const PolygonImpl& sh, double scale)
 {
 
     std::stringstream ss;
     std::string style = "fill: none; stroke: black; stroke-width: 1px;";
-    auto svg_data = boost::geometry::svg(sh, style);
+
+    using namespace boost::geometry;
+    using Pointf = model::point<double, 2, cs::cartesian>;
+    using Polygonf = model::polygon<Pointf>;
+
+    Polygonf::ring_type ring;
+    ring.reserve(ShapeLike::contourVertexCount(sh));
+
+    for(auto it = ShapeLike::cbegin(sh); it != ShapeLike::cend(sh); it++) {
+        auto& v = *it;
+        ring.emplace_back(getX(v)*scale, getY(v)*scale);
+    };
+    Polygonf poly({ring});
+    auto svg_data = boost::geometry::svg(poly, style);
 
     ss << svg_data << std::endl;
 

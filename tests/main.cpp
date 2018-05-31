@@ -7,6 +7,7 @@
 
 #include "printer_parts.h"
 #include "benchmark.h"
+#include "svgtools.hpp"
 
 namespace {
 using namespace libnest2d;
@@ -32,20 +33,22 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             Item rbin( Rectangle(bin.width(), bin.height()) );
             for(unsigned i = 0; i < rbin.vertexCount(); i++) {
                 auto v = rbin.vertex(i);
-                setY(v, -getY(v)/SCALE + 500 );
-                setX(v, getX(v)/SCALE);
+                setY(v, -getY(v) + 500*SCALE);
                 rbin.setVertex(i, v);
             }
-            out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
+            out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape(),
+                                                      1.0/SCALE)
+                << std::endl;
             for(Item& sh : r) {
                 Item tsh(sh.transformedShape());
                 for(unsigned i = 0; i < tsh.vertexCount(); i++) {
                     auto v = tsh.vertex(i);
-                    setY(v, -getY(v)/SCALE + 500);
-                    setX(v, getX(v)/SCALE);
+                    setY(v, -getY(v) + 500*SCALE);
                     tsh.setVertex(i, v);
                 }
-                out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape()) << std::endl;
+                out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape(),
+                                                          1.0/SCALE)
+                    << std::endl;
             }
             out << "\n</svg>" << std::endl;
         }
@@ -71,25 +74,21 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 //    for(auto r : result) {
         std::fstream out(loc + std::to_string(i) + ".svg", std::fstream::out);
         if(out.is_open()) {
+
             out << svg_header;
+
             Item rbin( Rectangle(bin.width(), bin.height()) );
-            for(unsigned i = 0; i < rbin.vertexCount(); i++) {
-                auto v = rbin.vertex(i);
-                setY(v, -getY(v)/SCALE + 500 );
-                setX(v, getX(v)/SCALE);
-                rbin.setVertex(i, v);
-            }
-            out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
+            out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape(),
+                                                      1.0/SCALE)
+                << std::endl;
+
             for(Item& sh : r) {
                 Item tsh(sh.transformedShape());
-                for(unsigned i = 0; i < tsh.vertexCount(); i++) {
-                    auto v = tsh.vertex(i);
-                    setY(v, -getY(v)/SCALE + 500);
-                    setX(v, getX(v)/SCALE);
-                    tsh.setVertex(i, v);
-                }
-                out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape()) << std::endl;
+                out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape(),
+                                                          1.0/SCALE)
+                    << std::endl;
             }
+
             out << "\n</svg>" << std::endl;
         }
         out.close();
@@ -99,15 +98,25 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 }
 }
 
-std::vector<libnest2d::Item>& prusaParts() {
-    static std::vector<Item> ret;
-
+std::vector<libnest2d::Item>& _parts(std::vector<libnest2d::Item>& ret,
+                                     const TestData& data)
+{
     if(ret.empty()) {
-        ret.reserve(PRINTER_PART_POLYGONS.size());
-        for(auto& inp : PRINTER_PART_POLYGONS) ret.emplace_back(inp);
+        ret.reserve(data.size());
+        for(auto& inp : data) ret.emplace_back(inp);
     }
 
     return ret;
+}
+
+std::vector<libnest2d::Item>& prusaParts() {
+    static std::vector<Item> ret;
+    return _parts(ret, PRINTER_PART_POLYGONS);
+}
+
+std::vector<libnest2d::Item>& stegoParts() {
+    static std::vector<Item> ret;
+    return _parts(ret, STEGOSAUR_POLYGONS);
 }
 
 void findDegenerateCase() {
@@ -167,81 +176,19 @@ void findDegenerateCase() {
 void arrangeRectangles() {
     using namespace libnest2d;
 
-//    std::vector<Rectangle> input = {
-//        {80, 80},
-//        {110, 10},
-//        {200, 5},
-//        {80, 30},
-//        {60, 90},
-//        {70, 30},
-//        {80, 60},
-//        {60, 60},
-//        {60, 40},
-//        {40, 40},
-//        {10, 10},
-//        {10, 10},
-//        {10, 10},
-//        {10, 10},
-//        {10, 10},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {20, 20},
-//        {80, 80},
-//        {110, 10},
-//        {200, 5},
-//        {80, 30},
-//        {60, 90},
-//        {70, 30},
-//        {80, 60},
-//        {60, 60},
-//        {60, 40},
-//        {40, 40},
-//        {10, 10},
-//        {10, 10},
-//        {10, 10},
-//        {10, 10},
-//        {10, 10},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {20, 20}
-//    };
-
     auto& input = prusaParts();
 
-//    const int SCALE = 1000000;
-    const int SCALE = 1;
+    const int SCALE = 1000000;
 
-    Box bin(500*SCALE, 500*SCALE);
+    Box bin(210*SCALE, 250*SCALE);
 
-    auto scaler = [&SCALE, &bin](Item& item) {
-//        double max_area = 0;
-        for(unsigned i = 0; i < item.vertexCount(); i++) {
-            auto v = item.vertex(i);
-            setX(v, SCALE*getX(v)); setY(v, SCALE*getY(v));
-            item.setVertex(i, v);
-//            double area = item.area();
-//            if(max_area < area) {
-//                max_area = area;
-//                bin = item.boundingBox();
-//            }
-        }
-    };
+    Coord min_obj_distance = 6*SCALE;
 
-    Coord min_obj_distance = 5;
+    Arranger<BottomLeftPlacer, DJDHeuristic> arrange(bin, min_obj_distance);
 
-    std::for_each(input.begin(), input.end(), scaler);
-
-    Arranger<NfpPlacer, DJDHeuristic> arrange(bin, min_obj_distance);
+    arrange.progressIndicator([](unsigned r){
+        std::cout << "Remaining items: " << r << std::endl;
+    });
 
     Benchmark bench;
 
@@ -258,8 +205,13 @@ void arrangeRectangles() {
         std::cout << ret.second << std::endl;
     }
 
-    exportSVG<SCALE>(result, bin);
-
+    svg::SVGWriter::Config conf;
+    conf.mm_in_coord_units = SCALE;
+    svg::SVGWriter svgw(conf);
+    svgw.setSize(bin);
+//    exportSVG<SCALE>(result, bin);
+    svgw.writePackGroup(result);
+    svgw.save("out");
 }
 
 int main(void /*int argc, char **argv*/) {

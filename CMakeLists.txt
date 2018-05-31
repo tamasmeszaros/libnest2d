@@ -90,6 +90,7 @@ endif()
 
 if(LIBNEST2D_BUILD_EXAMPLES)
     add_executable(example tests/main.cpp
+                           tests/svgtools.hpp
                            tests/printer_parts.cpp
                            tests/printer_parts.h)
     target_link_libraries(example libnest2d_static)

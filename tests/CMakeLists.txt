@@ -1,6 +1,6 @@
 
 # Try to find existing GTest installation
-#find_package(GTest 1.7 QUIET)
+find_package(GTest 1.7)
 
 if(NOT GTEST_FOUND)
     message(STATUS "GTest not found so downloading...")
@@ -45,7 +45,3 @@ if(DEFINED LIBNEST2D_TEST_LIBRARIES)
 endif()
 
 add_test(libnest2d_tests bp2d_tests)
-
-add_executable(main EXCLUDE_FROM_ALL main.cpp printer_parts.cpp printer_parts.h)
-target_link_libraries(main libnest2d_static)
-target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR})

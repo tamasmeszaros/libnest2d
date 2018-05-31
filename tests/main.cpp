@@ -99,11 +99,21 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 }
 }
 
+std::vector<libnest2d::Item>& prusaParts() {
+    static std::vector<Item> ret;
+
+    if(ret.empty()) {
+        ret.reserve(PRINTER_PART_POLYGONS.size());
+        for(auto& inp : PRINTER_PART_POLYGONS) ret.emplace_back(inp);
+    }
+
+    return ret;
+}
 
 void findDegenerateCase() {
     using namespace libnest2d;
 
-    auto input = PRINTER_PART_POLYGONS;
+    auto& input = prusaParts();
 
     auto scaler = [](Item& item) {
         for(unsigned i = 0; i < item.vertexCount(); i++) {
@@ -206,7 +216,7 @@ void arrangeRectangles() {
 //        {20, 20}
 //    };
 
-    auto input = PRINTER_PART_POLYGONS;
+    auto& input = prusaParts();
 
 //    const int SCALE = 1000000;
     const int SCALE = 1;

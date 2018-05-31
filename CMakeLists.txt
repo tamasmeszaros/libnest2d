@@ -19,6 +19,8 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/)
 option(LIBNEST2D_UNITTESTS "If enabled, googletest framework will be downloaded
     and the provided unit tests will be included in the build." OFF)
 
+option(LIBNEST2D_BUILD_EXAMPLES "If enabled, examples will be built." OFF)
+
 #set(LIBNEST2D_GEOMETRIES_TARGET "" CACHE STRING
 #    "Build libnest2d with geometry classes implemented by the chosen target.")
 
@@ -65,6 +67,7 @@ else()
     message(STATUS "Libnest2D backend is: ${LIBNEST2D_GEOMETRIES_TARGET}")
 endif()
 
+message(STATUS "clipper lib is:  ${LIBNEST2D_GEOMETRIES_TARGET}")
 add_library(libnest2d_static STATIC ${LIBNEST2D_SRCFILES} )
 add_library(libnest2d SHARED ${LIBNEST2D_SRCFILES} )
 target_link_libraries(libnest2d_static PRIVATE ${LIBNEST2D_GEOMETRIES_TARGET})
@@ -83,4 +86,12 @@ endif()
 
 if(LIBNEST2D_UNITTESTS)
     add_subdirectory(tests)
+endif()
+
+if(LIBNEST2D_BUILD_EXAMPLES)
+    add_executable(example tests/main.cpp
+                           tests/printer_parts.cpp
+                           tests/printer_parts.h)
+    target_link_libraries(example libnest2d_static)
+    target_include_directories(example PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 endif()

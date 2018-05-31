@@ -1,6 +1,7 @@
 #include "printer_parts.h"
 
-const std::vector<libnest2d::Item> PRINTER_PART_POLYGONS = {
+const std::vector<std::initializer_list< ClipperLib::IntPoint >>
+PRINTER_PART_POLYGONS = {
 {
     {120, 114},
     {130, 114},

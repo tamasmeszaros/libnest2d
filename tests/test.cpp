@@ -6,6 +6,17 @@
 #include <libnest2d/geometries_io.hpp>
 #include <libnest2d/geometries_nfp.hpp>
 
+std::vector<libnest2d::Item>& prusaParts() {
+    static std::vector<libnest2d::Item> ret;
+
+    if(ret.empty()) {
+        ret.reserve(PRINTER_PART_POLYGONS.size());
+        for(auto& inp : PRINTER_PART_POLYGONS) ret.emplace_back(inp);
+    }
+
+    return ret;
+}
+
 TEST(BasicFunctionality, Angles)
 {
 
@@ -413,7 +424,7 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 TEST(GeometryAlgorithms, BottomLeftStressTest) {
     using namespace libnest2d;
 
-    auto input = PRINTER_PART_POLYGONS;
+    auto& input = prusaParts();
 
     Box bin(210, 250);
     BottomLeftPlacer placer(bin);

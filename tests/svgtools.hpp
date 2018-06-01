@@ -57,7 +57,7 @@ public:
                                             1.0/conf_.mm_in_coord_units) + "\n";
     }
 
-    void writePackGroup(PackGroup& result) {
+    void writePackGroup(const PackGroup& result) {
         for(auto r : result) {
             addLayer();
             for(Item& sh : r) {
@@ -86,7 +86,7 @@ public:
                              ".svg", std::fstream::out);
             if(out.is_open()) out << lyr;
             if(lyrc == last && !finished_) out << "\n</svg>\n";
-            out.close(); lyrc++;
+            out.flush(); out.close(); lyrc++;
         };
     }
 

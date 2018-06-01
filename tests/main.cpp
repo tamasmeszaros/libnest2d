@@ -141,16 +141,24 @@ void arrangeRectangles() {
 
     Coord min_obj_distance = 6*SCALE;
 
+
+
     Arranger<NfpPlacer, DJDHeuristic> arrange(bin, min_obj_distance);
 
-    arrange.progressIndicator([](unsigned r){
+    arrange.progressIndicator([&arrange, &bin](unsigned r){
+        svg::SVGWriter::Config conf;
+        conf.mm_in_coord_units = SCALE;
+        svg::SVGWriter svgw(conf);
+        svgw.setSize(bin);
         std::cout << "Remaining items: " << r << std::endl;
+        svgw.writePackGroup(arrange.lastResult());
+        svgw.save("out");
     });
 
     Benchmark bench;
 
     bench.start();
-    auto result = arrange(input.begin(),
+    /*auto result =*/ arrange(input.begin(),
                           input.end());
 
     bench.stop();
@@ -162,13 +170,9 @@ void arrangeRectangles() {
         std::cout << ret.second << std::endl;
     }
 
-    svg::SVGWriter::Config conf;
-    conf.mm_in_coord_units = SCALE;
-    svg::SVGWriter svgw(conf);
-    svgw.setSize(bin);
+
 //    exportSVG<SCALE>(result, bin);
-    svgw.writePackGroup(result);
-    svgw.save("out");
+
 }
 
 int main(void /*int argc, char **argv*/) {

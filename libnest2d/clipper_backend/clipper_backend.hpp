@@ -20,6 +20,7 @@ using PolygonImpl = ClipperLib::PolyNode;
 using PathImpl = ClipperLib::Path;
 
 inline PointImpl& operator +=(PointImpl& p, const PointImpl& pa ) {
+    // This could be done with SIMD
     p.X += pa.X;
     p.Y += pa.Y;
     return p;
@@ -235,23 +236,33 @@ inline TContour<PolygonImpl>& ShapeLike::getHole(PolygonImpl& sh,
 
 template<>
 inline const TContour<PolygonImpl>& ShapeLike::getHole(const PolygonImpl& sh,
-                                                        unsigned long idx) {
+                                                        unsigned long idx)
+{
     return sh.Childs[idx]->Contour;
 }
 
-template<>
-inline size_t ShapeLike::holeCount(const PolygonImpl& sh) {
+template<> inline size_t ShapeLike::holeCount(const PolygonImpl& sh)
+{
     return sh.Childs.size();
 }
 
-template<>
-inline PathImpl& ShapeLike::getContour(PolygonImpl& sh) {
+template<> inline PathImpl& ShapeLike::getContour(PolygonImpl& sh)
+{
     return sh.Contour;
 }
 
 template<>
-inline const PathImpl& ShapeLike::getContour(const PolygonImpl& sh) {
+inline const PathImpl& ShapeLike::getContour(const PolygonImpl& sh)
+{
     return sh.Contour;
+}
+
+#define DISABLE_BOOST_TRANSLATE
+template<>
+inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs)
+{
+    for(auto& p : sh.Contour) { p += offs; }
+    for(auto& hole : sh.Childs) for(auto& p : hole->Contour) { p += offs; }
 }
 
 }

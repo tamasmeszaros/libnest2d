@@ -68,7 +68,7 @@ public:
 //            auto nfp = Nfp::noFitPolygon(hull, trsh);
 
 //            if(items_.size() > 1) {
-//            dbg_items_.emplace_back(nfp);
+//            for(auto& nfp : nfps) dbg_items_.emplace_back(nfp);
 //            dbg_items_.emplace_back(hull);
 //            }
 
@@ -120,10 +120,10 @@ public:
     }
 
 #ifndef NDEBUG
-//    inline typename Base::ItemGroup getItems() {
-//        items_.insert(items_.end(), dbg_items_.begin(), dbg_items_.end());
-//        return items_;
-//    }
+    inline typename Base::ItemGroup getItems() {
+        items_.insert(items_.end(), dbg_items_.begin(), dbg_items_.end());
+        return items_;
+    }
 #endif
 
 private:

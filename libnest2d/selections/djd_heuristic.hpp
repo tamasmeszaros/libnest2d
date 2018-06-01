@@ -84,9 +84,11 @@ public:
         bool try_reverse = config_.try_reverse_order;
 
         // Will use a subroutine to add a new bin
-        auto addBin = [&placers, &free_area, &filled_area, &bin, &pconfig]()
+        auto addBin = [this, &placers, &free_area,
+                       &filled_area, &bin, &pconfig]()
         {
             placers.emplace_back(bin);
+//            packed_bins_.emplace_back({});
             placers.back().configure(pconfig);
             free_area = ShapeLike::area<RawShape>(bin);
             filled_area = 0;
@@ -499,10 +501,10 @@ public:
             else if(!not_packed.empty()) addBin();
         }
 
-        std::for_each(placers.begin(), placers.end(),
-                      [this](Placer& placer){
-            packed_bins_.push_back(placer.getItems());
-        });
+//        std::for_each(placers.begin(), placers.end(),
+//                      [this](Placer& placer){
+//            packed_bins_.push_back(placer.getItems());
+//        });
     }
 };
 

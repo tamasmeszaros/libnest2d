@@ -711,6 +711,15 @@ public:
         selector_.progressIndicator(func);
     }
 
+    inline PackGroup lastResult() {
+        PackGroup ret;
+        for(size_t i = 0; i < selector_.binCount(); i++) {
+            auto items = selector_.itemsForBin(i);
+            ret.push_back(items);
+        }
+        return ret;
+    }
+
 private:
 
     template<class TIterator,
@@ -725,14 +734,7 @@ private:
     inline PackGroup _arrange(TIterator from, TIterator to, bool = false)
     {
         __arrange(from, to);
-
-        PackGroup ret;
-        for(size_t i = 0; i < selector_.binCount(); i++) {
-            auto items = selector_.itemsForBin(i);
-            ret.push_back(items);
-        }
-
-        return ret;
+        return lastResult();
     }
 
     template<class TIterator,
@@ -744,14 +746,7 @@ private:
         item_cache_ = {from, to};
 
         __arrange(item_cache_.begin(), item_cache_.end());
-
-        PackGroup ret;
-        for(size_t i = 0; i < selector_.binCount(); i++) {
-            auto items = selector_.itemsForBin(i);
-            ret.push_back(items);
-        }
-
-        return ret;
+        return lastResult();
     }
 
     template<class TIterator,

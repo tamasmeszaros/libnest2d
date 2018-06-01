@@ -410,6 +410,7 @@ inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads)
     boost::geometry::transform(cpy, sh, rotate);
 }
 
+#ifndef DISABLE_BOOST_TRANSLATE
 template<>
 inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs)
 {
@@ -421,6 +422,7 @@ inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs)
 
     boost::geometry::transform(cpy, sh, translate);
 }
+#endif
 
 #ifndef DISABLE_BOOST_OFFSET
 template<>

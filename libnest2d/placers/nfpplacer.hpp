@@ -68,7 +68,7 @@ public:
 //            auto nfp = Nfp::noFitPolygon(hull, trsh);
 
 //            if(items_.size() > 1) {
-//            for(auto& nfp : nfps) dbg_items_.emplace_back(nfp);
+
 //            dbg_items_.emplace_back(hull);
 //            }
 
@@ -108,6 +108,8 @@ public:
                     }
                 }
             });
+
+//            if(can_pack) for(auto& nfp : nfps) dbg_items_.emplace_back(nfp);
 
             item.translate(tr);
         }

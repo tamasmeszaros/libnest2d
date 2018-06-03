@@ -88,7 +88,7 @@ public:
                        &filled_area, &bin, &pconfig]()
         {
             placers.emplace_back(bin);
-//            packed_bins_.emplace_back({});
+            packed_bins_.emplace_back();
             placers.back().configure(pconfig);
             free_area = ShapeLike::area<RawShape>(bin);
             filled_area = 0;
@@ -474,6 +474,7 @@ public:
                         free_area = bin_area - filled_area;
                         auto itmp = it++;
                         not_packed.erase(itmp);
+                        packed_bins_.back() = placer.getItems();
                         Base::progress_(not_packed.size());
                     } else it++;
                 }
@@ -482,18 +483,21 @@ public:
             // try pieses one by one
             while(tryOneByOne(placer, waste)) {
                 waste = 0;
+                packed_bins_.back() = placer.getItems();
                 Base::progress_(not_packed.size());
             }
 
             // try groups of 2 pieses
             while(tryGroupsOfTwo(placer, waste)) {
                 waste = 0;
+                packed_bins_.back() = placer.getItems();
                 Base::progress_(not_packed.size());
             }
 
             // try groups of 3 pieses
             while(tryGroupsOfThree(placer, waste)) {
                 waste = 0;
+                packed_bins_.back() = placer.getItems();
                 Base::progress_(not_packed.size());
             }
 

@@ -150,9 +150,9 @@ void arrangeRectangles() {
         conf.mm_in_coord_units = SCALE;
         svg::SVGWriter svgw(conf);
         svgw.setSize(bin);
-        std::cout << "Remaining items: " << r << std::endl;
         svgw.writePackGroup(arrange.lastResult());
         svgw.save("out");
+        std::cout << "Remaining items: " << r << std::endl;
     });
 
     Benchmark bench;

@@ -21,13 +21,6 @@ static RawShape& minkowskiAdd(RawShape& sh, const RawShape& /*other*/)
 }
 
 template<class RawShape>
-static Shapes<RawShape> merge(const RawShape& sh1, const RawShape& sh2)
-{
-    static_assert(always_false<RawShape>::value,
-                  "Nfp::merge(shape, shape) unimplemented!");
-}
-
-template<class RawShape>
 static Shapes<RawShape> merge(const Shapes<RawShape>& shc, const RawShape& sh)
 {
     static_assert(always_false<RawShape>::value,

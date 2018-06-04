@@ -459,6 +459,16 @@ public:
             }
         }
 
+        auto makeProgress = [this, &not_packed](Placer& placer) {
+            packed_bins_.back() = placer.getItems();
+#ifndef NDEBUG
+            packed_bins_.back().insert(packed_bins_.back().end(),
+                                       placer.getDebugItems().begin(),
+                                       placer.getDebugItems().end());
+#endif
+            Base::progress_(not_packed.size());
+        };
+
         while(!not_packed.empty()) {
 
             auto& placer = placers.back();
@@ -474,8 +484,7 @@ public:
                         free_area = bin_area - filled_area;
                         auto itmp = it++;
                         not_packed.erase(itmp);
-                        packed_bins_.back() = placer.getItems();
-                        Base::progress_(not_packed.size());
+                        makeProgress(placer);
                     } else it++;
                 }
             }
@@ -483,22 +492,19 @@ public:
             // try pieses one by one
             while(tryOneByOne(placer, waste)) {
                 waste = 0;
-                packed_bins_.back() = placer.getItems();
-                Base::progress_(not_packed.size());
+                makeProgress(placer);
             }
 
             // try groups of 2 pieses
             while(tryGroupsOfTwo(placer, waste)) {
                 waste = 0;
-                packed_bins_.back() = placer.getItems();
-                Base::progress_(not_packed.size());
+                makeProgress(placer);
             }
 
             // try groups of 3 pieses
             while(tryGroupsOfThree(placer, waste)) {
                 waste = 0;
-                packed_bins_.back() = placer.getItems();
-                Base::progress_(not_packed.size());
+                makeProgress(placer);
             }
 
             if(waste < free_area) waste += w;

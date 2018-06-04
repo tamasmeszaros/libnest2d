@@ -265,6 +265,57 @@ inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs)
     for(auto& hole : sh.Childs) for(auto& p : hole->Contour) { p += offs; }
 }
 
+#define DISABLE_BOOST_NFP_MERGE
+
+template<> inline
+Nfp::Shapes<PolygonImpl> Nfp::merge(const Nfp::Shapes<PolygonImpl>& shapes,
+                                    const PolygonImpl& sh)
+{
+    Nfp::Shapes<PolygonImpl> retv;
+
+    ClipperLib::Clipper clipper;
+
+    bool closed =  true;
+
+#ifndef NDEBUG
+#define _valid() valid =
+    bool valid = false;
+#else
+#define _valid()
+#endif
+
+    _valid() clipper.AddPath(sh.Contour, ClipperLib::ptSubject, closed);
+
+    for(auto& hole : sh.Childs) {
+        _valid() clipper.AddPath(hole->Contour, ClipperLib::ptSubject, closed);
+        assert(valid);
+    }
+
+    for(auto& path : shapes) {
+        _valid() clipper.AddPath(path.Contour, ClipperLib::ptSubject, closed);
+        assert(valid);
+        for(auto& hole : path.Childs) {
+            _valid() clipper.AddPath(hole->Contour, ClipperLib::ptSubject, closed);
+            assert(valid);
+        }
+    }
+
+    ClipperLib::Paths rret;
+    clipper.Execute(ClipperLib::ctUnion, rret, ClipperLib::pftNonZero);
+    retv.reserve(rret.size());
+    for(auto& p : rret) {
+        if(ClipperLib::Orientation(p)) {
+            // Not clockwise then reverse the b*tch
+            ClipperLib::ReversePath(p);
+        }
+        retv.emplace_back();
+        retv.back().Contour = p;
+        retv.back().Contour.emplace_back(p.front());
+    }
+
+    return retv;
+}
+
 }
 
 //#define DISABLE_BOOST_SERIALIZE

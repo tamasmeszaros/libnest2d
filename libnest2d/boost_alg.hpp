@@ -435,14 +435,6 @@ inline void ShapeLike::offset(PolygonImpl& sh, bp2d::Coord distance)
 
 #ifndef DISABLE_BOOST_NFP_MERGE
 template<>
-inline bp2d::Shapes Nfp::merge(const PolygonImpl& sh1, const PolygonImpl& sh2)
-{
-    bp2d::Shapes retv;
-    boost::geometry::union_(sh1, sh2, retv);
-    return retv;
-}
-
-template<>
 inline bp2d::Shapes Nfp::merge(const bp2d::Shapes& shapes,
                                const PolygonImpl& sh)
 {

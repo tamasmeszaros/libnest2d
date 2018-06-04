@@ -67,9 +67,13 @@ public:
 
     void unpackLast() { items_.pop_back(); }
 
-    inline ItemGroup getItems() { return items_; }
+    inline ItemGroup getItems() const { return items_; }
 
     inline void clearItems() { items_.clear(); }
+
+#ifndef NDEBUG
+    std::vector<Item> debug_items_;
+#endif
 
 protected:
 

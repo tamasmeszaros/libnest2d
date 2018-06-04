@@ -32,8 +32,6 @@ class _NofitPolyPlacer: public PlacerBoilerplate<_NofitPolyPlacer<RawShape>,
 
     using Box = _Box<TPoint<RawShape>>;
 
-    static std::vector<_Item<RawShape>> dbg_items_;
-
 public:
 
     inline explicit _NofitPolyPlacer(const BinType& bin): Base(bin) {}
@@ -55,22 +53,29 @@ public:
 
             auto trsh = item.transformedShape();
             Nfp::Shapes<RawShape> nfps;
+
+#ifndef NDEBUG
+#ifdef DEBUG_EXPORT_NFP
+            Base::debug_items_.clear();
+#endif
+            auto v = ShapeLike::isValid(trsh);
+            assert(v.first);
+#endif
             for(Item& sh : items_) {
-                nfps = Nfp::merge(nfps, Nfp::noFitPolygon(sh.transformedShape(),
-                                                          trsh));
+                auto subnfp = Nfp::noFitPolygon(sh.transformedShape(),
+                                                trsh);
+#ifndef NDEBUG
+#ifdef DEBUG_EXPORT_NFP
+                Base::debug_items_.emplace_back(subnfp);
+#endif
+                auto vv = ShapeLike::isValid(sh.transformedShape());
+                assert(vv.first);
+
+                auto vnfp = ShapeLike::isValid(subnfp);
+                assert(vnfp.first);
+#endif
+                nfps = Nfp::merge(nfps, subnfp);
             }
-
-//            for(Item& sh : items_) {
-//                nfps.emplace_back(sh.transformedShape());
-//            }
-//            auto hull = ShapeLike::convexHull(nfps);
-//            nfps = Nfp::noFitPolygon(nfps, trsh);
-//            auto nfp = Nfp::noFitPolygon(hull, trsh);
-
-//            if(items_.size() > 1) {
-
-//            dbg_items_.emplace_back(hull);
-//            }
 
             double min_area = std::numeric_limits<double>::max();
             Vertex tr = {0, 0};
@@ -94,12 +99,16 @@ public:
 
                     for(Item& pi : items_)
                         m.emplace_back(pi.transformedShape());
+
                     m.emplace_back(placeditem.transformedShape());
 
-                    auto b = ShapeLike::boundingBox(m);
+//                    auto b = ShapeLike::boundingBox(m);
 
-                    auto a = static_cast<double>(std::max(b.height(),
-                                                          b.width()));
+//                    auto a = static_cast<double>(std::max(b.height(),
+//                                                          b.width()));
+
+                    auto b = ShapeLike::convexHull(m);
+                    auto a = ShapeLike::area(b);
 
                     if(a < min_area) {
                         can_pack = true;
@@ -109,7 +118,15 @@ public:
                 }
             });
 
-//            if(can_pack) for(auto& nfp : nfps) dbg_items_.emplace_back(nfp);
+#ifndef NDEBUG
+            for(auto&nfp : nfps) {
+                auto val = ShapeLike::isValid(nfp);
+                if(!val.first) std::cout << val.second << std::endl;
+#ifdef DEBUG_EXPORT_NFP
+                Base::debug_items_.emplace_back(nfp);
+#endif
+            }
+#endif
 
             item.translate(tr);
         }
@@ -121,31 +138,42 @@ public:
         return ret;
     }
 
-#ifndef NDEBUG
-    inline typename Base::ItemGroup getItems() {
-        items_.insert(items_.end(), dbg_items_.begin(), dbg_items_.end());
-        return items_;
-    }
-#endif
-
 private:
 
     void setInitialPosition(Item& item) {
+        Box&& bb = item.boundingBox();
+        Vertex ci, cb;
 
         switch(config_.alignment) {
         case Config::Alignment::CENTER: {
-            Box&& bb = item.boundingBox();
-
-            Vertex&& ci = bb.center();
-            Vertex&& cb = bin_.center();
-            Coord dx = getX(cb) - getX(ci);
-            Coord dy = getY(cb) - getY(ci);
-
-            item.translate({dx, dy});
+            ci = bb.center();
+            cb = bin_.center();
+            break;
         }
-        default:
-            ;
+        case Config::Alignment::BOTTOM_LEFT: {
+            ci = bb.minCorner();
+            cb = bin_.minCorner();
+            break;
         }
+        case Config::Alignment::BOTTOM_RIGHT: {
+            ci = {getX(bb.maxCorner()), getY(bb.minCorner())};
+            cb = {getX(bin_.maxCorner()), getY(bin_.minCorner())};
+            break;
+        }
+        case Config::Alignment::TOP_LEFT: {
+            ci = {getX(bb.minCorner()), getY(bb.maxCorner())};
+            cb = {getX(bin_.minCorner()), getY(bin_.maxCorner())};
+            break;
+        }
+        case Config::Alignment::TOP_RIGHT: {
+            ci = bb.maxCorner();
+            cb = bin_.maxCorner();
+            break;
+        }
+        }
+
+        auto d = cb - ci;
+        item.translate(d);
     }
 
     void placeOutsideOfBin(Item& item) {
@@ -161,9 +189,6 @@ private:
     }
 
 };
-
-template<class RawShape>
-std::vector<_Item<RawShape>> _NofitPolyPlacer<RawShape>::dbg_items_ = {};
 
 
 }

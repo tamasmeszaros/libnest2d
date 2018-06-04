@@ -495,6 +495,13 @@ public:
     /// Clear the packed items so a new session can be started.
     inline void clearItems() { impl_.clearItems(); }
 
+#ifndef NDEBUG
+    inline auto getDebugItems() -> decltype(impl_.debug_items_)&
+    {
+        return impl_.debug_items_;
+    }
+#endif
+
 };
 
 // The progress function will be called with the number of placed items

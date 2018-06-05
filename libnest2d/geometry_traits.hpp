@@ -306,12 +306,6 @@ struct ShapeLike {
     using Shapes = std::vector<RawShape>;
 
     template<class RawShape>
-    static RawShape create(std::initializer_list< TPoint<RawShape> > il)
-    {
-        return RawShape(il);
-    }
-
-    template<class RawShape>
     static RawShape create(const TContour<RawShape>& contour)
     {
         return RawShape(contour);

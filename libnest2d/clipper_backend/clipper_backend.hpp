@@ -214,8 +214,6 @@ template<> struct HolesContainer<PolygonImpl> {
     using Type = ClipperLib::Paths;
 };
 
-template<> PolygonImpl ShapeLike::create( std::initializer_list< PointImpl > il);
-
 template<> PolygonImpl ShapeLike::create( const PathImpl& path);
 
 template<> PolygonImpl ShapeLike::create( PathImpl&& path);

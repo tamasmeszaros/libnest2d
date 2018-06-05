@@ -17,8 +17,9 @@ struct NfpPConfig {
         TOP_RIGHT,
     };
 
-    bool allow_rotations = false;
+    std::vector<Radians> rotations;
     Alignment alignment;
+    NfpPConfig(): rotations(1, 0.0), alignment(Alignment::BOTTOM_LEFT) {}
 };
 
 template<class RawShape>
@@ -47,79 +48,96 @@ public:
             can_pack = item.isInside(bin_);
         } else {
 
-            // place the new item outside of the print bed to make sure it is
-            // disjuct from the current merged pile
-            placeOutsideOfBin(item);
-
-            auto trsh = item.transformedShape();
+            auto initial_tr = item.translation();
+            auto initial_rot = item.rotation();
+            double min_area = std::numeric_limits<double>::max();
+            Vertex final_tr = {0, 0};
+            Radians final_rot = 0;
             Nfp::Shapes<RawShape> nfps;
 
-#ifndef NDEBUG
-#ifdef DEBUG_EXPORT_NFP
-            Base::debug_items_.clear();
-#endif
-            auto v = ShapeLike::isValid(trsh);
-            assert(v.first);
-#endif
-            for(Item& sh : items_) {
-                auto subnfp = Nfp::noFitPolygon(sh.transformedShape(),
-                                                trsh);
-#ifndef NDEBUG
-#ifdef DEBUG_EXPORT_NFP
-                Base::debug_items_.emplace_back(subnfp);
-#endif
-                auto vv = ShapeLike::isValid(sh.transformedShape());
-                assert(vv.first);
+//            auto objfunc = [this](double nfppos, Radians angle){
+//                return 0; // score = pack efficiency
+//            };
 
-                auto vnfp = ShapeLike::isValid(subnfp);
-                assert(vnfp.first);
-#endif
-                nfps = Nfp::merge(nfps, subnfp);
+            for(auto rot : config_.rotations) {
+
+                item.translation(initial_tr);
+                item.rotation(initial_rot + rot);
+
+                // place the new item outside of the print bed to make sure it is
+                // disjuct from the current merged pile
+                placeOutsideOfBin(item);
+
+                auto trsh = item.transformedShape();
+
+                #ifndef NDEBUG
+                #ifdef DEBUG_EXPORT_NFP
+//                    Base::debug_items_.clear();
+                #endif
+                    auto v = ShapeLike::isValid(trsh);
+                    assert(v.first);
+                #endif
+
+                nfps.clear();
+                for(Item& sh : items_) {
+                    auto subnfp = Nfp::noFitPolygon(sh.transformedShape(),
+                                                    trsh);
+                    #ifndef NDEBUG
+                    #ifdef DEBUG_EXPORT_NFP
+                        this->debug_items_.emplace_back(subnfp);
+                    #endif
+                        auto vv = ShapeLike::isValid(sh.transformedShape());
+                        assert(vv.first);
+
+                        auto vnfp = ShapeLike::isValid(subnfp);
+                        assert(vnfp.first);
+                    #endif
+
+                    nfps = Nfp::merge(nfps, subnfp);
+                }
+
+                auto iv = Nfp::referenceVertex(trsh);
+
+                auto startpos = item.translation();
+
+                // place item on each the edge of this nfp
+                for(auto& nfp : nfps)
+                ShapeLike::foreachContourVertex(nfp, [&]
+                                                (Vertex& v)
+                {
+                    auto d = v - iv;
+                    d += startpos;
+                    item.translation(d);
+
+                    if( item.isInside(bin_) ) {
+                        Nfp::Shapes<RawShape> m;
+                        m.reserve(items_.size());
+
+                        for(Item& pi : items_)
+                            m.emplace_back(pi.transformedShape());
+
+                        m.emplace_back(item.transformedShape());
+
+    //                    auto b = ShapeLike::boundingBox(m);
+
+    //                    auto a = static_cast<double>(std::max(b.height(),
+    //                                                          b.width()));
+
+                        auto b = ShapeLike::convexHull(m);
+                        auto a = ShapeLike::area(b);
+
+                        if(a < min_area) {
+                            can_pack = true;
+                            min_area = a;
+                            final_tr = d;
+                            final_rot = initial_rot + rot;
+                        }
+                    }
+                });
             }
 
-            double min_area = std::numeric_limits<double>::max();
-            Vertex tr = {0, 0};
-
-            auto iv = Nfp::referenceVertex(trsh);
-
-            // place item on each the edge of this nfp
-            for(auto& nfp : nfps)
-            ShapeLike::foreachContourVertex(nfp, [&]
-                                            (Vertex& v)
-            {
-                Coord dx = getX(v) - getX(iv);
-                Coord dy = getY(v) - getY(iv);
-
-                Item placeditem(trsh);
-                placeditem.translate(Vertex(dx, dy));
-
-                if( placeditem.isInside(bin_) ) {
-                    Nfp::Shapes<RawShape> m;
-                    m.reserve(items_.size());
-
-                    for(Item& pi : items_)
-                        m.emplace_back(pi.transformedShape());
-
-                    m.emplace_back(placeditem.transformedShape());
-
-//                    auto b = ShapeLike::boundingBox(m);
-
-//                    auto a = static_cast<double>(std::max(b.height(),
-//                                                          b.width()));
-
-                    auto b = ShapeLike::convexHull(m);
-                    auto a = ShapeLike::area(b);
-
-                    if(a < min_area) {
-                        can_pack = true;
-                        min_area = a;
-                        tr = {dx, dy};
-                    }
-                }
-            });
-
 #ifndef NDEBUG
-            for(auto&nfp : nfps) {
+            if(can_pack) for(auto&nfp : nfps) {
                 auto val = ShapeLike::isValid(nfp);
                 if(!val.first) std::cout << val.second << std::endl;
 #ifdef DEBUG_EXPORT_NFP
@@ -127,8 +145,8 @@ public:
 #endif
             }
 #endif
-
-            item.translate(tr);
+            item.translation(final_tr);
+            item.rotation(final_rot);
         }
 
         if(can_pack) {

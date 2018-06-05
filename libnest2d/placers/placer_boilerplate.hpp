@@ -69,7 +69,12 @@ public:
 
     inline ItemGroup getItems() const { return items_; }
 
-    inline void clearItems() { items_.clear(); }
+    inline void clearItems() {
+        items_.clear();
+#ifndef NDEBUG
+        debug_items_.clear();
+#endif
+    }
 
 #ifndef NDEBUG
     std::vector<Item> debug_items_;

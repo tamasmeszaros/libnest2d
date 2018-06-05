@@ -253,7 +253,7 @@ TEST(GeometryAlgorithms, LeftAndDownPolygon)
     ASSERT_TRUE(ShapeLike::isValid(leftp.rawShape()).first);
     ASSERT_EQ(leftp.vertexCount(), leftControl.vertexCount());
 
-    for(size_t i = 0; i < leftControl.vertexCount(); i++) {
+    for(unsigned long i = 0; i < leftControl.vertexCount(); i++) {
         ASSERT_EQ(getX(leftp.vertex(i)), getX(leftControl.vertex(i)));
         ASSERT_EQ(getY(leftp.vertex(i)), getY(leftControl.vertex(i)));
     }
@@ -263,7 +263,7 @@ TEST(GeometryAlgorithms, LeftAndDownPolygon)
     ASSERT_TRUE(ShapeLike::isValid(downp.rawShape()).first);
     ASSERT_EQ(downp.vertexCount(), downControl.vertexCount());
 
-    for(size_t i = 0; i < downControl.vertexCount(); i++) {
+    for(unsigned long i = 0; i < downControl.vertexCount(); i++) {
         ASSERT_EQ(getX(downp.vertex(i)), getX(downControl.vertex(i)));
         ASSERT_EQ(getY(downp.vertex(i)), getY(downControl.vertex(i)));
     }

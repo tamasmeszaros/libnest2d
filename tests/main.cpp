@@ -2,12 +2,15 @@
 #include <fstream>
 #include <string>
 
+//#define DEBUG_EXPORT_NFP
+
 #include <libnest2d.h>
 #include <libnest2d/geometries_io.hpp>
 
 #include "printer_parts.h"
 #include "benchmark.h"
 #include "svgtools.hpp"
+#include <libnest2d/optimizer.hpp>
 
 using namespace libnest2d;
 using ItemGroup = std::vector<std::reference_wrapper<Item>>;
@@ -37,36 +40,36 @@ void arrangeRectangles() {
     using namespace libnest2d;
 
     auto input = stegoParts();
-
     const int SCALE = 1000000;
 
-    Box bin(210*SCALE, 250*SCALE);
+    Box bin(250*SCALE, 210*SCALE);
 
-    Coord min_obj_distance = 0; //6*SCALE;
+    Coord min_obj_distance = 6*SCALE;
 
     NfpPlacer::Config pconf;
-    pconf.alignment = NfpPlacer::Config::Alignment::TOP_LEFT;
+    pconf.alignment = NfpPlacer::Config::Alignment::BOTTOM_LEFT;
+    pconf.rotations = {0.0, Pi/2.0, Pi, 3*Pi/2 };
     Arranger<NfpPlacer, DJDHeuristic> arrange(bin, min_obj_distance, pconf);
 
-//    arrange.progressIndicator([&arrange, &bin](unsigned r){
-//        svg::SVGWriter::Config conf;
-//        conf.mm_in_coord_units = SCALE;
-//        svg::SVGWriter svgw(conf);
-//        svgw.setSize(bin);
-//        svgw.writePackGroup(arrange.lastResult());
-//        svgw.save("out");
-//        std::cout << "Remaining items: " << r << std::endl;
-//    });
+    arrange.progressIndicator([&](unsigned r){
+        svg::SVGWriter::Config conf;
+        conf.mm_in_coord_units = SCALE;
+        svg::SVGWriter svgw(conf);
+        svgw.setSize(bin);
+        svgw.writePackGroup(arrange.lastResult());
+        svgw.save("debout");
+        std::cout << "Remaining items: " << r << std::endl;
+    });
 
     Benchmark bench;
 
     bench.start();
-    auto result = arrange(input.begin(),
+    auto result = arrange.arrange(input.begin(),
                           input.end());
 
     bench.stop();
 
-    std::cout << bench.getElapsedSec() << std::endl;
+    std::cout << bench.getElapsedSec() << " bin count: " <<  result.size() << std::endl;
 
     for(auto& it : input) {
         auto ret = ShapeLike::isValid(it.transformedShape());
@@ -82,7 +85,9 @@ void arrangeRectangles() {
 }
 
 int main(void /*int argc, char **argv*/) {
-    arrangeRectangles();
+    Optimizer opt;
+    opt.optimize<char, double>({'a', 'z'}, {0.0, 1.0}, [](std::tuple<char, double>){ return 0.0; });
+//    arrangeRectangles();
 //    findDegenerateCase();
     return EXIT_SUCCESS;
 }

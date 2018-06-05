@@ -75,12 +75,12 @@ static RawShape noFitPolygon(const RawShape& sh, const RawShape& other) {
         RawShape rsh;   // Final nfp placeholder
         std::vector<Edge> edgelist;
 
-        size_t cap = ShapeLike::contourVertexCount(sh) +
+        auto cap = ShapeLike::contourVertexCount(sh) +
                 ShapeLike::contourVertexCount(other);
 
         // Reserve the needed memory
         edgelist.reserve(cap);
-        ShapeLike::reserve(rsh, cap);
+        ShapeLike::reserve(rsh, static_cast<unsigned long>(cap));
 
         { // place all edges from sh into edgelist
             auto first = ShapeLike::cbegin(sh);

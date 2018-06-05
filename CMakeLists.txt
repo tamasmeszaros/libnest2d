@@ -35,6 +35,7 @@ set(LIBNEST2D_SRCFILES
     libnest2d/geometry_traits.hpp
     libnest2d/geometries_io.hpp
     libnest2d/common.hpp
+    libnest2d/optimizer.hpp
     libnest2d/placers/placer_boilerplate.hpp
     libnest2d/placers/bottomleftplacer.hpp
     libnest2d/placers/nfpplacer.hpp

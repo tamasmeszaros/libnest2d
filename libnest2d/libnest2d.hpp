@@ -188,7 +188,7 @@ public:
     }
 
     /// The number of the outer ring vertices.
-    inline unsigned long vertexCount() const {
+    inline size_t vertexCount() const {
         return ShapeLike::contourVertexCount(sh_);
     }
 

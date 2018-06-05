@@ -404,10 +404,14 @@ inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads)
     namespace trans = boost::geometry::strategy::transform;
 
     PolygonImpl cpy = sh;
+//    auto base = *(ShapeLike::begin(cpy));
 
+//    ShapeLike::translate(cpy, -base);
     trans::rotate_transformer<boost::geometry::radian, Radians, 2, 2>
             rotate(rads);
+
     boost::geometry::transform(cpy, sh, rotate);
+//    ShapeLike::translate(sh, base);
 }
 
 #ifndef DISABLE_BOOST_TRANSLATE

@@ -466,7 +466,7 @@ public:
                                        placer.getDebugItems().begin(),
                                        placer.getDebugItems().end());
 #endif
-            this->progress_(not_packed.size());
+            this->progress_(static_cast<unsigned>(not_packed.size()));
         };
 
         while(!not_packed.empty()) {

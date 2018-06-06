@@ -11,6 +11,7 @@
 #include "benchmark.h"
 #include "svgtools.hpp"
 #include <libnest2d/optimizer.hpp>
+#include <libnest2d/optimizers/simplex.hpp>
 
 using namespace libnest2d;
 using ItemGroup = std::vector<std::reference_wrapper<Item>>;
@@ -85,9 +86,20 @@ void arrangeRectangles() {
 }
 
 int main(void /*int argc, char **argv*/) {
-//    Optimizer opt;
-//    opt.optimize<char, double>({'a', 'z'}, {0.0, 1.0}, [](std::tuple<char, double>){ return 0.0; });
-    arrangeRectangles();
+    opt::Optimizer<opt::Method::SIMPLEX> opt;
+
+    auto result = opt.optimize_min<double>(
+                        {-1.0, 1.0}, // bounds
+                        std::tuple<double>{-0.5}, // initial value
+                        [](std::tuple<double> x) // object function
+    {
+        return std::pow(std::get<0>(x) + 1, 2);
+    });
+
+    std::cout << std::get<0>(result.optimum) << std::endl;
+    std::cout << "result code: " << result.resultcode << std::endl;
+
+//    arrangeRectangles();
 //    findDegenerateCase();
     return EXIT_SUCCESS;
 }

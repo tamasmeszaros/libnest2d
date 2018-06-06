@@ -85,9 +85,9 @@ void arrangeRectangles() {
 }
 
 int main(void /*int argc, char **argv*/) {
-    Optimizer opt;
-    opt.optimize<char, double>({'a', 'z'}, {0.0, 1.0}, [](std::tuple<char, double>){ return 0.0; });
-//    arrangeRectangles();
+//    Optimizer opt;
+//    opt.optimize<char, double>({'a', 'z'}, {0.0, 1.0}, [](std::tuple<char, double>){ return 0.0; });
+    arrangeRectangles();
 //    findDegenerateCase();
     return EXIT_SUCCESS;
 }

@@ -5,6 +5,9 @@
     #include <sstream>
 #endif
 
+#ifdef __clang__
+#undef _MSC_EXTENSIONS
+#endif
 #include <boost/geometry.hpp>
 
 // this should be removed to not confuse the compiler
@@ -325,20 +328,23 @@ inline bool ShapeLike::intersects(const PathImpl& sh1,
 // Tell libnest2d how to make string out of a ClipperPolygon object
 template<>
 inline bool ShapeLike::intersects(const PolygonImpl& sh1,
-                                  const PolygonImpl& sh2) {
+                                  const PolygonImpl& sh2)
+{
     return boost::geometry::intersects(sh1, sh2);
 }
 
 // Tell libnest2d how to make string out of a ClipperPolygon object
 template<>
 inline bool ShapeLike::intersects(const bp2d::Segment& s1,
-                                  const bp2d::Segment& s2) {
+                                  const bp2d::Segment& s2)
+{
     return boost::geometry::intersects(s1, s2);
 }
 
 #ifndef DISABLE_BOOST_AREA
 template<>
-inline double ShapeLike::area(const PolygonImpl& shape) {
+inline double ShapeLike::area(const PolygonImpl& shape)
+{
     return boost::geometry::area(shape);
 }
 #endif
@@ -366,14 +372,16 @@ inline bool ShapeLike::touches( const PolygonImpl& sh1,
 
 #ifndef DISABLE_BOOST_BOUNDING_BOX
 template<>
-inline bp2d::Box ShapeLike::boundingBox(const PolygonImpl& sh) {
+inline bp2d::Box ShapeLike::boundingBox(const PolygonImpl& sh)
+{
     bp2d::Box b;
     boost::geometry::envelope(sh, b);
     return b;
 }
 
 template<>
-inline bp2d::Box ShapeLike::boundingBox(const bp2d::Shapes& shapes) {
+inline bp2d::Box ShapeLike::boundingBox<PolygonImpl>(const bp2d::Shapes& shapes)
+{
     bp2d::Box b;
     boost::geometry::envelope(shapes, b);
     return b;
@@ -401,30 +409,26 @@ inline PolygonImpl ShapeLike::convexHull(const bp2d::Shapes& shapes)
 template<>
 inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads)
 {
-    namespace trans = boost::geometry::strategy::transform;
+//    namespace trans = boost::geometry::strategy::transform;
 
-    PolygonImpl cpy = sh;
-//    auto base = *(ShapeLike::begin(cpy));
-
-//    ShapeLike::translate(cpy, -base);
+    PolygonImpl cpy = sh;/*
     trans::rotate_transformer<boost::geometry::radian, Radians, 2, 2>
             rotate(rads);
 
-    boost::geometry::transform(cpy, sh, rotate);
-//    ShapeLike::translate(sh, base);
+    boost::geometry::transform(cpy, sh, rotate);*/
 }
 
 #ifndef DISABLE_BOOST_TRANSLATE
 template<>
 inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs)
 {
-    namespace trans = boost::geometry::strategy::transform;
+//    namespace trans = boost::geometry::strategy::transform;
 
-    PolygonImpl cpy = sh;
-    trans::translate_transformer<bp2d::Coord, 2, 2> translate(
-                bp2d::getX(offs), bp2d::getY(offs));
+//    PolygonImpl cpy = sh;
+//    trans::translate_transformer<bp2d::Coord, 2, 2> translate(
+//                bp2d::getX(offs), bp2d::getY(offs));
 
-    boost::geometry::transform(cpy, sh, translate);
+//    boost::geometry::transform(cpy, sh, translate);
 }
 #endif
 

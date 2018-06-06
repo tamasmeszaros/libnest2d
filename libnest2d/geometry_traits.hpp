@@ -20,17 +20,17 @@ template<class GeomType>
 using TCoord = typename CoordType<remove_cvref_t<GeomType>>::Type;
 
 /// Getting the type of point structure used by a shape.
-template<class Shape> struct PointType { using Type = void; };
+template<class Shape> struct PointType { /*using Type = void;*/ };
 
 /// TPoint<ShapeClass> as shorthand for `typename PointType<ShapeClass>::Type`.
 template<class Shape>
 using TPoint = typename PointType<remove_cvref_t<Shape>>::Type;
 
 /// Getting the VertexIterator type of a shape class.
-template<class Shape> struct VertexIteratorType { using Type = void; };
+template<class Shape> struct VertexIteratorType { /*using Type = void;*/ };
 
 /// Getting the const vertex iterator for a shape class.
-template<class Shape> struct VertexConstIteratorType { using Type = void; };
+template<class Shape> struct VertexConstIteratorType {/* using Type = void;*/ };
 
 /**
  * TVertexIterator<Shape> as shorthand for
@@ -204,13 +204,14 @@ struct PointLike {
 };
 
 template<class RawPoint>
-TCoord<RawPoint> _Box<RawPoint>::width() const BP2D_NOEXCEPT {
+TCoord<RawPoint> _Box<RawPoint>::width() const BP2D_NOEXCEPT
+{
     return PointLike::x(maxCorner()) - PointLike::x(minCorner());
 }
 
-
 template<class RawPoint>
-TCoord<RawPoint> _Box<RawPoint>::height() const BP2D_NOEXCEPT {
+TCoord<RawPoint> _Box<RawPoint>::height() const BP2D_NOEXCEPT
+{
     return PointLike::y(maxCorner()) - PointLike::y(minCorner());
 }
 
@@ -221,31 +222,71 @@ template<class RawPoint>
 TCoord<RawPoint> getY(const RawPoint& p) { return PointLike::y<RawPoint>(p); }
 
 template<class RawPoint>
-void setX(RawPoint& p, const TCoord<RawPoint>& val) {
+void setX(RawPoint& p, const TCoord<RawPoint>& val)
+{
     PointLike::x<RawPoint>(p) = val;
 }
 
 template<class RawPoint>
-void setY(RawPoint& p, const TCoord<RawPoint>& val) {
+void setY(RawPoint& p, const TCoord<RawPoint>& val)
+{
     PointLike::y<RawPoint>(p) = val;
 }
+
+//template<class RawShape>
+//inline TPoint<RawShape>& operator +=( TPoint<RawShape>& p,
+//                                      const TPoint<RawShape>& pa )
+//{
+//    setX(p, getX(p) + getX(pa));
+//    setY(p, getY(p) + getY(pa));
+//    return p;
+//}
+
+//template<class RawShape>
+//inline TPoint<RawShape> operator+(const TPoint<RawShape>& p1,
+//                                  const TPoint<RawShape>& p2)
+//{
+//    TPoint<RawShape> ret = p1;
+//    ret += p2;
+//    return ret;
+//}
+
+//template<class RawShape>
+//inline TPoint<RawShape>& operator -=( TPoint<RawShape>& p,
+//                                      const TPoint<RawShape>& pa )
+//{
+//    setX(p, getX(p) - getX(pa));
+//    setY(p, getY(p) - getY(pa));
+//    return p;
+//}
+
+//template<class RawShape>
+//inline TPoint<RawShape> operator-(const TPoint<RawShape>& p1,
+//                                  const TPoint<RawShape>& p2)
+//{
+//    TPoint<RawShape> ret = p1;
+//    ret -= p2;
+//    return ret;
+//}
+
+//template<class RawShape>
+//inline TPoint<RawShape> operator -(TPoint<RawShape>& p )
+//{
+//    TPoint<RawShape> ret = p;
+//    setX(ret, -getX(p));
+//    setY(ret, -getY(p));
+//    return ret;
+//}
 
 template<class RawPoint>
 inline Radians _Segment<RawPoint>::angleToXaxis() const
 {
-    static const double Pi_2 = 2*Pi;
     TCoord<RawPoint> dx = getX(second()) - getX(first());
     TCoord<RawPoint> dy = getY(second()) - getY(first());
 
     double a = std::atan2(dy, dx);
-//    if(dx == 0 && dy >= 0) return Pi/2;
-//    if(dx == 0 && dy < 0) return 3*Pi/2;
-//    if(dy == 0 && dx >= 0) return 0;
-//    if(dy == 0 && dx < 0) return Pi;
-
-//    double ddx = static_cast<double>(dx);
     auto s = std::signbit(a);
-//    double a = std::atan(ddx/dy);
+
     if(s) a += Pi_2;
     return a;
 }

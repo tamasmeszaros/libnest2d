@@ -71,9 +71,6 @@ public:
                 auto trsh = item.transformedShape();
 
                 #ifndef NDEBUG
-                #ifdef DEBUG_EXPORT_NFP
-//                    Base::debug_items_.clear();
-                #endif
                     auto v = ShapeLike::isValid(trsh);
                     assert(v.first);
                 #endif
@@ -118,11 +115,6 @@ public:
 
                         m.emplace_back(item.transformedShape());
 
-    //                    auto b = ShapeLike::boundingBox(m);
-
-    //                    auto a = static_cast<double>(std::max(b.height(),
-    //                                                          b.width()));
-
                         auto b = ShapeLike::convexHull(m);
                         auto a = ShapeLike::area(b);
 
@@ -136,15 +128,16 @@ public:
                 });
             }
 
-#ifndef NDEBUG
-            if(can_pack) for(auto&nfp : nfps) {
-                auto val = ShapeLike::isValid(nfp);
-                if(!val.first) std::cout << val.second << std::endl;
-#ifdef DEBUG_EXPORT_NFP
-                Base::debug_items_.emplace_back(nfp);
-#endif
-            }
-#endif
+            #ifndef NDEBUG
+                        if(can_pack) for(auto&nfp : nfps) {
+                            auto val = ShapeLike::isValid(nfp);
+                            assert(val.first);
+            #ifdef DEBUG_EXPORT_NFP
+                            Base::debug_items_.emplace_back(nfp);
+            #endif
+                        }
+            #endif
+
             item.translation(final_tr);
             item.rotation(final_rot);
         }

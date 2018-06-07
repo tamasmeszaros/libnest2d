@@ -24,6 +24,9 @@ struct remove_cvref {
 template< class T >
 using remove_cvref_t = typename remove_cvref<T>::type;
 
+template< class T >
+using remove_ref_t = typename std::remove_reference<T>::type;
+
 template<bool B, class T>
 using enable_if_t = typename std::enable_if<B, T>::type;
 

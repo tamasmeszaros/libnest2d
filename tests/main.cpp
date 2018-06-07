@@ -85,7 +85,14 @@ void arrangeRectangles() {
     svgw.save("out");
 }
 
+template<int N, class T> struct mapfunc {
+    void operator()(T&& element, int data) {
+        element += data;
+    }
+};
+
 int main(void /*int argc, char **argv*/) {
+
     opt::Optimizer<opt::Method::SIMPLEX> opt;
 
     auto result = opt.optimize_min<double>(
@@ -93,7 +100,7 @@ int main(void /*int argc, char **argv*/) {
                         std::tuple<double>{-0.5}, // initial value
                         [](std::tuple<double> x) // object function
     {
-        return std::pow(std::get<0>(x) + 1, 2);
+        return std::pow(std::get<0>(x), 2);
     });
 
     std::cout << std::get<0>(result.optimum) << std::endl;

@@ -6,8 +6,11 @@
 
 namespace libnest2d { namespace opt {
 
-using namespace metaloop;
-
+/**
+ * Optimizer based on NLopt.
+ *
+ * All the optimized types have to be convertible to double.
+ */
 class NloptOptimizer {
 
     nlopt::opt opt_;
@@ -29,7 +32,7 @@ class NloptOptimizer {
         }
     };
 
-    template<int N, class T> struct InititValFunc {
+    template<int N, class T> struct InitValFunc {
         void operator()(T& initval, NloptOptimizer& self)
         {
             self.initvals_[N] = initval;
@@ -58,8 +61,8 @@ class NloptOptimizer {
         auto fnptr = static_cast<Fn*>(data);
         auto funval = std::tuple<Args...>();
 
-        MetaLoop<FunvalCopyFunc, Args...> ()
-                .run(funval, params);
+        // copy the obtained objectfunction arguments to the funval tuple.
+        metaloop::map_with_data<FunvalCopyFunc>(params, funval);
 
         auto ret = (*fnptr)(funval);
 
@@ -77,15 +80,16 @@ class NloptOptimizer {
 
         opt_ = nlopt::opt( alg_, sizeof...(Args) );
 
-        MetaLoop<BoundsFunc, Bound<Args>...> ()
-                .run(std::make_tuple(args...), *this);
+        // Copy the bounds which is obtained as a parameter pack in args into
+        // lower_bounds_ and upper_bounds_
+        metaloop::map_with_data<BoundsFunc>(*this, args...);
 
         opt_.set_lower_bounds(lower_bounds_);
         opt_.set_upper_bounds(upper_bounds_);
         opt_.set_ftol_rel(0.01);
 
-        MetaLoop<InititValFunc, Args...> ()
-                .run(initvals, *this);
+        // Take care of the initial values, copy them to initvals_
+        metaloop::map_with_data<InitValFunc>(*this, initvals);
 
         switch(dir_) {
         case OptDir::MIN:
@@ -99,8 +103,7 @@ class NloptOptimizer {
         auto rescode = opt_.optimize(initvals_, result.score);
         result.resultcode = static_cast<ResultCodes>(rescode);
 
-        MetaLoop<ResultCopyFunc, Args...> ()
-                .run(result.optimum, *this);
+        metaloop::map_with_data<ResultCopyFunc>(*this, result.optimum);
 
         return result;
     }

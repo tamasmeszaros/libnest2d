@@ -2,6 +2,8 @@
 #include <fstream>
 #include <string>
 
+#include <typeinfo>
+
 //#define DEBUG_EXPORT_NFP
 
 #include <libnest2d.h>
@@ -85,28 +87,30 @@ void arrangeRectangles() {
     svgw.save("out");
 }
 
-//template<int N, class T> struct mapfunc {
-//    void operator()(T&& element, const std::string& message) {
-//        std::cout << message << " " << N <<": " << element << std::endl;
-//    }
-//};
-
 int main(void /*int argc, char **argv*/) {
 
-//     opt::metaloop::map_with_data<mapfunc>("The value of the parameter", 'a', 10, 151.545);
+    opt::TOptimizer<opt::Method::SIMPLEX> opt;
 
-    opt::Optimizer<opt::Method::SIMPLEX> opt;
+    auto result = opt.optimize_min(
+        [](std::tuple<double, int> x) // object function
+        {
+            return std::pow(std::get<0>(x), std::get<1>(x));
+        },
+        std::make_tuple(-0.5, 0) //,   //initial value
+        //opt::Bound<double>{-1.0, 1.0}, opt::Bound<int>{0, 2} //bounds...
+    );
 
-//    auto result = opt.optimize_min<double>(
-//                        {-1.0, 1.0}, // bounds
-//                        std::tuple<double>{-0.5}, // initial value
-//                        [](std::tuple<double> x) // object function
-//    {
-//        return std::pow(std::get<0>(x), 2);
-//    });
+//    auto result = opt.optimize_min(
+//        [](auto&& x) // object function
+//        {
+//            return std::pow(std::get<0>(x), std::get<1>(x));
+//        },
+//        std::make_tuple(-0.5, 0)
+//    );
 
-//    std::cout << std::get<0>(result.optimum) << std::endl;
-//    std::cout << "result code: " << result.resultcode << std::endl;
+
+    std::cout << std::get<0>(result.optimum) << " " << std::get<1>(result.optimum) << std::endl;
+    std::cout << "result code: " << result.resultcode << std::endl;
 
 //    arrangeRectangles();
 //    findDegenerateCase();

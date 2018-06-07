@@ -5,12 +5,14 @@
 
 namespace libnest2d { namespace opt {
 
-template<>
-class Optimizer<Method::SIMPLEX>: public NloptOptimizer {
+class SimplexOptimizer: public NloptOptimizer {
 public:
-
-    inline Optimizer(): NloptOptimizer(nlopt::LN_NELDERMEAD) {}
+    inline explicit SimplexOptimizer(const StopCriteria& scr = {}):
+        NloptOptimizer(nlopt::LN_NELDERMEAD, scr) {}
 };
+
+template<>
+struct OptimizerSubclass<Method::SIMPLEX> { using Type = SimplexOptimizer; };
 
 }
 }

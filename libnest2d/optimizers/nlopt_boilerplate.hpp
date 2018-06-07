@@ -11,47 +11,64 @@ namespace libnest2d { namespace opt {
  *
  * All the optimized types have to be convertible to double.
  */
-class NloptOptimizer {
+class NloptOptimizer: public Optimizer<NloptOptimizer> {
     nlopt::opt opt_;
     std::vector<double> lower_bounds_;
     std::vector<double> upper_bounds_;
     std::vector<double> initvals_;
-    StopCriteria stopcr_;
     nlopt::algorithm alg_;
 
-    enum class OptDir{
-        MIN,
-        MAX
-    } dir_;
+    using Base = Optimizer<NloptOptimizer>;
 
-    template<int N, class T> struct BoundsFunc {
-        void operator()(T& bounds, NloptOptimizer& self)
+    friend Base;
+
+    // ********************************************************************** */
+
+    // TODO: CHANGE FOR LAMBDAS WHEN WE WILL MOVE TO C++14
+
+    struct BoundsFunc {
+        NloptOptimizer& self;
+        inline explicit BoundsFunc(NloptOptimizer& o): self(o) {}
+
+        template<class T> void operator()(int N, T& bounds)
         {
             self.lower_bounds_[N] = bounds.min();
             self.upper_bounds_[N] = bounds.max();
         }
     };
 
-    template<int N, class T> struct InitValFunc {
-        void operator()(T& initval, NloptOptimizer& self)
+    struct InitValFunc {
+        NloptOptimizer& self;
+        inline explicit InitValFunc(NloptOptimizer& o): self(o) {}
+
+        template<class T> void operator()(int N, T& initval)
         {
             self.initvals_[N] = initval;
         }
     };
 
-    template<int N, class T> struct ResultCopyFunc {
-        void operator()(T& resultval, NloptOptimizer& self)
+    struct ResultCopyFunc {
+        NloptOptimizer& self;
+        inline explicit ResultCopyFunc(NloptOptimizer& o): self(o) {}
+
+        template<class T> void operator()(int N, T& resultval)
         {
             resultval = self.initvals_[N];
         }
     };
 
-    template<int N, class T> struct FunvalCopyFunc {
-        void operator()(T& resultval, const std::vector<double>& params)
+    struct FunvalCopyFunc {
+        using D = const std::vector<double>;
+        D& params;
+        inline explicit FunvalCopyFunc(D& p): params(p) {}
+
+        template<class T> void operator()(int N, T& resultval)
         {
             resultval = params[N];
         }
     };
+
+    /* ********************************************************************** */
 
     template<class Fn, class...Args>
     static double optfunc(const std::vector<double>& params,
@@ -62,17 +79,17 @@ class NloptOptimizer {
         auto funval = std::tuple<Args...>();
 
         // copy the obtained objectfunction arguments to the funval tuple.
-        metaloop::map_with_data<FunvalCopyFunc>(params, funval);
+        metaloop::map(FunvalCopyFunc(params), funval);
 
         auto ret = (*fnptr)(funval);
 
         return ret;
     }
 
-    template<class...Args, class Func>
-    Result<Args...> optimize(Bound<Args>... args,
+    template<class Func, class...Args>
+    Result<Args...> optimize(Func&& func,
                              std::tuple<Args...> initvals,
-                             Func&& func)
+                             Bound<Args>... args)
     {
         lower_bounds_.resize(sizeof...(Args));
         upper_bounds_.resize(sizeof...(Args));
@@ -82,14 +99,20 @@ class NloptOptimizer {
 
         // Copy the bounds which is obtained as a parameter pack in args into
         // lower_bounds_ and upper_bounds_
-        metaloop::map_with_data<BoundsFunc>(*this, args...);
+        metaloop::map(BoundsFunc(*this), args...);
 
         opt_.set_lower_bounds(lower_bounds_);
         opt_.set_upper_bounds(upper_bounds_);
-        opt_.set_ftol_rel(0.01);
+
+        switch(this->stopcr_.type) {
+        case StopLimitType::ABSOLUTE:
+            opt_.set_ftol_abs(stopcr_.stoplimit); break;
+        case StopLimitType::RELATIVE:
+            opt_.set_ftol_rel(0.01); break;
+        }
 
         // Take care of the initial values, copy them to initvals_
-        metaloop::map_with_data<InitValFunc>(*this, initvals);
+        metaloop::map(InitValFunc(*this), initvals);
 
         switch(dir_) {
         case OptDir::MIN:
@@ -103,38 +126,16 @@ class NloptOptimizer {
         auto rescode = opt_.optimize(initvals_, result.score);
         result.resultcode = static_cast<ResultCodes>(rescode);
 
-        metaloop::map_with_data<ResultCopyFunc>(*this, result.optimum);
+        metaloop::map(ResultCopyFunc(*this), result.optimum);
 
         return result;
     }
 
 public:
-
     inline explicit NloptOptimizer(nlopt::algorithm alg,
                                    StopCriteria stopcr = {}):
-        stopcr_(stopcr), alg_(alg) {}
+        Base(stopcr), alg_(alg) {}
 
-    template<class...Args, class Func>
-    inline Result<Args...> optimize_min(Bound<Args>... bounds,
-                                        std::tuple<Args...> initvals,
-                                        Func&& objectfunction)
-    {
-        dir_ = OptDir::MIN;
-        return optimize<Args...>(bounds...,
-                                 initvals,
-                                 std::forward<Func>(objectfunction));
-    }
-
-    template<class...Args, class Func>
-    inline Result<Args...> optimize_max(Bound<Args>... bounds,
-                                        std::tuple<Args...> initvals,
-                                        Func&& objectfunction)
-    {
-        dir_ = OptDir::MAX;
-        return optimize<Args...>(bounds...,
-                                 initvals,
-                                 std::forward<Func>(objectfunction));
-    }
 };
 
 }

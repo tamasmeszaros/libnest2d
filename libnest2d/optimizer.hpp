@@ -30,21 +30,28 @@ class metaloop {
 // a partial specialization. Also for the same reason we have to use a class
 // _Metaloop instead of a simple function as a functor. A function cannot be
 // partially specialized in a way that is neccesary for this trick.
-template<int N>
-using Int = std::integral_constant<int, N>;
+template<int N> using Int = std::integral_constant<int, N>;
+
+template<int N, class Fn> class MapFn {
+    Fn fn_;
+public:
+    inline MapFn(Fn fn): fn_(fn) {}
+
+    template<class...Args> void operator ()(Args...args) {
+        fn_(N, forward<Args>(args)...);
+    }
+};
 
 /**
  * \brief Loop over a parameter pack and do something with each element.
  *
- * We create a mechanism for looping over a parameter pack in compile time
- * \tparam Idx is the loop index which will be decremented at each
- * recursion.
- * \tparam Fn Is a callable template class with an integer non type parameter
- * as the index and a type parameter corresponding to the i-th type of the
- * parameter pack where i is the value of the index. The function is expected to
- * take this type as its first argument. The second can be any type passed on
- * through the run method's data parameter.
- * A suitable declaration for the template Fn would be for example:
+ * We create a mechanism for looping over a parameter pack in compile time.
+ * \tparam Idx is the loop index which will be incremented at each recursion.
+ * \tparam Fn Is a callable template class with an integer template parameter
+ * as the index and another template parameter which is the index-th type of the
+ * parameter pack. The function is expected to take this type as its first
+ * argument. The second can be any type passed on through the run method's data
+ * parameter. A suitable declaration for the template Fn would be for example:
  *
  *      template<int N, class T> struct {
  *          template<class Data> void operator()(T&& element, Data&& data);
@@ -59,17 +66,17 @@ using Int = std::integral_constant<int, N>;
 template <typename Idx, template<int, class> class Fn, class...Args>
 class _MetaLoop {};
 
-// Implementation for the zero-th element of Args...
+// Implementation for the last element of Args...
 template <template<int, class> class Fn, class...Args>
-class _MetaLoop<Int<0>, Fn, Args...> {
+class _MetaLoop<Int<sizeof...(Args)-1>, Fn, Args...> {
 public:
+
+    const static BP2D_CONSTEXPR int M = sizeof...(Args)-1;
 
     template<class Tup, class Data>
     void run( Tup&& valtup, Data&& data) {
-
-        using TV = typename tuple_element<0, remove_ref_t<Tup>>::type;
-
-        Fn<0, TV&> () (get<0>(valtup), forward<Data>(data));
+        using TV = typename tuple_element<M, remove_ref_t<Tup>>::type;
+        Fn<M, TV&> () (get<M>(valtup), forward<Data>(data));
     }
 };
 
@@ -80,20 +87,22 @@ public:
 
     template<class Tup, class Data>
     void run(Tup&& valtup, Data&& data) {
-
         using TV = typename tuple_element<N, remove_ref_t<Tup>>::type;
-
         Fn<N, TV&> () (get<N>(valtup), forward<Data>(data));
 
         // Recursive call to process the next element of Args
-        _MetaLoop<Int<N-1>, Fn, Args...> ()
+        _MetaLoop<Int<N+1>, Fn, Args...> ()
                 .run(forward<Tup>(valtup), forward<Data>(data));
     }
 };
 
-// A simplified version of the _Metaloop where we take care of the indexing
+// Instantiation: We must instantiate the template with the zero index because
+// the generalized version calls the incremented instantiations recursively.
+// Once the instantiation with the last index is called, the terminating version
+// of run is called which does not call itself anymore. If you are annoyed, at
+// least you have learned a functional programming pattern.
 template<template<int, class> class Fn, class...Args>
-using MetaLoop = _MetaLoop<Int<sizeof...(Args)-1>, Fn, Args...>;
+using MetaLoop = _MetaLoop<Int<0>, Fn, Args...>;
 
 public:
 
@@ -103,7 +112,7 @@ public:
  * This is similar to what varags was on C but in compile time C++11.
  * You can call:
  * map<`Function template name`>(<arbitrary number of arguments of any type>,
- *                               <data for the mapped function>);
+ *                               <data for the mapping function>);
  * For example:
  *
  *      template<int N, class T> struct mapfunc {
@@ -112,12 +121,12 @@ public:
  *          }
  *      };
  *
- *      map_data<mapfunc>("The value of the parameter", 'a', 10, 151.545);
+ *      map_with_data<mapfunc>("The value of the parameter", 'a', 10, 151.545);
  *
  * This yields the output:
- * The value of the parameter 2: 151.545
- * The value of the parameter 1: 10
  * The value of the parameter 0: a
+ * The value of the parameter 1: 10
+ * The value of the parameter 2: 151.545
  *
  * As an addition, the function can be called with a tuple holding the
  * arguments insted of a parameter pack.
@@ -202,8 +211,20 @@ struct Result {
     double score;
 };
 
+enum class StopLimitType {
+    ABSOLUTE,
+    RELATIVE
+};
+
+struct StopCriteria {
+    StopLimitType type = StopLimitType::RELATIVE;
+    double stoplimit = 0.0001;
+};
+
 template<Method>
 class Optimizer {
+
+    StopCriteria stopcr_;
 
     template<int N, class T>
     struct ArgFunc {
@@ -215,6 +236,8 @@ class Optimizer {
     };
 
 public:
+
+    inline explicit Optimizer(StopCriteria scr = {}): stopcr_(scr) {}
 
     template<class...Args, class Func>
     inline Result<Args...> optimize_min(Bound<Args>... bounds,

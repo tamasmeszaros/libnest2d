@@ -12,11 +12,11 @@ namespace libnest2d { namespace opt {
  * All the optimized types have to be convertible to double.
  */
 class NloptOptimizer {
-
     nlopt::opt opt_;
     std::vector<double> lower_bounds_;
     std::vector<double> upper_bounds_;
     std::vector<double> initvals_;
+    StopCriteria stopcr_;
     nlopt::algorithm alg_;
 
     enum class OptDir{
@@ -78,7 +78,7 @@ class NloptOptimizer {
         upper_bounds_.resize(sizeof...(Args));
         initvals_.resize(sizeof...(Args));
 
-        opt_ = nlopt::opt( alg_, sizeof...(Args) );
+        opt_ = nlopt::opt(alg_, sizeof...(Args) );
 
         // Copy the bounds which is obtained as a parameter pack in args into
         // lower_bounds_ and upper_bounds_
@@ -110,7 +110,9 @@ class NloptOptimizer {
 
 public:
 
-    inline explicit NloptOptimizer(nlopt::algorithm alg): alg_(alg) {}
+    inline explicit NloptOptimizer(nlopt::algorithm alg,
+                                   StopCriteria stopcr = {}):
+        stopcr_(stopcr), alg_(alg) {}
 
     template<class...Args, class Func>
     inline Result<Args...> optimize_min(Bound<Args>... bounds,

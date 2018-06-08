@@ -131,7 +131,7 @@ protected:
         case StopLimitType::ABSOLUTE:
             opt_.set_ftol_abs(stopcr_.stoplimit); break;
         case StopLimitType::RELATIVE:
-            opt_.set_ftol_rel(0.01); break;
+            opt_.set_ftol_rel(stopcr_.stoplimit); break;
         }
 
         if(this->stopcr_.max_iterations > 0)

@@ -42,7 +42,30 @@ std::vector<Item>& stegoParts() {
 void arrangeRectangles() {
     using namespace libnest2d;
 
-    auto input = prusaParts();
+    auto& input = prusaParts();
+//    std::vector<Rectangle> input = {
+//        {80, 80},
+//        {60, 90},
+//        {70, 30},
+//        {80, 60},
+//        {60, 60},
+//        {60, 40},
+//        {40, 40},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {10, 10},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {5, 5},
+//        {20, 20} };
+//    const int SCALE = 1;
+
     const int SCALE = 1000000;
 
     Box bin(250*SCALE, 210*SCALE);
@@ -51,16 +74,17 @@ void arrangeRectangles() {
 
     NfpPlacer::Config pconf;
     pconf.alignment = NfpPlacer::Config::Alignment::BOTTOM_LEFT;
-    pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2 */};
+    pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/ };
+    pconf.use_solver = true;
     Arranger<NfpPlacer, DJDHeuristic> arrange(bin, min_obj_distance, pconf);
 
     arrange.progressIndicator([&](unsigned r){
-        svg::SVGWriter::Config conf;
-        conf.mm_in_coord_units = SCALE;
-        svg::SVGWriter svgw(conf);
-        svgw.setSize(bin);
-        svgw.writePackGroup(arrange.lastResult());
-        svgw.save("debout");
+//        svg::SVGWriter::Config conf;
+//        conf.mm_in_coord_units = SCALE;
+//        svg::SVGWriter svgw(conf);
+//        svgw.setSize(bin);
+//        svgw.writePackGroup(arrange.lastResult());
+//        svgw.save("debout");
         std::cout << "Remaining items: " << r << std::endl;
     });
 

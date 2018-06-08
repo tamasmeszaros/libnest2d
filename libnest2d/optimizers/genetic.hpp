@@ -8,7 +8,7 @@ namespace libnest2d { namespace opt {
 class GeneticOptimizer: public NloptOptimizer {
 public:
     inline explicit GeneticOptimizer(const StopCriteria& scr = {}):
-        NloptOptimizer(nlopt::GN_ESCH, scr) {}
+        NloptOptimizer(method2nloptAlg(Method::GENETIC), scr) {}
 
     inline GeneticOptimizer& localMethod(Method m) {
         localmethod_ = m;

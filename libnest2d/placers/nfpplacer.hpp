@@ -5,6 +5,7 @@
 #include "placer_boilerplate.hpp"
 #include "../geometries_nfp.hpp"
 #include <libnest2d/optimizers/genetic.hpp>
+#include <libnest2d/optimizers/simplex.hpp>
 
 namespace libnest2d { namespace strategies {
 
@@ -22,6 +23,7 @@ struct NfpPConfig {
     std::vector<Radians> rotations;
     Alignment alignment;
     NfpPConfig(): rotations(1, 0.0), alignment(Alignment::BOTTOM_LEFT) {}
+    bool use_solver = true;
 };
 
 // A class for getting a point on the circumference of the polygon (in log time)
@@ -90,6 +92,8 @@ public:
 
         return ret;
     }
+
+    inline double circumference() const BP2D_NOEXCEPT { return full_distance_; }
 };
 
 // Nfp for a bunch of polygons. If the polygons are convex, the nfp calculated
@@ -143,109 +147,30 @@ public:
             setInitialPosition(item);
             can_pack = item.isInside(bin_);
         } else {
-
-//            // place the new item outside of the print bed to make sure it is
-//            // disjuct from the current merged pile
-//            placeOutsideOfBin(item);
-
-//            auto trsh = item.transformedShape();
-
-//            auto nfps = nfp(items_, trsh);
-//            auto iv = Nfp::referenceVertex(trsh);
-//            auto startpos = item.translation();
-//            std::vector<EdgeCache<RawShape>> ecache;
-//            ecache.reserve(nfps.size());
-//            for(auto& nfp : nfps ) ecache.emplace_back(nfp);
-
-//            auto getNfpPoint = [&nfps, &ecache](double relpos) {
-//                auto nfp_idx = static_cast<unsigned>(relpos / nfps.size());
-//                auto p = relpos - std::floor(relpos / nfps.size());
-//                return ecache[nfp_idx].coords(p);
-//            };
-
-//            auto objfunc = [&] (std::tuple<double> relpos)
-//            {
-////                Item item(trsh);
-
-//                Vertex v = getNfpPoint(std::get<0>(relpos));
-//                auto d = v - iv;
-//                d += startpos;
-//                item.translation(d);
-
-//                if( item.isInside(bin_) ) {
-//                    Nfp::Shapes<RawShape> m;
-//                    m.reserve(items_.size());
-
-//                    for(Item& pi : items_)
-//                        m.emplace_back(pi.transformedShape());
-
-//                    m.emplace_back(item.transformedShape());
-
-//                    auto b = ShapeLike::convexHull(m);
-//                    return ShapeLike::area(b);
-//                }
-
-//                return std::nan(""); // score = pack efficiency
-//            };
-
-//            opt::StopCriteria stopcr;
-//            stopcr.max_iterations = 1000;
-//            opt::TOptimizer<opt::Method::GENETIC> solver(stopcr);
-
-//            try {
-//                auto result = solver.optimize_min(objfunc,
-//                                opt::initvals(0.0),
-//                                opt::bound(0.0, 1.0*nfps.size())
-//                                );
-
-//                if(!std::isnan(result.score)) {
-//                    auto d = getNfpPoint(std::get<0>(result.optimum)) - iv;
-//                    d += startpos;
-//                    item.translation(d);
-//                    if(item.isInside(bin_)) can_pack = true;
-//                }
-//            } catch(std::exception& ) {}
-
-            auto initial_tr = item.translation();
-            auto initial_rot = item.rotation();
-            double min_area = std::numeric_limits<double>::max();
-            Vertex final_tr = {0, 0};
-            Radians final_rot = 0;
-            Nfp::Shapes<RawShape> nfps;
-
-////            auto objfunc = [this](double nfppos, Radians angle){
-////                return 0; // score = pack efficiency
-////            };
-
-////            opt::TOptimizer<opt::Method::SIMPLEX> solver;
-
-            for(auto rot : config_.rotations) {
-
-                item.translation(initial_tr);
-                item.rotation(initial_rot + rot);
-
+            if(config_.use_solver) {
                 // place the new item outside of the print bed to make sure it is
                 // disjuct from the current merged pile
                 placeOutsideOfBin(item);
 
                 auto trsh = item.transformedShape();
 
-                #ifndef NDEBUG
-                    auto v = ShapeLike::isValid(trsh);
-                    assert(v.first);
-                #endif
-
-                nfps = nfp(items_, trsh);
-
+                auto nfps = nfp(items_, trsh);
                 auto iv = Nfp::referenceVertex(trsh);
-
                 auto startpos = item.translation();
+                std::vector<EdgeCache<RawShape>> ecache;
+                ecache.reserve(nfps.size());
+                for(auto& nfp : nfps ) ecache.emplace_back(nfp);
 
-                // place item on each the edge of this nfp
-                for(auto& nfp : nfps)
-                ShapeLike::foreachContourVertex(nfp, [&]
-                                                (Vertex& v)
+                auto getNfpPoint = [&nfps, &ecache](double relpos) {
+                    auto nfp_idx = static_cast<unsigned>(relpos / nfps.size());
+                    if(nfp_idx >= nfps.size()) nfp_idx = nfps.size()-1;
+                    auto p = relpos - std::floor(relpos / nfps.size());
+                    return ecache[nfp_idx].coords(p);
+                };
+
+                auto objfunc = [&] (std::tuple<double> relpos)
                 {
+                    Vertex v = getNfpPoint(std::get<0>(relpos));
                     auto d = v - iv;
                     d += startpos;
                     item.translation(d);
@@ -258,32 +183,118 @@ public:
                             m.emplace_back(pi.transformedShape());
 
                         m.emplace_back(item.transformedShape());
+                        double occupied_area = 0;
+                        std::for_each(m.begin(), m.end(),
+                                      [&occupied_area](const RawShape& mshape){
+                           occupied_area +=  ShapeLike::area(mshape);
+                        });
 
-                        auto b = ShapeLike::convexHull(m);
-                        auto a = ShapeLike::area(b);
+                        auto ch = ShapeLike::convexHull(m);
+                        auto circumf = EdgeCache<RawShape>(ch).circumference();
+                        double pack_rate = occupied_area/ShapeLike::area(ch);
 
-                        if(a < min_area) {
-                            can_pack = true;
-                            min_area = a;
-                            final_tr = d;
-                            final_rot = initial_rot + rot;
-                        }
+                        auto score = std::sqrt(circumf * (1.0 - pack_rate));
+                        return score;
                     }
-                });
-            }
 
-            #ifndef NDEBUG
-                        if(can_pack) for(auto&nfp : nfps) {
-                            auto val = ShapeLike::isValid(nfp);
-                            assert(val.first);
-            #ifdef DEBUG_EXPORT_NFP
-                            Base::debug_items_.emplace_back(nfp);
-            #endif
+                    return std::nan(""); // score = pack efficiency
+                };
+
+                opt::StopCriteria stopcr;
+                stopcr.max_iterations = 1000;
+                opt::TOptimizer<opt::Method::GENETIC> solver(stopcr);
+
+                try {
+
+                    auto result = solver.optimize_min(objfunc,
+                                    opt::initvals(0.0),
+                                    opt::bound(0.0, 1.0*nfps.size())
+                                    );
+
+                    if(!std::isnan(result.score) ) {
+
+                        auto d = getNfpPoint(std::get<0>(result.optimum)) - iv;
+                        d += startpos;
+                        item.translation(d);
+                        if(item.isInside(bin_)) can_pack = true;
+                    }
+                } catch(std::exception& ) {}
+
+            } else {
+
+                auto initial_tr = item.translation();
+                auto initial_rot = item.rotation();
+                double min_area = std::numeric_limits<double>::max();
+                Vertex final_tr = {0, 0};
+                Radians final_rot = 0;
+                Nfp::Shapes<RawShape> nfps;
+
+                for(auto rot : config_.rotations) {
+
+                    item.translation(initial_tr);
+                    item.rotation(initial_rot + rot);
+
+                    // place the new item outside of the print bed to make sure it is
+                    // disjuct from the current merged pile
+                    placeOutsideOfBin(item);
+
+                    auto trsh = item.transformedShape();
+
+                    #ifndef NDEBUG
+                        auto v = ShapeLike::isValid(trsh);
+                        assert(v.first);
+                    #endif
+
+                    nfps = nfp(items_, trsh);
+
+                    auto iv = Nfp::referenceVertex(trsh);
+
+                    auto startpos = item.translation();
+
+                    // place item on each the edge of this nfp
+                    for(auto& nfp : nfps)
+                    ShapeLike::foreachContourVertex(nfp, [&]
+                                                    (Vertex& v)
+                    {
+                        auto d = v - iv;
+                        d += startpos;
+                        item.translation(d);
+
+                        if( item.isInside(bin_) ) {
+                            Nfp::Shapes<RawShape> m;
+                            m.reserve(items_.size());
+
+                            for(Item& pi : items_)
+                                m.emplace_back(pi.transformedShape());
+
+                            m.emplace_back(item.transformedShape());
+
+                            auto b = ShapeLike::convexHull(m);
+                            auto a = ShapeLike::area(b);
+
+                            if(a < min_area) {
+                                can_pack = true;
+                                min_area = a;
+                                final_tr = d;
+                                final_rot = initial_rot + rot;
+                            }
                         }
-            #endif
+                    });
+                }
 
-            item.translation(final_tr);
-            item.rotation(final_rot);
+                #ifndef NDEBUG
+                            if(can_pack) for(auto&nfp : nfps) {
+                                auto val = ShapeLike::isValid(nfp);
+                                assert(val.first);
+                #ifdef DEBUG_EXPORT_NFP
+                                Base::debug_items_.emplace_back(nfp);
+                #endif
+                            }
+                #endif
+
+                item.translation(final_tr);
+                item.rotation(final_rot);
+            }
         }
 
         if(can_pack) {

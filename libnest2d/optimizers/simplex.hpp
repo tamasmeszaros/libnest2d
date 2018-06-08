@@ -8,7 +8,7 @@ namespace libnest2d { namespace opt {
 class SimplexOptimizer: public NloptOptimizer {
 public:
     inline explicit SimplexOptimizer(const StopCriteria& scr = {}):
-        NloptOptimizer(nlopt::LN_NELDERMEAD, scr) {}
+        NloptOptimizer(method2nloptAlg(Method::SIMPLEX), scr) {}
 };
 
 template<>

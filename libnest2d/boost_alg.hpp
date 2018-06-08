@@ -416,26 +416,26 @@ inline PolygonImpl ShapeLike::convexHull(const bp2d::Shapes& shapes)
 template<>
 inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads)
 {
-//    namespace trans = boost::geometry::strategy::transform;
+    namespace trans = boost::geometry::strategy::transform;
 
-    PolygonImpl cpy = sh;/*
+    PolygonImpl cpy = sh;
     trans::rotate_transformer<boost::geometry::radian, Radians, 2, 2>
             rotate(rads);
 
-    boost::geometry::transform(cpy, sh, rotate);*/
+    boost::geometry::transform(cpy, sh, rotate);
 }
 
 #ifndef DISABLE_BOOST_TRANSLATE
 template<>
 inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs)
 {
-//    namespace trans = boost::geometry::strategy::transform;
+    namespace trans = boost::geometry::strategy::transform;
 
-//    PolygonImpl cpy = sh;
-//    trans::translate_transformer<bp2d::Coord, 2, 2> translate(
-//                bp2d::getX(offs), bp2d::getY(offs));
+    PolygonImpl cpy = sh;
+    trans::translate_transformer<bp2d::Coord, 2, 2> translate(
+                bp2d::getX(offs), bp2d::getY(offs));
 
-//    boost::geometry::transform(cpy, sh, translate);
+    boost::geometry::transform(cpy, sh, translate);
 }
 #endif
 

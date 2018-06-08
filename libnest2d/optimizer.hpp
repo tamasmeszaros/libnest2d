@@ -297,7 +297,7 @@ public:
     {
         dir_ = OptDir::MIN;
         return static_cast<Subclass*>(this)->template optimize<Func, Args...>(
-                    forward<Func>(objectfunction), initvals, bounds... );
+                    objectfunction, initvals, bounds... );
     }
 
     template<class Func, class...Args>
@@ -306,7 +306,7 @@ public:
     {
         dir_ = OptDir::MIN;
         return static_cast<Subclass*>(this)->template optimize<Func, Args...>(
-                    forward<Func>(objectfunction), initvals, Bound<Args>()... );
+                    objectfunction, initvals, Bound<Args>()... );
     }
 
     template<class...Args, class Func>
@@ -314,7 +314,7 @@ public:
     {
         dir_ = OptDir::MIN;
         return static_cast<Subclass*>(this)->template optimize<Func, Args...>(
-                    forward<Func>(objectfunction),
+                    objectfunction,
                     Input<Args...>(),
                     Bound<Args>()... );
     }
@@ -327,7 +327,7 @@ public:
     {
         dir_ = OptDir::MAX;
         return static_cast<Subclass*>(this)->template optimize<Func, Args...>(
-                    forward<Func>(objectfunction), initvals, bounds... );
+                    objectfunction, initvals, bounds... );
     }
 
     template<class Func, class...Args>
@@ -336,7 +336,7 @@ public:
     {
         dir_ = OptDir::MAX;
         return static_cast<Subclass*>(this)->template optimize<Func, Args...>(
-                    forward<Func>(objectfunction), initvals, Bound<Args>()... );
+                    objectfunction, initvals, Bound<Args>()... );
     }
 
 };

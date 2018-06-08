@@ -42,16 +42,16 @@ std::vector<Item>& stegoParts() {
 void arrangeRectangles() {
     using namespace libnest2d;
 
-    auto input = stegoParts();
+    auto input = prusaParts();
     const int SCALE = 1000000;
 
     Box bin(250*SCALE, 210*SCALE);
 
-    Coord min_obj_distance = 6*SCALE;
+    Coord min_obj_distance = 0;//6*SCALE;
 
     NfpPlacer::Config pconf;
     pconf.alignment = NfpPlacer::Config::Alignment::BOTTOM_LEFT;
-    pconf.rotations = {0.0, Pi/2.0, Pi, 3*Pi/2 };
+    pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2 */};
     Arranger<NfpPlacer, DJDHeuristic> arrange(bin, min_obj_distance, pconf);
 
     arrange.progressIndicator([&](unsigned r){
@@ -89,30 +89,7 @@ void arrangeRectangles() {
 
 int main(void /*int argc, char **argv*/) {
 
-    opt::TOptimizer<opt::Method::SIMPLEX> opt;
-
-    auto result = opt.optimize_min(
-        [](std::tuple<double, int> x) // object function
-        {
-            return std::pow(std::get<0>(x), std::get<1>(x));
-        },
-        std::make_tuple(-0.5, 0) //,   //initial value
-        //opt::Bound<double>{-1.0, 1.0}, opt::Bound<int>{0, 2} //bounds...
-    );
-
-//    auto result = opt.optimize_min(
-//        [](auto&& x) // object function
-//        {
-//            return std::pow(std::get<0>(x), std::get<1>(x));
-//        },
-//        std::make_tuple(-0.5, 0)
-//    );
-
-
-    std::cout << std::get<0>(result.optimum) << " " << std::get<1>(result.optimum) << std::endl;
-    std::cout << "result code: " << result.resultcode << std::endl;
-
-//    arrangeRectangles();
+    arrangeRectangles();
 //    findDegenerateCase();
     return EXIT_SUCCESS;
 }

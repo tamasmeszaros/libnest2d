@@ -103,6 +103,8 @@ public:
     inline RawPoint& second() BP2D_NOEXCEPT { return p2; }
 
     inline Radians angleToXaxis() const;
+
+    inline double length();
 };
 
 // This struct serves as a namespace. The only difference is that is can be
@@ -233,51 +235,6 @@ void setY(RawPoint& p, const TCoord<RawPoint>& val)
     PointLike::y<RawPoint>(p) = val;
 }
 
-//template<class RawShape>
-//inline TPoint<RawShape>& operator +=( TPoint<RawShape>& p,
-//                                      const TPoint<RawShape>& pa )
-//{
-//    setX(p, getX(p) + getX(pa));
-//    setY(p, getY(p) + getY(pa));
-//    return p;
-//}
-
-//template<class RawShape>
-//inline TPoint<RawShape> operator+(const TPoint<RawShape>& p1,
-//                                  const TPoint<RawShape>& p2)
-//{
-//    TPoint<RawShape> ret = p1;
-//    ret += p2;
-//    return ret;
-//}
-
-//template<class RawShape>
-//inline TPoint<RawShape>& operator -=( TPoint<RawShape>& p,
-//                                      const TPoint<RawShape>& pa )
-//{
-//    setX(p, getX(p) - getX(pa));
-//    setY(p, getY(p) - getY(pa));
-//    return p;
-//}
-
-//template<class RawShape>
-//inline TPoint<RawShape> operator-(const TPoint<RawShape>& p1,
-//                                  const TPoint<RawShape>& p2)
-//{
-//    TPoint<RawShape> ret = p1;
-//    ret -= p2;
-//    return ret;
-//}
-
-//template<class RawShape>
-//inline TPoint<RawShape> operator -(TPoint<RawShape>& p )
-//{
-//    TPoint<RawShape> ret = p;
-//    setX(ret, -getX(p));
-//    setY(ret, -getY(p));
-//    return ret;
-//}
-
 template<class RawPoint>
 inline Radians _Segment<RawPoint>::angleToXaxis() const
 {
@@ -289,6 +246,12 @@ inline Radians _Segment<RawPoint>::angleToXaxis() const
 
     if(s) a += Pi_2;
     return a;
+}
+
+template<class RawPoint>
+inline double _Segment<RawPoint>::length()
+{
+    return PointLike::distance(first(), second());
 }
 
 template<class RawPoint>
@@ -453,6 +416,15 @@ struct ShapeLike {
     {
         static_assert(always_false<RawShape>::value,
                       "ShapeLike::touches(shape, shape) unimplemented!");
+        return false;
+    }
+
+    template<class RawShape>
+    static bool touches( const TPoint<RawShape>& /*point*/,
+                         const RawShape& /*shape*/)
+    {
+        static_assert(always_false<RawShape>::value,
+                      "ShapeLike::touches(point, shape) unimplemented!");
         return false;
     }
 

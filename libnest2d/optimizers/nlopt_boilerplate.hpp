@@ -6,17 +6,28 @@
 
 namespace libnest2d { namespace opt {
 
+nlopt::algorithm method2nloptAlg(Method m) {
+
+    switch(m) {
+    case Method::SIMPLEX: return nlopt::LN_NELDERMEAD;
+    case Method::GENETIC: return nlopt::GN_ESCH;
+    default: assert(false); throw(m);
+    }
+}
+
 /**
  * Optimizer based on NLopt.
  *
  * All the optimized types have to be convertible to double.
  */
 class NloptOptimizer: public Optimizer<NloptOptimizer> {
+protected:
     nlopt::opt opt_;
     std::vector<double> lower_bounds_;
     std::vector<double> upper_bounds_;
     std::vector<double> initvals_;
     nlopt::algorithm alg_;
+    Method localmethod_;
 
     using Base = Optimizer<NloptOptimizer>;
 
@@ -75,7 +86,7 @@ class NloptOptimizer: public Optimizer<NloptOptimizer> {
                           std::vector<double>& grad,
                           void *data)
     {
-        auto fnptr = static_cast<Fn*>(data);
+        auto fnptr = static_cast<remove_ref_t<Fn>*>(data);
         auto funval = std::tuple<Args...>();
 
         // copy the obtained objectfunction arguments to the funval tuple.
@@ -104,12 +115,27 @@ class NloptOptimizer: public Optimizer<NloptOptimizer> {
         opt_.set_lower_bounds(lower_bounds_);
         opt_.set_upper_bounds(upper_bounds_);
 
+        nlopt::opt localopt;
+        switch(opt_.get_algorithm()) {
+        case nlopt::GN_MLSL:
+        case nlopt::GN_MLSL_LDS:
+            localopt = nlopt::opt(method2nloptAlg(localmethod_),
+                                  sizeof...(Args));
+            localopt.set_lower_bounds(lower_bounds_);
+            localopt.set_upper_bounds(upper_bounds_);
+            opt_.set_local_optimizer(localopt);
+        default: ;
+        }
+
         switch(this->stopcr_.type) {
         case StopLimitType::ABSOLUTE:
             opt_.set_ftol_abs(stopcr_.stoplimit); break;
         case StopLimitType::RELATIVE:
             opt_.set_ftol_rel(0.01); break;
         }
+
+        if(this->stopcr_.max_iterations > 0)
+            opt_.set_maxeval(this->stopcr_.max_iterations );
 
         // Take care of the initial values, copy them to initvals_
         metaloop::map(InitValFunc(*this), initvals);
@@ -134,7 +160,7 @@ class NloptOptimizer: public Optimizer<NloptOptimizer> {
 public:
     inline explicit NloptOptimizer(nlopt::algorithm alg,
                                    StopCriteria stopcr = {}):
-        Base(stopcr), alg_(alg) {}
+        Base(stopcr), alg_(alg), localmethod_(Method::SIMPLEX) {}
 
 };
 

@@ -48,6 +48,7 @@ class _Item {
     mutable bool area_cache_valid_ = false;
     mutable RawShape offset_cache_;
     mutable bool offset_cache_valid_ = false;
+
 public:
 
     /// The type of the shape which was handed over as the template argument.

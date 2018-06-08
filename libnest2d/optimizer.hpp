@@ -36,29 +36,38 @@ public:
     inline const T max() const BP2D_NOEXCEPT { return max_; }
 };
 
+template<class T>
+inline Bound<T> bound(T&& min, T&& max) { return Bound<T>(min, max); }
+
+template<class...Args> using Input = tuple<Args...>;
+
+template<class...Args>
+inline tuple<Args...> initvals(Args...args) { return std::make_tuple(args...); }
+
 /**
  * @brief Helper class to be able to loop over a parameter pack's elements.
- *
- * The implementation is based on partial struct template specializations.
- * Basically we need a template type that is callable and takes an integer
- * non-type template parameter which can be used to implement recursive calls.
- *
- * C++11 will not allow the usage of a plain template function that is why we
- * use struct with overloaded call operator. At the same time C++11 prohibits
- * partial template specialization with a non type parameter such as int. We
- * need to wrap that in a type (see metaloop::Int).
  */
 class metaloop {
+// The implementation is based on partial struct template specializations.
+// Basically we need a template type that is callable and takes an integer
+// non-type template parameter which can be used to implement recursive calls.
+//
+// C++11 will not allow the usage of a plain template function that is why we
+// use struct with overloaded call operator. At the same time C++11 prohibits
+// partial template specialization with a non type parameter such as int. We
+// need to wrap that in a type (see metaloop::Int).
 
-// A helper alias to create integer values wrapped as a type. It is nessecary
-// because a non type template parameter (such as int) would be prohibited in
-// a partial specialization. Also for the same reason we have to use a class
-// _Metaloop instead of a simple function as a functor. A function cannot be
-// partially specialized in a way that is neccesary for this trick.
+/*
+ * A helper alias to create integer values wrapped as a type. It is nessecary
+ * because a non type template parameter (such as int) would be prohibited in
+ * a partial specialization. Also for the same reason we have to use a class
+ * _Metaloop instead of a simple function as a functor. A function cannot be
+ * partially specialized in a way that is neccesary for this trick.
+ */
 template<int N> using Int = std::integral_constant<int, N>;
 
-/**
- * \brief Helper class to implement inplace functors.
+/*
+ * Helper class to implement inplace functors.
  *
  * We want to be able to use an inline functors like a lamda to keep the code
  * as clear as possible. I don't like if a functor is implemented kilometers far
@@ -119,11 +128,13 @@ public:
     }
 };
 
-// Instantiation: We must instantiate the template with the zero index because
-// the generalized version calls the incremented instantiations recursively.
-// Once the instantiation with the last index is called, the terminating version
-// of run is called which does not call itself anymore. If you are annoyed, at
-// least you have learned a functional programming pattern.
+/*
+ * Instantiation: We must instantiate the template with the zero index because
+ * the generalized version calls the incremented instantiations recursively.
+ * Once the instantiation with the last index is called, the terminating version
+ * of run is called which does not call itself anymore. If you are annoyed, at
+ * least you have learned a functional programming pattern.
+ */
 template<class...Args>
 using MetaLoop = _MetaLoop<Int<0>, Args...>;
 
@@ -241,6 +252,8 @@ struct StopCriteria {
 
     /// The error value that is interpredted depending on the type property.
     double stoplimit = 0.0001;
+
+    unsigned max_iterations = 0;
 };
 
 /**
@@ -254,20 +267,11 @@ protected:
         MAX
     } dir_;
 
-    template<int N, class T>
-    struct ArgFunc {
-        template<class Data>
-        void operator()(T& val, Data&& data)
-        {
-            std::cout << val.min() << " " << val.max() << std::endl;
-        }
-    };
-
     StopCriteria stopcr_;
 
 public:
 
-    inline explicit Optimizer(StopCriteria scr = {}): stopcr_(scr) {}
+    inline explicit Optimizer(const StopCriteria& scr = {}): stopcr_(scr) {}
 
     /**
      * \brief Optimize for minimum value of the provided objectfunction.
@@ -288,7 +292,7 @@ public:
      */
     template<class Func, class...Args>
     inline Result<Args...> optimize_min(Func&& objectfunction,
-                                        tuple<Args...> initvals,
+                                        Input<Args...> initvals,
                                         Bound<Args>... bounds)
     {
         dir_ = OptDir::MIN;
@@ -298,39 +302,69 @@ public:
 
     template<class Func, class...Args>
     inline Result<Args...> optimize_min(Func&& objectfunction,
-                                        tuple<Args...> initvals)
+                                        Input<Args...> initvals)
     {
         dir_ = OptDir::MIN;
         return static_cast<Subclass*>(this)->template optimize<Func, Args...>(
                     forward<Func>(objectfunction), initvals, Bound<Args>()... );
     }
 
+    template<class...Args, class Func>
+    inline Result<Args...> optimize_min(Func&& objectfunction)
+    {
+        dir_ = OptDir::MIN;
+        return static_cast<Subclass*>(this)->template optimize<Func, Args...>(
+                    forward<Func>(objectfunction),
+                    Input<Args...>(),
+                    Bound<Args>()... );
+    }
+
     /// Same as optimize_min but optimizes for maximum function value.
     template<class Func, class...Args>
     inline Result<Args...> optimize_max(Func&& objectfunction,
-                                        tuple<Args...> initvals,
+                                        Input<Args...> initvals,
                                         Bound<Args>... bounds)
     {
         dir_ = OptDir::MAX;
         return static_cast<Subclass*>(this)->template optimize<Func, Args...>(
                     forward<Func>(objectfunction), initvals, bounds... );
     }
-};
-
-// Just to be able to instantiate an unimplemented method.
-class DummyOptimizer : public Optimizer<DummyOptimizer> {
-    friend class Optimizer<DummyOptimizer>;
 
     template<class Func, class...Args>
-    inline Result<Args...> optimize(Func&& /*func*/,
-                                    tuple<Args...> /*initvals*/,
-                                    Bound<Args>... /*args*/) {
-        return Result<Args...>();
+    inline Result<Args...> optimize_max(Func&& objectfunction,
+                                        Input<Args...> initvals)
+    {
+        dir_ = OptDir::MAX;
+        return static_cast<Subclass*>(this)->template optimize<Func, Args...>(
+                    forward<Func>(objectfunction), initvals, Bound<Args>()... );
+    }
+
+};
+
+// Just to be able to instantiate an unimplemented method and generate compile
+// error.
+template<class T = void>
+class DummyOptimizer : public Optimizer<DummyOptimizer<T>> {
+    friend class Optimizer<DummyOptimizer<T>>;
+public:
+    DummyOptimizer() {
+        static_assert(always_false<T>::value, "Optimizer unimplemented!");
     }
 };
 
-template<Method m> struct OptimizerSubclass { using Type = DummyOptimizer; };
+// Specializing this struct will tell what kind of optimizer to generate for
+// a given method
+template<Method m> struct OptimizerSubclass { using Type = DummyOptimizer<>; };
+
+/// Optimizer type based on the method provided in parameter m.
 template<Method m> using TOptimizer = typename OptimizerSubclass<m>::Type;
+
+/// Global optimizer with an explicitly specified local method.
+template<Method m>
+inline TOptimizer<m> GlobalOptimizer(Method, const StopCriteria& scr = {})
+{ // Need to be specialized in order to do anything useful.
+    return TOptimizer<m>(scr);
+}
 
 }
 }

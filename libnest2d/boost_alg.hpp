@@ -370,6 +370,13 @@ inline bool ShapeLike::touches( const PolygonImpl& sh1,
     return boost::geometry::touches(sh1, sh2);
 }
 
+template<>
+inline bool ShapeLike::touches( const PointImpl& point,
+                                const PolygonImpl& shape)
+{
+    return boost::geometry::touches(point, shape);
+}
+
 #ifndef DISABLE_BOOST_BOUNDING_BOX
 template<>
 inline bp2d::Box ShapeLike::boundingBox(const PolygonImpl& sh)

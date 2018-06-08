@@ -696,6 +696,27 @@ TEST(GeometryAlgorithms, nfpConvexConvex) {
     }
 }
 
+TEST(GeometryAlgorithms, pointOnPolygonContour) {
+    using namespace libnest2d;
+
+    Rectangle input(10, 10);
+
+    strategies::EdgeCache<PolygonImpl> ecache(input);
+
+    auto first = *input.begin();
+    ASSERT_TRUE(getX(first) == getX(ecache.coords(0)));
+    ASSERT_TRUE(getY(first) == getY(ecache.coords(0)));
+
+    auto last = *std::prev(input.end());
+    ASSERT_TRUE(getX(last) == getX(ecache.coords(1.0)));
+    ASSERT_TRUE(getY(last) == getY(ecache.coords(1.0)));
+
+    for(int i = 0; i <= 100; i++) {
+        auto v = ecache.coords(i*(0.01));
+        ASSERT_TRUE(ShapeLike::touches(v, input.transformedShape()));
+    }
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

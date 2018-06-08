@@ -269,8 +269,17 @@ public:
 
                             m.emplace_back(item.transformedShape());
 
-                            auto b = ShapeLike::convexHull(m);
-                            auto a = ShapeLike::area(b);
+                            double occupied_area = 0;
+                            std::for_each(m.begin(), m.end(),
+                                          [&occupied_area](const RawShape& mshape){
+                               occupied_area +=  ShapeLike::area(mshape);
+                            });
+
+                            auto ch = ShapeLike::convexHull(m);
+                            auto circumf = EdgeCache<RawShape>(ch).circumference();
+                            double pack_rate = occupied_area/ShapeLike::area(ch);
+
+                            auto a = std::sqrt(circumf * (1.0 - pack_rate));
 
                             if(a < min_area) {
                                 can_pack = true;

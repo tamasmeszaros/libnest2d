@@ -557,32 +557,32 @@ public:
             for(unsigned idx = b; idx < store_.size(); idx+=bincount_guess) {
                 not_packed.push_back(store_[idx]);
             }
-            Placer& placer = placers.back();
-            jobs.emplace_back(std::bind(job, placer, not_packed)/*[&placer, &not_packed, &job]() { return job(placer, not_packed); }*/);//std::bind(job, placer, not_packed);
+            // std::bind(job, placer, not_packed)
+            jobs.emplace_back([b, &not_packeds, &placers, &job]() { return job(placers[b], not_packeds[b]); });
 //            rets[b] = std::async(std::launch::async, jobs[b]);
         }
 
         for(auto& j : jobs) j();
 //        for(auto& fut : rets) fut.wait();
 
-//        ItemList remaining;
-//        for(auto& np : not_packeds) {
-//            std::cout << "Not packeds: " << np.size() << std::endl;
-//            remaining.merge( np, [](Item& i1, Item& i2) {
-//                return i1.area() > i2.area();
-//            });
-//        }
+        ItemList remaining;
+        for(auto& np : not_packeds) {
+            std::cout << "Not packeds: " << np.size() << std::endl;
+            remaining.merge( np, [](Item& i1, Item& i2) {
+                return i1.area() > i2.area();
+            });
+        }
 
-//        auto placerIt = placers.begin();
-//        while(!remaining.empty() && placerIt != placers.end()) {
-//            job(*placerIt, remaining);
-//            ++placerIt;
-//        }
+        auto placerIt = placers.begin();
+        while(!remaining.empty() && placerIt != placers.end()) {
+            job(*placerIt, remaining);
+            ++placerIt;
+        }
 
-//        while(!remaining.empty()) {
-//            addBin();
-//            job(placers.back(), remaining);
-//        }
+        while(!remaining.empty()) {
+            addBin();
+            job(placers.back(), remaining);
+        }
 
     }
 };

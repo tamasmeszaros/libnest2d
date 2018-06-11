@@ -75,6 +75,7 @@ endif()
 message(STATUS "clipper lib is: ${LIBNEST2D_GEOMETRIES_TARGET}")
 
 find_package(NLopt 1.4 REQUIRED)
+find_package(Threads REQUIRED)
 
 add_library(libnest2d_static STATIC ${LIBNEST2D_SRCFILES} )
 target_link_libraries(libnest2d_static PRIVATE ${LIBNEST2D_GEOMETRIES_TARGET} ${NLopt_LIBS})
@@ -104,6 +105,6 @@ if(LIBNEST2D_BUILD_EXAMPLES)
                            tests/svgtools.hpp
                            tests/printer_parts.cpp
                            tests/printer_parts.h)
-    target_link_libraries(example libnest2d_static)
+    target_link_libraries(example libnest2d_static Threads::Threads)
     target_include_directories(example PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 endif()

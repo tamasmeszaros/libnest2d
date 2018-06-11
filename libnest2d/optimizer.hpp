@@ -82,7 +82,7 @@ public:
     // type of the parameter pack element that is processed. In C++14 we can
     // specifying this second parameter type as auto int the lamda parameter
     // list.
-    inline MapFn(Fn&& fn): fn_(fn) {}
+    inline MapFn(Fn&& fn): fn_(forward<Fn>(fn)) {}
 
     template<class T> void operator ()(T&& pack_element) {
         // We provide the index as the first parameter and the pack (or tuple)
@@ -103,14 +103,15 @@ class _MetaLoop {};
 
 // Implementation for the last element of Args...
 template <class...Args>
-class _MetaLoop<Int<sizeof...(Args)-1>, Args...> {
+class _MetaLoop<Int<0>, Args...> {
 public:
 
-    const static BP2D_CONSTEXPR int M = sizeof...(Args)-1;
+    const static BP2D_CONSTEXPR int N = 0;
+    const static BP2D_CONSTEXPR int ARGNUM = sizeof...(Args)-1;
 
     template<class Tup, class Fn>
     void run( Tup&& valtup, Fn&& fn) {
-        MapFn<M, Fn> {fn} (get<M>(valtup));
+        MapFn<ARGNUM-N, Fn> {forward<Fn>(fn)} (get<ARGNUM-N>(valtup));
     }
 };
 
@@ -119,12 +120,15 @@ template <int N, class...Args>
 class _MetaLoop<Int<N>, Args...> {
 public:
 
+    const static BP2D_CONSTEXPR int ARGNUM = sizeof...(Args)-1;
+
     template<class Tup, class Fn>
     void run(Tup&& valtup, Fn&& fn) {
-        MapFn<N, Fn> {fn} (get<N>(valtup));
+        MapFn<ARGNUM-N, Fn> {forward<Fn>(fn)} (std::get<ARGNUM-N>(valtup));
 
         // Recursive call to process the next element of Args
-        _MetaLoop<Int<N+1>, Args...> ().run(forward<Tup>(valtup), fn);
+        _MetaLoop<Int<N-1>, Args...> ().run(forward<Tup>(valtup),
+                                            forward<Fn>(fn));
     }
 };
 
@@ -136,7 +140,7 @@ public:
  * least you have learned a functional programming pattern.
  */
 template<class...Args>
-using MetaLoop = _MetaLoop<Int<0>, Args...>;
+using MetaLoop = _MetaLoop<Int<sizeof...(Args)-1>, Args...>;
 
 public:
 
@@ -174,22 +178,23 @@ public:
  */
 template<class...Args, class Fn>
 inline static void map(Fn&& fn, Args&&...args) {
-    MetaLoop<Args...>().run(tuple<Args&&...>(forward<Args>(args)...), fn);
+    MetaLoop<Args...>().run(tuple<Args&&...>(forward<Args>(args)...),
+                            forward<Fn>(fn));
 }
 
 template<class...Args, class Fn>
 inline static void map(Fn&& fn, tuple<Args...>&& tup) {
-    MetaLoop<Args...>().run(std::move(tup), fn);
+    MetaLoop<Args...>().run(std::move(tup), forward<Fn>(fn));
 }
 
 template<class...Args, class Fn>
 inline static void map(Fn&& fn, tuple<Args...>& tup) {
-    MetaLoop<Args...>().run(tup, fn);
+    MetaLoop<Args...>().run(tup, forward<Fn>(fn));
 }
 
 template<class...Args, class Fn>
 inline static void map(Fn&& fn, const tuple<Args...>& tup) {
-    MetaLoop<Args...>().run(tup, fn);
+    MetaLoop<Args...>().run(tup, forward<Fn>(fn));
 }
 
 };
@@ -297,7 +302,7 @@ public:
     {
         dir_ = OptDir::MIN;
         return static_cast<Subclass*>(this)->template optimize<Func, Args...>(
-                    objectfunction, initvals, bounds... );
+                    forward<Func>(objectfunction), initvals, bounds... );
     }
 
     template<class Func, class...Args>
@@ -346,9 +351,25 @@ public:
 template<class T = void>
 class DummyOptimizer : public Optimizer<DummyOptimizer<T>> {
     friend class Optimizer<DummyOptimizer<T>>;
+
+    template<class Fn, class Tup, std::size_t...Is>
+    static double callFunWithTuple(Fn&& fn, Tup&& tup, std::index_sequence<Is...>)
+    {
+        return fn(std::get<Is>(tup)...);
+    }
 public:
     DummyOptimizer() {
-        static_assert(always_false<T>::value, "Optimizer unimplemented!");
+//        static_assert(always_false<T>::value, "Optimizer unimplemented!");
+    }
+
+    template<class Func, class...Args>
+    Result<Args...> optimize(Func&& func,
+                             std::tuple<Args...> initvals,
+                             Bound<Args>... args)
+    {
+        Result<Args...> ret;
+        ret.score = callFunWithTuple(std::forward<Func>(func), initvals, std::index_sequence_for<Args...>() );
+        return ret;
     }
 };
 

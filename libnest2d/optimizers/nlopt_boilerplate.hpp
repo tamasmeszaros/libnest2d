@@ -3,6 +3,7 @@
 
 #include <nlopt.hpp>
 #include <libnest2d/optimizer.hpp>
+#include <cassert>
 
 #include <utility>
 

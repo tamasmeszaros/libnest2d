@@ -74,7 +74,7 @@ void arrangeRectangles() {
 
     NfpPlacer::Config pconf;
     pconf.alignment = NfpPlacer::Config::Alignment::BOTTOM_LEFT;
-    pconf.rotations = {0.0, Pi/2.0, Pi, 3*Pi/2 };
+    pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/ };
     pconf.use_solver = false;
     Arranger<NfpPlacer, DJDHeuristic> arrange(bin, min_obj_distance, pconf);
 

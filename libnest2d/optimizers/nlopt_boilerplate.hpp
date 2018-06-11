@@ -4,6 +4,8 @@
 #include <nlopt.hpp>
 #include <libnest2d/optimizer.hpp>
 
+#include <utility>
+
 namespace libnest2d { namespace opt {
 
 nlopt::algorithm method2nloptAlg(Method m) {
@@ -79,6 +81,12 @@ protected:
         }
     };
 
+    template<class Fn, class Tup, std::size_t...Is>
+    static double callFunWithTuple(Fn&& fn, Tup&& tup, std::index_sequence<Is...>)
+    {
+        return fn(std::get<Is>(tup)...);
+    }
+
     /* ********************************************************************** */
 
     template<class Fn, class...Args>
@@ -92,7 +100,7 @@ protected:
         // copy the obtained objectfunction arguments to the funval tuple.
         metaloop::map(FunvalCopyFunc(params), funval);
 
-        auto ret = (*fnptr)(funval);
+        auto ret = callFunWithTuple(*fnptr, funval, std::index_sequence_for<Args...>()); //(*fnptr)(funval);
 
         return ret;
     }

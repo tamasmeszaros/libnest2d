@@ -2,6 +2,9 @@
 #define DJD_HEURISTIC_HPP
 
 #include <list>
+#include <future>
+#include <functional>
+
 #include "selection_boilerplate.hpp"
 
 namespace libnest2d { namespace strategies {
@@ -43,6 +46,13 @@ private:
     // trying items one by one, or pairs or triplets.
     static const double INITIAL_FILL_PROPORTION;
 
+//    class ItemList {
+//        std::vector<ItemRef> l_;
+//    public:
+
+//        ItemRef grab();
+//    };
+
 public:
 
     inline void configure(const Config& config) {
@@ -74,24 +84,18 @@ public:
             return i1.area() > i2.area();
         });
 
-        ItemList not_packed(store_.begin(), store_.end());
+//        ItemList not_packed(store_.begin(), store_.end());
 
         std::vector<Placer> placers;
 
-        double free_area = 0;
-        double filled_area = 0;
-        double waste = 0;
         bool try_reverse = config_.try_reverse_order;
 
         // Will use a subroutine to add a new bin
-        auto addBin = [this, &placers, &free_area,
-                       &filled_area, &bin, &pconfig]()
+        auto addBin = [this, &placers, &bin, &pconfig]()
         {
             placers.emplace_back(bin);
             packed_bins_.emplace_back();
             placers.back().configure(pconfig);
-            free_area = ShapeLike::area<RawShape>(bin);
-            filled_area = 0;
         };
 
         // Types for pairs and triplets
@@ -136,8 +140,11 @@ public:
         };
 
         auto tryOneByOne = // Subroutine to try adding items one by one.
-                [&not_packed,  &bin_area, &free_area, &filled_area]
-                (Placer& placer, double waste)
+                [&bin_area]
+                (Placer& placer, ItemList& not_packed,
+                double waste,
+                double& free_area,
+                double& filled_area)
         {
             double item_area = 0;
             bool ret = false;
@@ -160,9 +167,12 @@ public:
         };
 
         auto tryGroupsOfTwo = // Try adding groups of two items into the bin.
-                [&not_packed, &bin_area, &free_area, &filled_area, &check_pair,
+                [&bin_area, &check_pair,
                  try_reverse]
-                (Placer& placer, double waste)
+                (Placer& placer, ItemList& not_packed,
+                double waste,
+                double& free_area,
+                double& filled_area)
         {
             double item_area = 0, largest_area = 0, smallest_area = 0;
             double second_largest = 0, second_smallest = 0;
@@ -259,9 +269,12 @@ public:
         };
 
         auto tryGroupsOfThree = // Try adding groups of three items.
-                [&not_packed, &bin_area, &free_area, &filled_area,
+                [&bin_area,
                  &check_pair, &check_triplet, try_reverse]
-                (Placer& placer, double waste)
+                (Placer& placer, ItemList& not_packed,
+                double waste,
+                double& free_area,
+                double& filled_area)
         {
 
             if(not_packed.size() < 3) return false;
@@ -445,21 +458,19 @@ public:
             return ret;
         };
 
-        addBin();
-
         // Safety test: try to pack each item into an empty bin. If it fails
         // then it should be removed from the not_packed list
-        { auto it = not_packed.begin();
-            while (it != not_packed.end()) {
+        { auto it = store_.begin();
+            while (it != store_.end()) {
                 Placer p(bin);
                 if(!p.pack(*it)) {
                     auto itmp = it++;
-                    not_packed.erase(itmp);
+                    store_.erase(itmp);
                 } else it++;
             }
         }
 
-        auto makeProgress = [this, &not_packed](Placer& placer) {
+        auto makeProgress = [this](Placer& placer, ItemList& not_packed) {
             packed_bins_.back() = placer.getItems();
 #ifndef NDEBUG
             packed_bins_.back().insert(packed_bins_.back().end(),
@@ -469,52 +480,110 @@ public:
             this->progress_(static_cast<unsigned>(not_packed.size()));
         };
 
-        while(!not_packed.empty()) {
+        auto job = [INITIAL_FILL_AREA, bin_area, w,
+                    &tryOneByOne,
+                    &tryGroupsOfTwo,
+                    &tryGroupsOfThree,
+                    &makeProgress ]
+                   (Placer& placer, ItemList& not_packed) {
 
-            auto& placer = placers.back();
+            bool can_pack = true;
 
-            {// Fill the bin up to INITIAL_FILL_PROPORTION of its capacity
-                auto it = not_packed.begin();
+            double free_area = bin_area;
+            double filled_area = 0;
+            double waste = .0;
 
-                while(it != not_packed.end() &&
-                      filled_area < INITIAL_FILL_AREA)
-                {
-                    if(placer.pack(*it)) {
-                        filled_area += it->get().area();
-                        free_area = bin_area - filled_area;
-                        auto itmp = it++;
-                        not_packed.erase(itmp);
-                        makeProgress(placer);
-                    } else it++;
+            while(!not_packed.empty() && can_pack) {
+
+                {// Fill the bin up to INITIAL_FILL_PROPORTION of its capacity
+                    auto it = not_packed.begin();
+
+                    while(it != not_packed.end() &&
+                          filled_area < INITIAL_FILL_AREA)
+                    {
+                        if(placer.pack(*it)) {
+                            filled_area += it->get().area();
+                            free_area = bin_area - filled_area;
+                            auto itmp = it++;
+                            not_packed.erase(itmp);
+                            makeProgress(placer, not_packed);
+                        } else it++;
+                    }
                 }
+
+                // try pieses one by one
+                while(tryOneByOne(placer, not_packed, waste, free_area,
+                                  filled_area)) {
+                    waste = 0;
+                    makeProgress(placer, not_packed);
+                }
+
+                // try groups of 2 pieses
+                while(tryGroupsOfTwo(placer, not_packed, waste, free_area,
+                                     filled_area)) {
+                    waste = 0;
+                    makeProgress(placer, not_packed);
+                }
+
+                // try groups of 3 pieses
+                while(tryGroupsOfThree(placer, not_packed, waste, free_area,
+                                       filled_area)) {
+                    waste = 0;
+                    makeProgress(placer, not_packed);
+                }
+
+                if(waste < free_area) waste += w;
+                else if(!not_packed.empty()) can_pack = false;
             }
 
-            // try pieses one by one
-            while(tryOneByOne(placer, waste)) {
-                waste = 0;
-                makeProgress(placer);
-            }
+            return can_pack;
+        };
 
-            // try groups of 2 pieses
-            while(tryGroupsOfTwo(placer, waste)) {
-                waste = 0;
-                makeProgress(placer);
-            }
+        double items_area = 0;
+        std::for_each(store_.begin(), store_.end(), [&items_area](Item& item){
+           items_area += item.area();
+        });
 
-            // try groups of 3 pieses
-            while(tryGroupsOfThree(placer, waste)) {
-                waste = 0;
-                makeProgress(placer);
-            }
+        auto bincount_guess = unsigned(std::ceil(items_area / bin_area));
+        std::vector<std::future<bool>> rets(bincount_guess);
 
-            if(waste < free_area) waste += w;
-            else if(!not_packed.empty()) addBin();
+        std::vector<ItemList> not_packeds(bincount_guess);
+
+        std::vector<std::function<bool()>> jobs;
+
+        for(unsigned b = 0; b < bincount_guess; b++) {
+            addBin();
+            ItemList& not_packed = not_packeds[b];
+            for(unsigned idx = b; idx < store_.size(); idx+=bincount_guess) {
+                not_packed.push_back(store_[idx]);
+            }
+            Placer& placer = placers.back();
+            jobs.emplace_back(std::bind(job, placer, not_packed)/*[&placer, &not_packed, &job]() { return job(placer, not_packed); }*/);//std::bind(job, placer, not_packed);
+//            rets[b] = std::async(std::launch::async, jobs[b]);
         }
 
-//        std::for_each(placers.begin(), placers.end(),
-//                      [this](Placer& placer){
-//            packed_bins_.push_back(placer.getItems());
-//        });
+        for(auto& j : jobs) j();
+//        for(auto& fut : rets) fut.wait();
+
+//        ItemList remaining;
+//        for(auto& np : not_packeds) {
+//            std::cout << "Not packeds: " << np.size() << std::endl;
+//            remaining.merge( np, [](Item& i1, Item& i2) {
+//                return i1.area() > i2.area();
+//            });
+//        }
+
+//        auto placerIt = placers.begin();
+//        while(!remaining.empty() && placerIt != placers.end()) {
+//            job(*placerIt, remaining);
+//            ++placerIt;
+//        }
+
+//        while(!remaining.empty()) {
+//            addBin();
+//            job(placers.back(), remaining);
+//        }
+
     }
 };
 

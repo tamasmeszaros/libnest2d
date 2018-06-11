@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <string>
 #include <cmath>
+#include <type_traits>
 
 namespace libnest2d {
 
@@ -29,6 +30,14 @@ using remove_ref_t = typename std::remove_reference<T>::type;
 
 template<bool B, class T>
 using enable_if_t = typename std::enable_if<B, T>::type;
+
+template<class F, class...Args>
+struct invoke_result {
+    using type = typename std::result_of<F(Args...)>::type;
+};
+
+template<class F, class...Args>
+using invoke_result_t = typename invoke_result<F, Args...>::type;
 
 /**
  * A useful little tool for triggering static_assert error messages e.g. when

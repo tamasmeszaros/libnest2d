@@ -168,9 +168,9 @@ public:
                     return ecache[nfp_idx].coords(p);
                 };
 
-                auto objfunc = [&] (std::tuple<double> relpos)
+                auto objfunc = [&] (double relpos)
                 {
-                    Vertex v = getNfpPoint(std::get<0>(relpos));
+                    Vertex v = getNfpPoint(relpos);
                     auto d = v - iv;
                     d += startpos;
                     item.translation(d);

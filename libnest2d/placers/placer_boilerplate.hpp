@@ -39,7 +39,10 @@ public:
 
     using ItemGroup = const Container&;
 
-    inline PlacerBoilerplate(const BinType& bin): bin_(bin) {}
+    inline PlacerBoilerplate(const BinType& bin, unsigned cap = 50): bin_(bin)
+    {
+        items_.reserve(cap);
+    }
 
     inline const BinType& bin() const BP2D_NOEXCEPT { return bin_; }
 
@@ -53,7 +56,9 @@ public:
 
     bool pack(Item& item) {
         auto&& r = static_cast<Subclass*>(this)->trypack(item);
-        if(r) items_.push_back(*(r.item_ptr_));
+        if(r) {
+            items_.push_back(*(r.item_ptr_));
+        }
         return r;
     }
 
@@ -65,7 +70,9 @@ public:
         }
     }
 
-    void unpackLast() { items_.pop_back(); }
+    void unpackLast() {
+        items_.pop_back();
+    }
 
     inline ItemGroup getItems() const { return items_; }
 

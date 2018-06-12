@@ -30,14 +30,14 @@ class Bound {
     T min_;
     T max_;
 public:
-    Bound(T min = limits<T>::min(),
-          T max = limits<T>::max()): min_(min), max_(max) {}
+    Bound(const T& min = limits<T>::min(),
+          const T& max = limits<T>::max()): min_(min), max_(max) {}
     inline const T min() const BP2D_NOEXCEPT { return min_; }
     inline const T max() const BP2D_NOEXCEPT { return max_; }
 };
 
 template<class T>
-inline Bound<T> bound(T&& min, T&& max) { return Bound<T>(min, max); }
+inline Bound<T> bound(const T& min, const T& max) { return Bound<T>(min, max); }
 
 template<class...Args> using Input = tuple<Args...>;
 
@@ -204,9 +204,9 @@ inline static void map(Fn&& fn, const tuple<Args...>& tup) {
  * implementation can be instantiated.
  */
 enum class Method {
-    SIMPLEX,
-    GENETIC,
-    SIMULATED_ANNEALING,
+    L_SIMPLEX,
+    L_SUBPLEX,
+    G_GENETIC,
     //...
 };
 

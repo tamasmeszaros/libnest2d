@@ -40,31 +40,33 @@ std::vector<Item>& stegoParts() {
 void arrangeRectangles() {
     using namespace libnest2d;
 
-    auto& input = prusaParts();
-//    std::vector<Rectangle> input = {
-//        {80, 80},
-//        {60, 90},
-//        {70, 30},
-//        {80, 60},
-//        {60, 60},
-//        {60, 40},
-//        {40, 40},
-//        {10, 10},
-//        {10, 10},
-//        {10, 10},
-//        {10, 10},
-//        {10, 10},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {5, 5},
-//        {20, 20} };
-//    const int SCALE = 1;
-
     const int SCALE = 1000000;
+    std::vector<Rectangle> rects = {
+        {80*SCALE, 80*SCALE},
+        {60*SCALE, 90*SCALE},
+        {70*SCALE, 30*SCALE},
+        {80*SCALE, 60*SCALE},
+        {60*SCALE, 60*SCALE},
+        {60*SCALE, 40*SCALE},
+        {40*SCALE, 40*SCALE},
+        {10*SCALE, 10*SCALE},
+        {10*SCALE, 10*SCALE},
+        {10*SCALE, 10*SCALE},
+        {10*SCALE, 10*SCALE},
+        {10*SCALE, 10*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {20*SCALE, 20*SCALE} };
+
+    auto input = prusaParts();
+//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+//    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
+//    input.insert(input.end(), rects.begin(), rects.end());
 
     Box bin(250*SCALE, 210*SCALE);
 
@@ -72,7 +74,7 @@ void arrangeRectangles() {
 
     NfpPlacer::Config pconf;
     pconf.alignment = NfpPlacer::Config::Alignment::BOTTOM_LEFT;
-    pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/ };
+    pconf.rotations = {0.0, Pi/2.0, Pi, 3*Pi/2};
     pconf.use_solver = true;
     Arranger<NfpPlacer, DJDHeuristic> arrange(bin, min_obj_distance, pconf);
 

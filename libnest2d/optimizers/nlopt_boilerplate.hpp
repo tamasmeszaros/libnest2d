@@ -12,8 +12,9 @@ namespace libnest2d { namespace opt {
 nlopt::algorithm method2nloptAlg(Method m) {
 
     switch(m) {
-    case Method::SIMPLEX: return nlopt::LN_NELDERMEAD;
-    case Method::GENETIC: return nlopt::GN_ESCH;
+    case Method::L_SIMPLEX: return nlopt::LN_NELDERMEAD;
+    case Method::L_SUBPLEX: return nlopt::LN_SBPLX;
+    case Method::G_GENETIC: return nlopt::GN_ESCH;
     default: assert(false); throw(m);
     }
 }
@@ -169,7 +170,7 @@ protected:
 public:
     inline explicit NloptOptimizer(nlopt::algorithm alg,
                                    StopCriteria stopcr = {}):
-        Base(stopcr), alg_(alg), localmethod_(Method::SIMPLEX) {}
+        Base(stopcr), alg_(alg), localmethod_(Method::L_SIMPLEX) {}
 
 };
 

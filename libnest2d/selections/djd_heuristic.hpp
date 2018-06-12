@@ -3,6 +3,7 @@
 
 #include <list>
 #include <future>
+#include <atomic>
 #include <functional>
 
 #include "selection_boilerplate.hpp"
@@ -24,34 +25,45 @@ public:
      * @brief The Config for DJD heuristic.
      */
     struct Config {
-        /// Max number of bins.
-        unsigned max_bins = 0;
 
         /**
          * If true, the algorithm will try to place pair and driplets in all
          * possible order.
          */
         bool try_reverse_order = true;
+
+        /**
+         * The initial fill proportion of the bin area that will be filled before
+         * trying items one by one, or pairs or triplets.
+         *
+         * The initial fill proportion suggested by
+         * [López-Camacho]\
+         * (http://www.cs.stir.ac.uk/~goc/papers/EffectiveHueristic2DAOR2013.pdf)
+         * is one third of the area of bin.
+         */
+        double initial_fill_proportion = 1.0/3.0;
+
+        /**
+         * @brief How much is the acceptable waste incremented at each iteration
+         */
+        double waste_increment = 0.1;
+
+        /**
+         * @brief Allow parallel jobs for filling multiple bins.
+         *
+         * This will decrease the soution quality but can greatly boost up
+         * performance for large number of items.
+         */
+        bool allow_parallel = true;
     };
 
 private:
     using Base::packed_bins_;
     using ItemGroup = typename Base::ItemGroup;
 
-    using Container = ItemGroup;//typename std::vector<Item>;
+    using Container = ItemGroup;
     Container store_;
     Config config_;
-
-    // The initial fill proportion of the bin area that will be filled before
-    // trying items one by one, or pairs or triplets.
-    static const double INITIAL_FILL_PROPORTION;
-
-//    class ItemList {
-//        std::vector<ItemRef> l_;
-//    public:
-
-//        ItemRef grab();
-//    };
 
 public:
 
@@ -71,7 +83,9 @@ public:
         using ItemList = std::list<ItemRef>;
 
         const double bin_area = ShapeLike::area<RawShape>(bin);
-        const double w = bin_area * 0.1;
+        const double w = bin_area * config_.waste_increment;
+
+        const double INITIAL_FILL_PROPORTION = config_.initial_fill_proportion;
         const double INITIAL_FILL_AREA = bin_area*INITIAL_FILL_PROPORTION;
 
         store_.clear();
@@ -83,8 +97,6 @@ public:
         std::sort(store_.begin(), store_.end(), [](Item& i1, Item& i2) {
             return i1.area() > i2.area();
         });
-
-//        ItemList not_packed(store_.begin(), store_.end());
 
         std::vector<Placer> placers;
 
@@ -470,27 +482,52 @@ public:
             }
         }
 
-        auto makeProgress = [this](Placer& placer, ItemList& not_packed) {
-            packed_bins_.back() = placer.getItems();
+        std::atomic<int> acounter(int(store_.size()));
+        auto makeProgress = [this, &acounter]
+                (Placer& placer, unsigned idx, int packednum)
+        {
+
+            packed_bins_[idx] = placer.getItems();
 #ifndef NDEBUG
-            packed_bins_.back().insert(packed_bins_.back().end(),
+            packed_bins_[idx].insert(packed_bins_[idx].end(),
                                        placer.getDebugItems().begin(),
                                        placer.getDebugItems().end());
 #endif
-            this->progress_(static_cast<unsigned>(not_packed.size()));
+            // TODO here should be a spinlock
+            acounter -= packednum;
+            this->progress_(acounter);
         };
 
-        auto job = [INITIAL_FILL_AREA, bin_area, w,
+        double items_area = 0;
+        std::for_each(store_.begin(), store_.end(), [&items_area](Item& item){
+           items_area += item.area();
+        });
+
+        auto bincount_guess = unsigned(std::ceil(items_area / bin_area));
+
+        bool do_parallel = config_.allow_parallel &&
+                bincount_guess > 1 &&
+                bincount_guess >= std::thread::hardware_concurrency()/2;
+
+        auto packjob = [INITIAL_FILL_AREA, bin_area, w,
                     &tryOneByOne,
                     &tryGroupsOfTwo,
                     &tryGroupsOfThree,
-                    &makeProgress ]
-                   (Placer& placer, ItemList& not_packed) {
+                    &makeProgress]
+                    (Placer& placer, ItemList& not_packed, unsigned idx)
+        {
 
             bool can_pack = true;
 
-            double free_area = bin_area;
             double filled_area = 0;
+            auto items = placer.getItems();
+            std::for_each(items.begin(), items.end(),
+                          [&filled_area] (Item& item){
+                filled_area += item.area();
+            });
+
+            double free_area = bin_area - filled_area;
+
             double waste = .0;
 
             while(!not_packed.empty() && can_pack) {
@@ -506,7 +543,7 @@ public:
                             free_area = bin_area - filled_area;
                             auto itmp = it++;
                             not_packed.erase(itmp);
-                            makeProgress(placer, not_packed);
+                            makeProgress(placer, idx, 1);
                         } else it++;
                     }
                 }
@@ -515,21 +552,21 @@ public:
                 while(tryOneByOne(placer, not_packed, waste, free_area,
                                   filled_area)) {
                     waste = 0;
-                    makeProgress(placer, not_packed);
+                    makeProgress(placer, idx, 1);
                 }
 
                 // try groups of 2 pieses
                 while(tryGroupsOfTwo(placer, not_packed, waste, free_area,
                                      filled_area)) {
                     waste = 0;
-                    makeProgress(placer, not_packed);
+                    makeProgress(placer, idx, 2);
                 }
 
                 // try groups of 3 pieses
                 while(tryGroupsOfThree(placer, not_packed, waste, free_area,
                                        filled_area)) {
                     waste = 0;
-                    makeProgress(placer, not_packed);
+                    makeProgress(placer, idx, 3);
                 }
 
                 if(waste < free_area) waste += w;
@@ -539,62 +576,56 @@ public:
             return can_pack;
         };
 
-        double items_area = 0;
-        std::for_each(store_.begin(), store_.end(), [&items_area](Item& item){
-           items_area += item.area();
-        });
-
-        auto bincount_guess = unsigned(std::ceil(items_area / bin_area));
-        std::vector<std::future<bool>> rets(bincount_guess);
-
-        std::vector<ItemList> not_packeds(bincount_guess);
-
-        std::vector<std::function<bool()>> jobs;
-
-        for(unsigned b = 0; b < bincount_guess; b++) {
-            addBin();
-            ItemList& not_packed = not_packeds[b];
-            for(unsigned idx = b; idx < store_.size(); idx+=bincount_guess) {
-                not_packed.push_back(store_[idx]);
-            }
-            // std::bind(job, placer, not_packed)
-            jobs.emplace_back([b, &not_packeds, &placers, &job]() { return job(placers[b], not_packeds[b]); });
-//            rets[b] = std::async(std::launch::async, jobs[b]);
-        }
-
-        for(auto& j : jobs) j();
-//        for(auto& fut : rets) fut.wait();
-
+        int idx = 0;
         ItemList remaining;
-        for(auto& np : not_packeds) {
-            std::cout << "Not packeds: " << np.size() << std::endl;
-            remaining.merge( np, [](Item& i1, Item& i2) {
-                return i1.area() > i2.area();
-            });
-        }
 
-        auto placerIt = placers.begin();
-        while(!remaining.empty() && placerIt != placers.end()) {
-            job(*placerIt, remaining);
-            ++placerIt;
+        if(do_parallel) {
+            std::vector<ItemList> not_packeds(bincount_guess);
+
+            for(unsigned b = 0; b < bincount_guess; b++) {
+                addBin();
+                ItemList& not_packed = not_packeds[b];
+                for(unsigned idx = b; idx < store_.size(); idx+=bincount_guess) {
+                    not_packed.push_back(store_[idx]);
+                }
+            }
+
+            auto job = [&placers, &not_packeds, &packjob](unsigned idx) {
+                Placer& placer = placers[idx];
+                ItemList& not_packed = not_packeds[idx];
+                return packjob(placer, not_packed, idx);
+            };
+
+            std::vector<std::future<bool>> rets(bincount_guess);
+            for(unsigned b = 0; b < bincount_guess; b++) {
+                rets[b] = std::async(std::launch::async, job, b);
+            }
+
+            for(unsigned fi = 0; fi < rets.size(); ++fi) {
+                rets[fi].wait();
+
+                remaining.merge( not_packeds[fi], [](Item& i1, Item& i2) {
+                    return i1.area() > i2.area();
+                });
+
+                for(unsigned fj = 0; fj < fi && !remaining.empty(); fj++) {
+                    packjob(placers[fj], remaining, fj); idx = fj;
+                }
+            }
+
+            idx = placers.size();
+
+        } else {
+            remaining = ItemList(store_.begin(), store_.end());
         }
 
         while(!remaining.empty()) {
             addBin();
-            job(placers.back(), remaining);
+            packjob(placers[idx], remaining, idx); idx++;
         }
 
     }
 };
-
-/*
- * The initial fill proportion suggested by
- * [López-Camacho]\
- * (http://www.cs.stir.ac.uk/~goc/papers/EffectiveHueristic2DAOR2013.pdf)
- * is one third of the area of bin.
- */
-template<class RawShape>
-const double _DJDHeuristic<RawShape>::INITIAL_FILL_PROPORTION = 1.0/3.0;
 
 }
 }

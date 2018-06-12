@@ -45,6 +45,7 @@ set(LIBNEST2D_SRCFILES
     libnest2d/selections/firstfit.hpp
     libnest2d/selections/djd_heuristic.hpp
     libnest2d/optimizers/simplex.hpp
+    libnest2d/optimizers/subplex.hpp
     libnest2d/optimizers/genetic.hpp
     libnest2d/optimizers/nlopt_boilerplate.hpp
     )

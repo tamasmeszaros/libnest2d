@@ -1,11 +1,12 @@
 #ifndef NOFITPOLY_HPP
 #define NOFITPOLY_HPP
 
-#include <map>
+#ifndef NDEBUG
+#include <iostream>
+#endif
 #include "placer_boilerplate.hpp"
 #include "../geometries_nfp.hpp"
-#include <libnest2d/optimizers/genetic.hpp>
-#include <libnest2d/optimizers/simplex.hpp>
+#include <libnest2d/optimizers/subplex.hpp>
 
 namespace libnest2d { namespace strategies {
 
@@ -32,6 +33,16 @@ template<class RawShape> class EdgeCache {
     using Coord = TCoord<Vertex>;
     using Edge = _Segment<Vertex>;
 
+    enum Corners {
+        BOTTOM,
+        LEFT,
+        RIGHT,
+        TOP,
+        NUM_CORNERS
+    };
+
+    std::vector<double> corners_;
+
     std::vector<Edge> emap_;
     std::vector<double> distances_;
     double full_distance_ = 0;
@@ -48,17 +59,60 @@ template<class RawShape> class EdgeCache {
             full_distance_ += emap_.back().length();
             distances_.push_back(full_distance_);
         }
+
+        std::vector<unsigned> idx_ud(emap_.size(), 0.0);
+        std::vector<unsigned> idx_lr(emap_.size(), 0.0);
+
+        std::iota(idx_ud.begin(), idx_ud.end(), 0);
+        std::iota(idx_lr.begin(), idx_lr.end(), 0);
+
+        std::sort(idx_ud.begin(), idx_ud.end(),
+                  [this](unsigned idx1, unsigned idx2)
+        {
+            const Vertex& v1 = emap_[idx1].first();
+            const Vertex& v2 = emap_[idx2].first();
+            auto diff = getY(v1) - getY(v2);
+            if(std::abs(diff) <= std::numeric_limits<Coord>::epsilon())
+              return getX(v1) < getX(v2);
+
+            return diff < 0;
+        });
+
+        std::sort(idx_lr.begin(), idx_lr.end(),
+                  [this](unsigned idx1, unsigned idx2)
+        {
+            const Vertex& v1 = emap_[idx1].first();
+            const Vertex& v2 = emap_[idx2].first();
+
+            auto diff = getX(v1) - getX(v2);
+            if(std::abs(diff) <= std::numeric_limits<Coord>::epsilon())
+                return getY(v1) < getY(v2);
+
+            return diff < 0;
+        });
+
+        corners_[BOTTOM] = distances_[idx_ud.front()]/full_distance_;
+        corners_[TOP] = distances_[idx_ud.back()]/full_distance_;
+        corners_[LEFT] = distances_[idx_lr.front()]/full_distance_;
+        corners_[RIGHT] = distances_[idx_lr.back()]/full_distance_;
     }
 
 public:
 
+    using iterator = std::vector<double>::iterator;
+    using const_iterator = std::vector<double>::const_iterator;
+
     inline EdgeCache() = default;
 
-    inline EdgeCache(const _Item<RawShape>& item) {
+    inline EdgeCache(const _Item<RawShape>& item): corners_(NUM_CORNERS, 0.0)
+    {
         createCache(item.transformedShape());
     }
 
-    inline EdgeCache(const RawShape& sh) { createCache(sh); }
+    inline EdgeCache(const RawShape& sh): corners_(NUM_CORNERS, 0.0)
+    {
+        createCache(sh);
+    }
 
     /**
      * @brief Get a point on the circumference of a polygon.
@@ -94,6 +148,16 @@ public:
     }
 
     inline double circumference() const BP2D_NOEXCEPT { return full_distance_; }
+
+    inline double corner(Corners c) const BP2D_NOEXCEPT {
+        assert(c < NUM_CORNERS);
+        return corners_[c];
+    }
+
+    inline const std::vector<double>& corners() const BP2D_NOEXCEPT {
+        return corners_;
+    }
+
 };
 
 // Nfp for a bunch of polygons. If the polygons are convex, the nfp calculated
@@ -133,9 +197,30 @@ class _NofitPolyPlacer: public PlacerBoilerplate<_NofitPolyPlacer<RawShape>,
 
     using Box = _Box<TPoint<RawShape>>;
 
+    const double norm_;
+    const double penality_;
+
+    bool static wouldFit(const RawShape& chull, const RawShape& bin) {
+        auto bbch = ShapeLike::boundingBox<RawShape>(chull);
+        auto bbin = ShapeLike::boundingBox<RawShape>(bin);
+        auto d = bbin.minCorner() - bbch.minCorner();
+        auto chullcpy = chull;
+        ShapeLike::translate(chullcpy, d);
+        return ShapeLike::isInside<RawShape>(chullcpy, bbin);
+    }
+
+    bool static wouldFit(const RawShape& chull, const Box& bin)
+    {
+        auto bbch = ShapeLike::boundingBox<RawShape>(chull);
+        return bbch.width() <= bin.width() && bbch.height() <= bin.height();
+    }
+
 public:
 
-    inline explicit _NofitPolyPlacer(const BinType& bin): Base(bin) {}
+    inline explicit _NofitPolyPlacer(const BinType& bin):
+        Base(bin),
+        norm_(std::sqrt(ShapeLike::area<RawShape>(bin))),
+        penality_(1e6*norm_) {}
 
     PackResult trypack(Item& item) {
 
@@ -148,34 +233,51 @@ public:
             can_pack = item.isInside(bin_);
         } else {
             if(config_.use_solver) {
-                // place the new item outside of the print bed to make sure it is
-                // disjuct from the current merged pile
-                placeOutsideOfBin(item);
 
-                auto trsh = item.transformedShape();
+                double best_score = penality_;
 
-                auto nfps = nfp(items_, trsh);
-                auto iv = Nfp::referenceVertex(trsh);
-                auto startpos = item.translation();
-                std::vector<EdgeCache<RawShape>> ecache;
-                ecache.reserve(nfps.size());
-                for(auto& nfp : nfps ) ecache.emplace_back(nfp);
+                auto initial_tr = item.translation();
+                auto initial_rot = item.rotation();
+                Vertex final_tr = {0, 0};
+                Radians final_rot = 0;
+                Nfp::Shapes<RawShape> nfps;
 
-                auto getNfpPoint = [&nfps, &ecache](double relpos) {
-                    auto nfp_idx = static_cast<unsigned>(relpos / nfps.size());
-                    if(nfp_idx >= nfps.size()) nfp_idx = nfps.size()-1;
-                    auto p = relpos - std::floor(relpos / nfps.size());
-                    return ecache[nfp_idx].coords(p);
-                };
+                for(auto rot : config_.rotations) {
 
-                auto objfunc = [&] (double relpos)
-                {
-                    Vertex v = getNfpPoint(relpos);
-                    auto d = v - iv;
-                    d += startpos;
-                    item.translation(d);
+                    item.translation(initial_tr);
+                    item.rotation(initial_rot + rot);
 
-                    if( item.isInside(bin_) ) {
+                    // place the new item outside of the print bed to make sure it is
+                    // disjuct from the current merged pile
+                    placeOutsideOfBin(item);
+
+                    auto trsh = item.transformedShape();
+
+                    nfps = nfp(items_, trsh);
+                    auto iv = Nfp::referenceVertex(trsh);
+
+                    auto startpos = item.translation();
+
+                    std::vector<EdgeCache<RawShape>> ecache;
+                    ecache.reserve(nfps.size());
+
+                    for(auto& nfp : nfps ) ecache.emplace_back(nfp);
+
+                    auto getNfpPoint = [&nfps, &ecache](double relpos) {
+                        auto relpfloor = std::floor(relpos);
+                        auto nfp_idx = static_cast<unsigned>(relpfloor);
+                        if(nfp_idx >= ecache.size()) nfp_idx--;
+                        auto p = relpos - relpfloor;
+                        return ecache[nfp_idx].coords(p);
+                    };
+
+                    auto objfunc = [&] (double relpos)
+                    {
+                        Vertex v = getNfpPoint(relpos);
+                        auto d = v - iv;
+                        d += startpos;
+                        item.translation(d);
+
                         Nfp::Shapes<RawShape> m;
                         m.reserve(items_.size());
 
@@ -193,32 +295,61 @@ public:
                         auto circumf = EdgeCache<RawShape>(ch).circumference();
                         double pack_rate = occupied_area/ShapeLike::area(ch);
 
-                        auto score = std::sqrt(circumf * (1.0 - pack_rate));
+                        auto score = std::pow((circumf/norm_) * (1.0 - pack_rate),
+                                              1.0/3.0);
+
+                        if(!wouldFit(ch, bin_)) score = 2*penality_ - score;
+
                         return score;
+                    };
+
+                    opt::StopCriteria stopcr;
+                    stopcr.max_iterations = 1000;
+                    stopcr.stoplimit = 0.01;
+                    stopcr.type = opt::StopLimitType::ABSOLUTE;
+                    opt::TOptimizer<opt::Method::L_SUBPLEX> solver(stopcr);
+
+                    double max_bound = 1.0*nfps.size();
+                    double optimum = 0;
+
+                    for(unsigned ch = 0; ch < ecache.size(); ch++) {
+                        auto& cache = ecache[ch];
+
+                        std::for_each(cache.corners().begin(),
+                                      cache.corners().end(),
+                                      [ch, max_bound, &solver, &objfunc,
+                                      &best_score, &cache, &optimum]
+                                      (double pos)
+                        {
+                            try {
+                                auto result = solver.optimize_min(objfunc,
+                                                opt::initvals(pos),
+                                                opt::bound(0.0, max_bound)
+                                                );
+
+                                if(result.score < best_score) {
+                                    best_score = result.score;
+                                    optimum = std::get<0>(result.optimum);
+                                }
+                            } catch(std::exception& e ) {
+                            #ifndef NDEBUG
+                                std::cerr << "ERROR " << e.what() << std::endl;
+                            #endif
+                            }
+                        });
                     }
 
-                    return std::nan(""); // score = pack efficiency
-                };
-
-                opt::StopCriteria stopcr;
-                stopcr.max_iterations = 1000;
-                opt::TOptimizer<opt::Method::GENETIC> solver(stopcr);
-
-                try {
-
-                    auto result = solver.optimize_min(objfunc,
-                                    opt::initvals(0.0),
-                                    opt::bound(0.0, 1.0*nfps.size())
-                                    );
-
-                    if(!std::isnan(result.score) ) {
-
-                        auto d = getNfpPoint(std::get<0>(result.optimum)) - iv;
+                    if( best_score < penality_ ) {
+                        auto d = getNfpPoint(optimum) - iv;
                         d += startpos;
-                        item.translation(d);
-                        if(item.isInside(bin_)) can_pack = true;
+                        final_tr = d;
+                        final_rot = initial_rot + rot;
+                        can_pack = true;
                     }
-                } catch(std::exception& ) {}
+                }
+
+                item.translation(final_tr);
+                item.rotation(final_rot);
 
             } else {
 

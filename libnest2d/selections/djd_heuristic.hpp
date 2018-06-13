@@ -10,6 +10,7 @@
 
 namespace libnest2d { namespace strategies {
 
+
 /**
  * Selection heuristic based on [López-Camacho]\
  * (http://www.cs.stir.ac.uk/~goc/papers/EffectiveHueristic2DAOR2013.pdf)
@@ -19,15 +20,16 @@ class _DJDHeuristic: public SelectionBoilerplate<RawShape> {
     using Base = SelectionBoilerplate<RawShape>;
 
     class SpinLock {
+        std::atomic_flag& lck_;
     public:
+
+        inline SpinLock(std::atomic_flag& flg): lck_(flg) {}
+
         inline void lock() {
-            while(lck.test_and_set(std::memory_order_acquire)) {}
+            while(lck_.test_and_set(std::memory_order_acquire)) {}
         }
 
-        inline void unlock() { lck.clear(std::memory_order_release); }
-
-    private:
-        std::atomic_flag lck = ATOMIC_FLAG_INIT;
+        inline void unlock() { lck_.clear(std::memory_order_release); }
     };
 
 public:
@@ -498,7 +500,9 @@ public:
         }
 
         int acounter = int(store_.size());
-        SpinLock slock;
+        std::atomic_flag flg = ATOMIC_FLAG_INIT;
+        SpinLock slock(flg);
+
         auto makeProgress = [this, &acounter, &slock]
                 (Placer& placer, unsigned idx, int packednum)
         {
@@ -630,9 +634,9 @@ public:
             idx = placers.size();
 
             // Try to put the remaining items into one of the packed bins
-            for(int j = 0; j < idx && !remaining.empty(); j++) {
-                packjob(placers[j], remaining, j);
-            }
+//            for(int j = 0; j < idx && !remaining.empty(); j++) {
+//                packjob(placers[j], remaining, j);
+//            }
 
         } else {
             remaining = ItemList(store_.begin(), store_.end());

@@ -364,7 +364,11 @@ public:
                                 best_score = result.score;
                                 optimum = std::get<0>(result.optimum);
                             }
-                        } catch(std::exception& e ) {
+                        } catch(std::exception&
+                        #ifndef NDEBUG
+                                e
+                        #endif
+                                ) {
                         #ifndef NDEBUG
                             std::cerr << "ERROR " << e.what() << std::endl;
                         #endif
@@ -398,7 +402,7 @@ public:
         m.reserve(items_.size());
 
         for(Item& item : items_) m.emplace_back(item.transformedShape());
-        auto bb = ShapeLike::boundingBox<RawShape>(m);
+        auto&& bb = ShapeLike::boundingBox<RawShape>(m);
 
         Vertex ci, cb;
 
@@ -442,12 +446,12 @@ private:
         Vertex ci = bb.minCorner();
         Vertex cb = bin_.minCorner();
 
-        auto d = cb - ci;
+        auto&& d = cb - ci;
         item.translate(d);
     }
 
     void placeOutsideOfBin(Item& item) {
-        auto bb = item.boundingBox();
+        auto&& bb = item.boundingBox();
         Box binbb = ShapeLike::boundingBox<RawShape>(bin_);
 
         Vertex v = { getX(bb.maxCorner()), getY(bb.minCorner()) };

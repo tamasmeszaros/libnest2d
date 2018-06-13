@@ -78,7 +78,7 @@ private:
     Container store_;
     Config config_;
 
-    static const unsigned MAX_ITEMS_SEQUENTIALLY = 40;
+    static const unsigned MAX_ITEMS_SEQUENTIALLY = 30;
 
 public:
 
@@ -523,9 +523,11 @@ public:
         auto bincount_guess = unsigned(std::ceil(items_area / bin_area));
 
         // Do parallel if feasible
-        bool do_parallel = config_.allow_parallel && bincount_guess > 1; /*&&
+        bool do_parallel = config_.allow_parallel && bincount_guess > 1 &&
                 (bincount_guess >= std::thread::hardware_concurrency()/2 ||
-                store_.size() >= MAX_ITEMS_SEQUENTIALLY);*/
+                store_.size() >= MAX_ITEMS_SEQUENTIALLY);
+
+        if(do_parallel) std::cout << "Parallell" << std::endl;
 
         // The DJD heuristic algorithm itself:
         auto packjob = [INITIAL_FILL_AREA, bin_area, w,

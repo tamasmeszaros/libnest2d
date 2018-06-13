@@ -41,42 +41,42 @@ void arrangeRectangles() {
     using namespace libnest2d;
 
     const int SCALE = 1000000;
-    std::vector<Rectangle> rects = {
-        {80*SCALE, 80*SCALE},
-        {60*SCALE, 90*SCALE},
-        {70*SCALE, 30*SCALE},
-        {80*SCALE, 60*SCALE},
-        {60*SCALE, 60*SCALE},
-        {60*SCALE, 40*SCALE},
-        {40*SCALE, 40*SCALE},
-        {10*SCALE, 10*SCALE},
-        {10*SCALE, 10*SCALE},
-        {10*SCALE, 10*SCALE},
-        {10*SCALE, 10*SCALE},
-        {10*SCALE, 10*SCALE},
-        {5*SCALE, 5*SCALE},
-        {5*SCALE, 5*SCALE},
-        {5*SCALE, 5*SCALE},
-        {5*SCALE, 5*SCALE},
-        {5*SCALE, 5*SCALE},
-        {5*SCALE, 5*SCALE},
-        {5*SCALE, 5*SCALE},
-        {20*SCALE, 20*SCALE}
-       };
-
 //    std::vector<Rectangle> rects = {
-//        {20*SCALE, 10*SCALE},
-//        {20*SCALE, 10*SCALE}
-//    };
+//        {80*SCALE, 80*SCALE},
+//        {60*SCALE, 90*SCALE},
+//        {70*SCALE, 30*SCALE},
+//        {80*SCALE, 60*SCALE},
+//        {60*SCALE, 60*SCALE},
+//        {60*SCALE, 40*SCALE},
+//        {40*SCALE, 40*SCALE},
+//        {10*SCALE, 10*SCALE},
+//        {10*SCALE, 10*SCALE},
+//        {10*SCALE, 10*SCALE},
+//        {10*SCALE, 10*SCALE},
+//        {10*SCALE, 10*SCALE},
+//        {5*SCALE, 5*SCALE},
+//        {5*SCALE, 5*SCALE},
+//        {5*SCALE, 5*SCALE},
+//        {5*SCALE, 5*SCALE},
+//        {5*SCALE, 5*SCALE},
+//        {5*SCALE, 5*SCALE},
+//        {5*SCALE, 5*SCALE},
+//        {20*SCALE, 20*SCALE}
+//       };
 
-//    std::vector<Item> input {
-//        {{0, 0}, {0, 20*SCALE}, {10*SCALE, 0}, {0, 0}}
-//    };
+    std::vector<Rectangle> rects = {
+        {20*SCALE, 10*SCALE},
+        {20*SCALE, 10*SCALE}
+    };
 
-    std::vector<Item> input;
-    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+    std::vector<Item> input {
+        {{0, 0}, {0, 20*SCALE}, {10*SCALE, 0}, {0, 0}}
+    };
+
+//    std::vector<Item> input;
+//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
 //    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
-//    input.insert(input.end(), rects.begin(), rects.end());
+    input.insert(input.end(), rects.begin(), rects.end());
 
     Box bin(250*SCALE, 210*SCALE);
 
@@ -87,7 +87,6 @@ void arrangeRectangles() {
     Packer::PlacementConfig pconf;
     pconf.alignment = NfpPlacer::Config::Alignment::BOTTOM_LEFT;
     pconf.rotations = {0.0, Pi/2.0, Pi, 3*Pi/2};
-    pconf.use_solver = false;
     Packer::SelectionConfig sconf;
     sconf.allow_parallel = true;
     Packer arrange(bin, min_obj_distance, pconf, sconf);

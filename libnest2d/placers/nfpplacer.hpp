@@ -22,10 +22,14 @@ struct NfpPConfig {
         TOP_RIGHT,
     };
 
+    /// Which angles to try out for better results
     std::vector<Radians> rotations;
+
+    /// Where to align the resulting packed pile
     Alignment alignment;
-    NfpPConfig(): rotations(1, 0.0), alignment(Alignment::BOTTOM_LEFT) {}
-    bool use_solver = true;
+
+    NfpPConfig(): rotations({0.0, Pi/2.0, Pi, 3*Pi/2}),
+        alignment(Alignment::CENTER) {}
 };
 
 // A class for getting a point on the circumference of the polygon (in log time)
@@ -241,229 +245,155 @@ public:
             setInitialPosition(item);
             can_pack = item.isInside(bin_);
         } else {
-            if(config_.use_solver) {
 
-                double global_score = penality_;
+            double global_score = penality_;
 
-                auto initial_tr = item.translation();
-                auto initial_rot = item.rotation();
-                Vertex final_tr = {0, 0};
-                Radians final_rot = initial_rot;
-                Nfp::Shapes<RawShape> nfps;
+            auto initial_tr = item.translation();
+            auto initial_rot = item.rotation();
+            Vertex final_tr = {0, 0};
+            Radians final_rot = initial_rot;
+            Nfp::Shapes<RawShape> nfps;
 
-                for(auto rot : config_.rotations) {
+            for(auto rot : config_.rotations) {
 
-                    item.translation(initial_tr);
-                    item.rotation(initial_rot + rot);
+                item.translation(initial_tr);
+                item.rotation(initial_rot + rot);
 
-                    // place the new item outside of the print bed to make sure
-                    // it is disjuct from the current merged pile
-                    placeOutsideOfBin(item);
+                // place the new item outside of the print bed to make sure
+                // it is disjuct from the current merged pile
+                placeOutsideOfBin(item);
 
-                    auto trsh = item.transformedShape();
+                auto trsh = item.transformedShape();
 
-                    nfps = nfp(items_, trsh);
-                    auto iv = Nfp::referenceVertex(trsh);
+                nfps = nfp(items_, trsh);
+                auto iv = Nfp::referenceVertex(trsh);
 
-                    auto startpos = item.translation();
+                auto startpos = item.translation();
 
-                    std::vector<EdgeCache<RawShape>> ecache;
-                    ecache.reserve(nfps.size());
+                std::vector<EdgeCache<RawShape>> ecache;
+                ecache.reserve(nfps.size());
 
-                    for(auto& nfp : nfps ) ecache.emplace_back(nfp);
+                for(auto& nfp : nfps ) ecache.emplace_back(nfp);
 
-                    auto getNfpPoint = [&nfps, &ecache](double relpos) {
-                        auto relpfloor = std::floor(relpos);
-                        auto nfp_idx = static_cast<unsigned>(relpfloor);
-                        if(nfp_idx >= ecache.size()) nfp_idx--;
-                        auto p = relpos - relpfloor;
-                        return ecache[nfp_idx].coords(p);
-                    };
+                auto getNfpPoint = [&ecache](double relpos) {
+                    auto relpfloor = std::floor(relpos);
+                    auto nfp_idx = static_cast<unsigned>(relpfloor);
+                    if(nfp_idx >= ecache.size()) nfp_idx--;
+                    auto p = relpos - relpfloor;
+                    return ecache[nfp_idx].coords(p);
+                };
 
-                    auto objfunc = [&] (double relpos)
+                // Our object function for placement
+                auto objfunc = [&] (double relpos)
+                {
+                    Vertex v = getNfpPoint(relpos);
+                    auto d = v - iv;
+                    d += startpos;
+                    item.translation(d);
+
+                    Nfp::Shapes<RawShape> pile;
+                    pile.reserve(items_.size());
+
+                    for(Item& mitem : items_)
+                        pile.emplace_back(mitem.transformedShape());
+
+                    pile.emplace_back(item.transformedShape());
+                    double occupied_area = 0;
+                    std::for_each(pile.begin(), pile.end(),
+                                  [&occupied_area](const RawShape& mshape){
+                       occupied_area +=  ShapeLike::area(mshape);
+                    });
+
+                    auto ch = ShapeLike::convexHull(pile);
+
+                    // Normalized circumference (does not depend on scale)
+                    auto circumf =
+                            EdgeCache<RawShape>(ch).circumference() / norm_;
+
+                    // The pack ratio -- how much is the convex hull occupied
+                    double pack_rate = occupied_area/ShapeLike::area(ch);
+
+                    // ratio of waste
+                    double waste = 1.0 - pack_rate;
+
+                    // Score is the square root of waste. This will extend the
+                    // range of good (lower) values and shring the range of bad
+                    // (larger) values
+                    //
+                    // The circumference should be as large as possible when
+                    // maintaning the best pack efficiency. This is for
+                    // not limiting the direction of expansion of the packed
+                    // items. Intuitively, a small circumference would be better
+                    // but experiments show the opposite is true.
+                    auto score = std::sqrt(waste) * circumf;
+
+                    if(!wouldFit(ch, bin_)) score = 2*penality_ - score;
+
+                    return score;
+                };
+
+                opt::StopCriteria stopcr;
+                stopcr.max_iterations = 1000;
+//                stopcr.stoplimit = 0.01;
+//                stopcr.type = opt::StopLimitType::RELATIVE;
+                opt::TOptimizer<opt::Method::L_SUBPLEX> solver(stopcr);
+
+                double optimum = 0;
+                double best_score = penality_;
+
+                // double max_bound = 1.0*nfps.size();
+                // Genetic should look like this:
+                /*auto result = solver.optimize_min(objfunc,
+                                opt::initvals<double>(0.0),
+                                opt::bound(0.0, max_bound)
+                                );
+
+                if(result.score < penality_) {
+                    best_score = result.score;
+                    optimum = std::get<0>(result.optimum);
+                }*/
+
+                // Local optimization with the four polygon corners as
+                // starting points
+                for(unsigned ch = 0; ch < ecache.size(); ch++) {
+                    auto& cache = ecache[ch];
+
+                    std::for_each(cache.corners().begin(),
+                                  cache.corners().end(),
+                                  [ch, &solver, &objfunc,
+                                  &best_score, &optimum]
+                                  (double pos)
                     {
-                        Vertex v = getNfpPoint(relpos);
-                        auto d = v - iv;
-                        d += startpos;
-                        item.translation(d);
+                        try {
+                            auto result = solver.optimize_min(objfunc,
+                                            opt::initvals<double>(ch+pos),
+                                            opt::bound<double>(ch, 1.0 + ch)
+                                            );
 
-                        Nfp::Shapes<RawShape> m;
-                        m.reserve(items_.size());
-
-                        for(Item& pi : items_)
-                            m.emplace_back(pi.transformedShape());
-
-                        m.emplace_back(item.transformedShape());
-                        double occupied_area = 0;
-                        std::for_each(m.begin(), m.end(),
-                                      [&occupied_area](const RawShape& mshape){
-                           occupied_area +=  ShapeLike::area(mshape);
-                        });
-
-                        auto ch = ShapeLike::convexHull(m);
-
-                        auto circumf =
-                                EdgeCache<RawShape>(ch).circumference() / norm_;
-                        double pack_rate = occupied_area/ShapeLike::area(ch);
-                        double waste = 1.0 - pack_rate;
-
-                        auto score = std::sqrt(waste) / circumf;
-
-                        if(!wouldFit(ch, bin_)) score = 2*penality_ - score;
-
-                        return score;
-                    };
-
-                    opt::StopCriteria stopcr;
-                    stopcr.max_iterations = 1000;
-                    stopcr.stoplimit = 0.01;
-                    stopcr.type = opt::StopLimitType::RELATIVE;
-                    opt::TOptimizer<opt::Method::L_SUBPLEX> solver(stopcr);
-
-                    double max_bound = 1.0*nfps.size();
-                    double optimum = 0;
-                    double best_score = penality_;
-
-                    // Genetic should look like this:
-                    /*auto result = solver.optimize_min(objfunc,
-                                    opt::initvals<double>(0.0),
-                                    opt::bound(0.0, max_bound)
-                                    );
-
-                    if(result.score < penality_) {
-                        best_score = result.score;
-                        optimum = std::get<0>(result.optimum);
-                    }*/
-
-                    // Local optimization with the four polygon corners as
-                    // starting points
-                    for(unsigned ch = 0; ch < ecache.size(); ch++) {
-                        auto& cache = ecache[ch];
-
-                        std::for_each(cache.corners().begin(),
-                                      cache.corners().end(),
-                                      [ch, max_bound, &solver, &objfunc,
-                                      &cnt,&best_score, &cache, &optimum]
-                                      (double pos)
-                        {
-                            try {
-                                auto result = solver.optimize_min(objfunc,
-                                                opt::initvals<double>(ch+pos),
-                                                opt::bound<double>(ch, 1.0 + ch)
-                                                );
-
-                                if(result.score < best_score) {
-                                    best_score = result.score;
-                                    optimum = std::get<0>(result.optimum);
-                                }
-                            } catch(std::exception& e ) {
-                            #ifndef NDEBUG
-                                std::cerr << "ERROR " << e.what() << std::endl;
-                            #endif
+                            if(result.score < best_score) {
+                                best_score = result.score;
+                                optimum = std::get<0>(result.optimum);
                             }
-                        });
-                    }
-
-                    if( best_score < global_score ) {
-                        auto d = getNfpPoint(optimum) - iv;
-                        d += startpos;
-                        final_tr = d;
-                        final_rot = initial_rot + rot;
-                        can_pack = true;
-                        global_score = best_score;
-                    }
-                }
-
-                item.translation(final_tr);
-                item.rotation(final_rot);
-
-            } else {
-
-                auto initial_tr = item.translation();
-                auto initial_rot = item.rotation();
-                double min_area = std::numeric_limits<double>::max();
-                Vertex final_tr = {0, 0};
-                Radians final_rot = initial_rot;
-                Nfp::Shapes<RawShape> nfps;
-
-                for(auto rot : config_.rotations) {
-
-                    item.translation(initial_tr);
-                    item.rotation(initial_rot + rot);
-
-                    // place the new item outside of the print bed to make sure it is
-                    // disjuct from the current merged pile
-                    placeOutsideOfBin(item);
-
-                    auto trsh = item.transformedShape();
-
-                    #ifndef NDEBUG
-                        auto v = ShapeLike::isValid(trsh);
-                        assert(v.first);
-                    #endif
-
-                    nfps = nfp(items_, trsh);
-
-                    auto iv = Nfp::referenceVertex(trsh);
-
-                    auto startpos = item.translation();
-
-                    // place item on each the edge of this nfp
-                    for(auto& nfp : nfps)
-                    ShapeLike::foreachContourVertex(nfp, [&]
-                                                    (Vertex& v)
-                    {
-                        auto d = v - iv;
-                        d += startpos;
-                        item.translation(d);
-
-                        if( item.isInside(bin_) ) {
-                            Nfp::Shapes<RawShape> m;
-                            m.reserve(items_.size());
-
-                            for(Item& pi : items_)
-                                m.emplace_back(pi.transformedShape());
-
-                            m.emplace_back(item.transformedShape());
-
-                            double occupied_area = 0;
-                            std::for_each(m.begin(), m.end(),
-                                          [&occupied_area](const RawShape& mshape){
-                               occupied_area +=  ShapeLike::area(mshape);
-                            });
-
-                            auto ch = ShapeLike::convexHull(m);
-
-                            auto circumf =
-                                    EdgeCache<RawShape>(ch).circumference() / norm_;
-                            double pack_rate = occupied_area/ShapeLike::area(ch);
-                            double waste = 1.0 - pack_rate;
-
-                            auto a = std::sqrt(waste) / circumf;
-
-                            if(a < min_area) {
-                                can_pack = true;
-                                min_area = a;
-                                final_tr = d;
-                                final_rot = initial_rot + rot;
-                            }
+                        } catch(std::exception& e ) {
+                        #ifndef NDEBUG
+                            std::cerr << "ERROR " << e.what() << std::endl;
+                        #endif
                         }
                     });
                 }
 
-                #ifndef NDEBUG
-                            if(can_pack) for(auto&nfp : nfps) {
-                                auto val = ShapeLike::isValid(nfp);
-                                assert(val.first);
-                #ifdef DEBUG_EXPORT_NFP
-                                Base::debug_items_.emplace_back(nfp);
-                #endif
-                            }
-                #endif
-
-                item.translation(final_tr);
-                item.rotation(final_rot);
+                if( best_score < global_score ) {
+                    auto d = getNfpPoint(optimum) - iv;
+                    d += startpos;
+                    final_tr = d;
+                    final_rot = initial_rot + rot;
+                    can_pack = true;
+                    global_score = best_score;
+                }
             }
+
+            item.translation(final_tr);
+            item.rotation(final_rot);
         }
 
         if(can_pack) {
@@ -473,10 +403,13 @@ public:
         return ret;
     }
 
-private:
+    ~_NofitPolyPlacer() {
+        Nfp::Shapes<RawShape> m;
+        m.reserve(items_.size());
 
-    void setInitialPosition(Item& item) {
-        Box&& bb = item.boundingBox();
+        for(Item& item : items_) m.emplace_back(item.transformedShape());
+        auto bb = ShapeLike::boundingBox<RawShape>(m);
+
         Vertex ci, cb;
 
         switch(config_.alignment) {
@@ -506,6 +439,18 @@ private:
             break;
         }
         }
+
+        auto d = cb - ci;
+        for(Item& item : items_) item.translate(d);
+    }
+
+private:
+
+    void setInitialPosition(Item& item) {
+        Box&& bb = item.boundingBox();
+
+        Vertex ci = bb.minCorner();
+        Vertex cb = bin_.minCorner();
 
         auto d = cb - ci;
         item.translate(d);

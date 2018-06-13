@@ -828,11 +828,11 @@ private:
 
         auto orig_rot = item.rotation();
 
-        auto result = solver.optimize_min([&item, &orig_rot](Radians rot){
+        auto result = solver.optimize_min([&item](Radians rot){
             item.rotation(rot);
             auto bb = item.boundingBox();
             return std::sqrt(bb.height()*bb.width());
-        }, opt::initvals(Radians(0)), opt::bound(Radians(-Pi/2), Radians(Pi/2)));
+        }, opt::initvals(Radians(0)), opt::bound<Radians>(-Pi/2, Pi/2));
 
         item.rotation(orig_rot);
 

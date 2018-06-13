@@ -306,10 +306,6 @@ public:
 
                     auto ch = ShapeLike::convexHull(pile);
 
-                    // Normalized circumference (does not depend on scale)
-                    auto circumf =
-                            EdgeCache<RawShape>(ch).circumference() / norm_;
-
                     // The pack ratio -- how much is the convex hull occupied
                     double pack_rate = occupied_area/ShapeLike::area(ch);
 
@@ -318,14 +314,8 @@ public:
 
                     // Score is the square root of waste. This will extend the
                     // range of good (lower) values and shring the range of bad
-                    // (larger) values
-                    //
-                    // The circumference should be as large as possible when
-                    // maintaning the best pack efficiency. This is for
-                    // not limiting the direction of expansion of the packed
-                    // items. Intuitively, a small circumference would be better
-                    // but experiments show the opposite is true.
-                    auto score = std::sqrt(waste) * circumf;
+                    // (larger) values.
+                    auto score = std::sqrt(waste);
 
                     if(!wouldFit(ch, bin_)) score = 2*penality_ - score;
 
@@ -334,8 +324,8 @@ public:
 
                 opt::StopCriteria stopcr;
                 stopcr.max_iterations = 1000;
-//                stopcr.stoplimit = 0.01;
-//                stopcr.type = opt::StopLimitType::RELATIVE;
+                stopcr.stoplimit = 0.01;
+                stopcr.type = opt::StopLimitType::RELATIVE;
                 opt::TOptimizer<opt::Method::L_SUBPLEX> solver(stopcr);
 
                 double optimum = 0;

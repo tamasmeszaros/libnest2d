@@ -64,31 +64,32 @@ void arrangeRectangles() {
 //        {20*SCALE, 20*SCALE}
 //       };
 
-    std::vector<Rectangle> rects = {
-        {20*SCALE, 10*SCALE},
-        {20*SCALE, 10*SCALE}
-    };
+//    std::vector<Rectangle> rects = {
+//        {20*SCALE, 10*SCALE},
+//        {20*SCALE, 10*SCALE},
+//        {20*SCALE, 20*SCALE},
+//    };
 
-    std::vector<Item> input {
-        {{0, 0}, {0, 20*SCALE}, {10*SCALE, 0}, {0, 0}}
-    };
+//    std::vector<Item> input {
+//        {{0, 0}, {0, 20*SCALE}, {10*SCALE, 0}, {0, 0}}
+//    };
 
-//    std::vector<Item> input;
-//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
-//    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
-    input.insert(input.end(), rects.begin(), rects.end());
+    std::vector<Item> input;
+    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
+//    input.insert(input.end(), rects.begin(), rects.end());
 
     Box bin(250*SCALE, 210*SCALE);
 
-    Coord min_obj_distance = 1.5*SCALE;
+    Coord min_obj_distance = 0; //1.5*SCALE;
 
     using Packer = Arranger<NfpPlacer, DJDHeuristic>;
 
     Packer::PlacementConfig pconf;
-    pconf.alignment = NfpPlacer::Config::Alignment::BOTTOM_LEFT;
-    pconf.rotations = {0.0, Pi/2.0, Pi, 3*Pi/2};
+//    pconf.alignment = NfpPlacer::Config::Alignment::CENTER;
+//    pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/};
     Packer::SelectionConfig sconf;
-    sconf.allow_parallel = true;
+    sconf.allow_parallel = false;
     Packer arrange(bin, min_obj_distance, pconf, sconf);
 
     arrange.progressIndicator([&](unsigned r){
@@ -109,7 +110,24 @@ void arrangeRectangles() {
 
     bench.stop();
 
-    std::cout << bench.getElapsedSec() << " bin count: " <<  result.size() << std::endl;
+    std::vector<double> eff;
+    eff.reserve(result.size());
+
+    double bin_area = bin.height()*bin.width();
+    for(auto& r : result) {
+        double a = 0;
+        std::for_each(r.begin(), r.end(), [&a] (Item& e ){ a += e.area(); });
+        eff.emplace_back(a/bin_area);
+    };
+
+    std::cout << bench.getElapsedSec() << " bin count: " << result.size()
+              << std::endl;
+
+    std::cout << "Bin efficiency: (";
+    for(double e : eff) std::cout << e << " ";
+    std::cout << ") Average: "
+              << std::accumulate(eff.begin(), eff.end(), 0.0)/result.size()
+              << std::endl;
 
     for(auto& it : input) {
         auto ret = ShapeLike::isValid(it.transformedShape());

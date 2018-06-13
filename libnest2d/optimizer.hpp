@@ -197,6 +197,12 @@ inline static void map(Fn&& fn, const tuple<Args...>& tup) {
     MetaLoop<Args...>().run(tup, forward<Fn>(fn));
 }
 
+template<class Fn, class Tup, std::size_t...Is>
+inline static double callFunWithTuple(Fn&& fn, Tup&& tup, index_sequence<Is...>)
+{
+    return fn(std::get<Is>(tup)...);
+}
+
 };
 
 /**
@@ -352,14 +358,9 @@ template<class T = void>
 class DummyOptimizer : public Optimizer<DummyOptimizer<T>> {
     friend class Optimizer<DummyOptimizer<T>>;
 
-    template<class Fn, class Tup, std::size_t...Is>
-    static double callFunWithTuple(Fn&& fn, Tup&& tup, std::index_sequence<Is...>)
-    {
-        return fn(std::get<Is>(tup)...);
-    }
 public:
     DummyOptimizer() {
-//        static_assert(always_false<T>::value, "Optimizer unimplemented!");
+        static_assert(always_false<T>::value, "Optimizer unimplemented!");
     }
 
     template<class Func, class...Args>
@@ -367,9 +368,7 @@ public:
                              std::tuple<Args...> initvals,
                              Bound<Args>... args)
     {
-        Result<Args...> ret;
-        ret.score = callFunWithTuple(std::forward<Func>(func), initvals, std::index_sequence_for<Args...>() );
-        return ret;
+        return Result<Args...>();
     }
 };
 

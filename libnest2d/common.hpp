@@ -39,6 +39,44 @@ struct invoke_result {
 template<class F, class...Args>
 using invoke_result_t = typename invoke_result<F, Args...>::type;
 
+/* ************************************************************************** */
+/* C++14 std::index_sequence implementation:                                  */
+/* ************************************************************************** */
+
+/**
+ * \brief C++11 conformant implementation of the index_sequence type from C++14
+ */
+template<size_t...Ints> struct index_sequence {
+    using value_type = size_t;
+    BP2D_CONSTEXPR value_type size() const { return sizeof...(Ints); }
+};
+
+// A Help structure to generate the integer list
+template<size_t...Nseq> struct genSeq;
+
+// Recursive template to generate the list
+template<size_t I, size_t...Nseq> struct genSeq<I, Nseq...> {
+    // Type will contain a genSeq with Nseq appended by one element
+    using Type = typename genSeq< I - 1, I - 1, Nseq...>::Type;
+};
+
+// Terminating recursion
+template <size_t ... Nseq> struct genSeq<0, Nseq...> {
+    // If I is zero, Type will contain index_sequence with the fuly generated
+    // integer list.
+    using Type = index_sequence<Nseq...>;
+};
+
+/// Helper alias to make an index sequence from 0 to N
+template<size_t N> using make_index_sequence = typename genSeq<N>::Type;
+
+/// Helper alias to make an index sequence for a parameter pack
+template<class...Args>
+using index_sequence_for = make_index_sequence<sizeof...(Args)>;
+
+
+/* ************************************************************************** */
+
 /**
  * A useful little tool for triggering static_assert error messages e.g. when
  * a mandatory template specialization (implementation) is missing.

@@ -7,6 +7,7 @@
 #include "placer_boilerplate.hpp"
 #include "../geometries_nfp.hpp"
 #include <libnest2d/optimizers/subplex.hpp>
+#include <libnest2d/optimizers/genetic.hpp>
 
 namespace libnest2d { namespace strategies {
 
@@ -41,7 +42,7 @@ template<class RawShape> class EdgeCache {
         NUM_CORNERS
     };
 
-    std::vector<double> corners_;
+    mutable std::vector<double> corners_;
 
     std::vector<Edge> emap_;
     std::vector<double> distances_;
@@ -59,6 +60,12 @@ template<class RawShape> class EdgeCache {
             full_distance_ += emap_.back().length();
             distances_.push_back(full_distance_);
         }
+    }
+
+    void fetchCorners() const {
+        if(!corners_.empty()) return;
+
+        corners_ = std::vector<double>(NUM_CORNERS, 0.0);
 
         std::vector<unsigned> idx_ud(emap_.size(), 0.0);
         std::vector<unsigned> idx_lr(emap_.size(), 0.0);
@@ -104,12 +111,12 @@ public:
 
     inline EdgeCache() = default;
 
-    inline EdgeCache(const _Item<RawShape>& item): corners_(NUM_CORNERS, 0.0)
+    inline EdgeCache(const _Item<RawShape>& item)
     {
         createCache(item.transformedShape());
     }
 
-    inline EdgeCache(const RawShape& sh): corners_(NUM_CORNERS, 0.0)
+    inline EdgeCache(const RawShape& sh)
     {
         createCache(sh);
     }
@@ -151,10 +158,12 @@ public:
 
     inline double corner(Corners c) const BP2D_NOEXCEPT {
         assert(c < NUM_CORNERS);
+        fetchCorners();
         return corners_[c];
     }
 
     inline const std::vector<double>& corners() const BP2D_NOEXCEPT {
+        fetchCorners();
         return corners_;
     }
 
@@ -234,12 +243,12 @@ public:
         } else {
             if(config_.use_solver) {
 
-                double best_score = penality_;
+                double global_score = penality_;
 
                 auto initial_tr = item.translation();
                 auto initial_rot = item.rotation();
                 Vertex final_tr = {0, 0};
-                Radians final_rot = 0;
+                Radians final_rot = initial_rot;
                 Nfp::Shapes<RawShape> nfps;
 
                 for(auto rot : config_.rotations) {
@@ -247,8 +256,8 @@ public:
                     item.translation(initial_tr);
                     item.rotation(initial_rot + rot);
 
-                    // place the new item outside of the print bed to make sure it is
-                    // disjuct from the current merged pile
+                    // place the new item outside of the print bed to make sure
+                    // it is disjuct from the current merged pile
                     placeOutsideOfBin(item);
 
                     auto trsh = item.transformedShape();
@@ -292,11 +301,13 @@ public:
                         });
 
                         auto ch = ShapeLike::convexHull(m);
-                        auto circumf = EdgeCache<RawShape>(ch).circumference();
-                        double pack_rate = occupied_area/ShapeLike::area(ch);
 
-                        auto score = std::pow((circumf/norm_) * (1.0 - pack_rate),
-                                              1.0/3.0);
+                        auto circumf =
+                                EdgeCache<RawShape>(ch).circumference() / norm_;
+                        double pack_rate = occupied_area/ShapeLike::area(ch);
+                        double waste = 1.0 - pack_rate;
+
+                        auto score = std::sqrt(waste) / circumf;
 
                         if(!wouldFit(ch, bin_)) score = 2*penality_ - score;
 
@@ -306,25 +317,39 @@ public:
                     opt::StopCriteria stopcr;
                     stopcr.max_iterations = 1000;
                     stopcr.stoplimit = 0.01;
-                    stopcr.type = opt::StopLimitType::ABSOLUTE;
+                    stopcr.type = opt::StopLimitType::RELATIVE;
                     opt::TOptimizer<opt::Method::L_SUBPLEX> solver(stopcr);
 
                     double max_bound = 1.0*nfps.size();
                     double optimum = 0;
+                    double best_score = penality_;
 
+                    // Genetic should look like this:
+                    /*auto result = solver.optimize_min(objfunc,
+                                    opt::initvals<double>(0.0),
+                                    opt::bound(0.0, max_bound)
+                                    );
+
+                    if(result.score < penality_) {
+                        best_score = result.score;
+                        optimum = std::get<0>(result.optimum);
+                    }*/
+
+                    // Local optimization with the four polygon corners as
+                    // starting points
                     for(unsigned ch = 0; ch < ecache.size(); ch++) {
                         auto& cache = ecache[ch];
 
                         std::for_each(cache.corners().begin(),
                                       cache.corners().end(),
                                       [ch, max_bound, &solver, &objfunc,
-                                      &best_score, &cache, &optimum]
+                                      &cnt,&best_score, &cache, &optimum]
                                       (double pos)
                         {
                             try {
                                 auto result = solver.optimize_min(objfunc,
-                                                opt::initvals(pos),
-                                                opt::bound(0.0, max_bound)
+                                                opt::initvals<double>(ch+pos),
+                                                opt::bound<double>(ch, 1.0 + ch)
                                                 );
 
                                 if(result.score < best_score) {
@@ -339,12 +364,13 @@ public:
                         });
                     }
 
-                    if( best_score < penality_ ) {
+                    if( best_score < global_score ) {
                         auto d = getNfpPoint(optimum) - iv;
                         d += startpos;
                         final_tr = d;
                         final_rot = initial_rot + rot;
                         can_pack = true;
+                        global_score = best_score;
                     }
                 }
 
@@ -357,7 +383,7 @@ public:
                 auto initial_rot = item.rotation();
                 double min_area = std::numeric_limits<double>::max();
                 Vertex final_tr = {0, 0};
-                Radians final_rot = 0;
+                Radians final_rot = initial_rot;
                 Nfp::Shapes<RawShape> nfps;
 
                 for(auto rot : config_.rotations) {
@@ -407,10 +433,13 @@ public:
                             });
 
                             auto ch = ShapeLike::convexHull(m);
-                            auto circumf = EdgeCache<RawShape>(ch).circumference();
-                            double pack_rate = occupied_area/ShapeLike::area(ch);
 
-                            auto a = std::sqrt(circumf * (1.0 - pack_rate));
+                            auto circumf =
+                                    EdgeCache<RawShape>(ch).circumference() / norm_;
+                            double pack_rate = occupied_area/ShapeLike::area(ch);
+                            double waste = 1.0 - pack_rate;
+
+                            auto a = std::sqrt(waste) / circumf;
 
                             if(a < min_area) {
                                 can_pack = true;

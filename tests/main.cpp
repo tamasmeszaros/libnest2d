@@ -1,6 +1,6 @@
 #include <iostream>
-#include <fstream>
 #include <string>
+#include <fstream>
 
 //#define DEBUG_EXPORT_NFP
 
@@ -61,22 +61,36 @@ void arrangeRectangles() {
         {5*SCALE, 5*SCALE},
         {5*SCALE, 5*SCALE},
         {5*SCALE, 5*SCALE},
-        {20*SCALE, 20*SCALE} };
+        {20*SCALE, 20*SCALE}
+       };
 
-    auto input = prusaParts();
-//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+//    std::vector<Rectangle> rects = {
+//        {20*SCALE, 10*SCALE},
+//        {20*SCALE, 10*SCALE}
+//    };
+
+//    std::vector<Item> input {
+//        {{0, 0}, {0, 20*SCALE}, {10*SCALE, 0}, {0, 0}}
+//    };
+
+    std::vector<Item> input;
+    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
 //    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
 //    input.insert(input.end(), rects.begin(), rects.end());
 
     Box bin(250*SCALE, 210*SCALE);
 
-    Coord min_obj_distance = 0;//6*SCALE;
+    Coord min_obj_distance = 1.5*SCALE;
 
-    NfpPlacer::Config pconf;
+    using Packer = Arranger<NfpPlacer, DJDHeuristic>;
+
+    Packer::PlacementConfig pconf;
     pconf.alignment = NfpPlacer::Config::Alignment::BOTTOM_LEFT;
     pconf.rotations = {0.0, Pi/2.0, Pi, 3*Pi/2};
-    pconf.use_solver = true;
-    Arranger<NfpPlacer, DJDHeuristic> arrange(bin, min_obj_distance, pconf);
+    pconf.use_solver = false;
+    Packer::SelectionConfig sconf;
+    sconf.allow_parallel = true;
+    Packer arrange(bin, min_obj_distance, pconf, sconf);
 
     arrange.progressIndicator([&](unsigned r){
 //        svg::SVGWriter::Config conf;
@@ -108,8 +122,11 @@ void arrangeRectangles() {
     svg::SVGWriter svgw(conf);
     svgw.setSize(bin);
     svgw.writePackGroup(result);
+//    std::for_each(input.begin(), input.end(), [&svgw](Item& item){ svgw.writeItem(item);});
     svgw.save("out");
 }
+
+
 
 int main(void /*int argc, char **argv*/) {
     arrangeRectangles();

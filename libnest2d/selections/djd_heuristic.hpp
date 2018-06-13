@@ -17,6 +17,19 @@ namespace libnest2d { namespace strategies {
 template<class RawShape>
 class _DJDHeuristic: public SelectionBoilerplate<RawShape> {
     using Base = SelectionBoilerplate<RawShape>;
+
+    class SpinLock {
+    public:
+        inline void lock() {
+            while(lck.test_and_set(std::memory_order_acquire)) {}
+        }
+
+        inline void unlock() { lck.clear(std::memory_order_release); }
+
+    private:
+        std::atomic_flag lck = ATOMIC_FLAG_INIT;
+    };
+
 public:
     using typename Base::Item;
     using typename Base::ItemRef;
@@ -64,6 +77,8 @@ private:
     using Container = ItemGroup;
     Container store_;
     Config config_;
+
+    static const unsigned MAX_ITEMS_SEQUENTIALLY = 40;
 
 public:
 
@@ -482,8 +497,9 @@ public:
             }
         }
 
-        std::atomic<int> acounter(int(store_.size()));
-        auto makeProgress = [this, &acounter]
+        int acounter = int(store_.size());
+        SpinLock slock;
+        auto makeProgress = [this, &acounter, &slock]
                 (Placer& placer, unsigned idx, int packednum)
         {
 
@@ -494,40 +510,35 @@ public:
                                        placer.getDebugItems().end());
 #endif
             // TODO here should be a spinlock
+            slock.lock();
             acounter -= packednum;
             this->progress_(acounter);
+            slock.unlock();
         };
 
         double items_area = 0;
-        std::for_each(store_.begin(), store_.end(), [&items_area](Item& item){
-           items_area += item.area();
-        });
+        for(Item& item : store_) items_area += item.area();
 
+        // Number of bins that will definitely be needed
         auto bincount_guess = unsigned(std::ceil(items_area / bin_area));
 
-        bool do_parallel = config_.allow_parallel &&
-                bincount_guess > 1 &&
-                bincount_guess >= std::thread::hardware_concurrency()/2;
+        // Do parallel if feasible
+        bool do_parallel = config_.allow_parallel && bincount_guess > 1; /*&&
+                (bincount_guess >= std::thread::hardware_concurrency()/2 ||
+                store_.size() >= MAX_ITEMS_SEQUENTIALLY);*/
 
+        // The DJD heuristic algorithm itself:
         auto packjob = [INITIAL_FILL_AREA, bin_area, w,
-                    &tryOneByOne,
-                    &tryGroupsOfTwo,
-                    &tryGroupsOfThree,
-                    &makeProgress]
-                    (Placer& placer, ItemList& not_packed, unsigned idx)
+                        &tryOneByOne,
+                        &tryGroupsOfTwo,
+                        &tryGroupsOfThree,
+                        &makeProgress]
+                        (Placer& placer, ItemList& not_packed, unsigned idx)
         {
-
             bool can_pack = true;
 
-            double filled_area = 0;
-            auto items = placer.getItems();
-            std::for_each(items.begin(), items.end(),
-                          [&filled_area] (Item& item){
-                filled_area += item.area();
-            });
-
+            double filled_area = placer.filledArea();
             double free_area = bin_area - filled_area;
-
             double waste = .0;
 
             while(!not_packed.empty() && can_pack) {
@@ -582,6 +593,7 @@ public:
         if(do_parallel) {
             std::vector<ItemList> not_packeds(bincount_guess);
 
+            // Preallocating the bins
             for(unsigned b = 0; b < bincount_guess; b++) {
                 addBin();
                 ItemList& not_packed = not_packeds[b];
@@ -590,30 +602,35 @@ public:
                 }
             }
 
+            // The parallel job
             auto job = [&placers, &not_packeds, &packjob](unsigned idx) {
                 Placer& placer = placers[idx];
                 ItemList& not_packed = not_packeds[idx];
                 return packjob(placer, not_packed, idx);
             };
 
+            // We will create jobs for each bin
             std::vector<std::future<bool>> rets(bincount_guess);
-            for(unsigned b = 0; b < bincount_guess; b++) {
+
+            for(unsigned b = 0; b < bincount_guess; b++) { // launch the jobs
                 rets[b] = std::async(std::launch::async, job, b);
             }
 
             for(unsigned fi = 0; fi < rets.size(); ++fi) {
                 rets[fi].wait();
 
+                // Collect remaining items while waiting for the running jobs
                 remaining.merge( not_packeds[fi], [](Item& i1, Item& i2) {
                     return i1.area() > i2.area();
                 });
-
-                for(unsigned fj = 0; fj < fi && !remaining.empty(); fj++) {
-                    packjob(placers[fj], remaining, fj); idx = fj;
-                }
             }
 
             idx = placers.size();
+
+            // Try to put the remaining items into one of the packed bins
+            for(int j = 0; j < idx && !remaining.empty(); j++) {
+                packjob(placers[j], remaining, j);
+            }
 
         } else {
             remaining = ItemList(store_.begin(), store_.end());

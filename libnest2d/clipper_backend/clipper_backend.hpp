@@ -269,19 +269,19 @@ inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads)
 {
     using Coord = TCoord<PointImpl>;
 
-    auto cosa = std::cos(rads);
-    auto sina = std::sin(rads);
+    auto cosa = rads.cos();//std::cos(rads);
+    auto sina = rads.sin(); //std::sin(rads);
 
     for(auto& p : sh.Contour) {
         p = {
-                static_cast<Coord>(std::round(p.X * cosa - p.Y * sina)),
-                static_cast<Coord>(std::round(p.X * sina + p.Y * cosa))
+                static_cast<Coord>(p.X * cosa - p.Y * sina),
+                static_cast<Coord>(p.X * sina + p.Y * cosa)
              };
     }
     for(auto& hole : sh.Childs) for(auto& p : hole->Contour) {
         p = {
-            static_cast<Coord>(std::round(p.X * cosa - p.Y * sina)),
-            static_cast<Coord>(std::round(p.X * sina + p.Y * cosa))
+            static_cast<Coord>(p.X * cosa - p.Y * sina),
+            static_cast<Coord>(p.X * sina + p.Y * cosa)
              };
     }
 }

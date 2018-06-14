@@ -75,8 +75,8 @@ void arrangeRectangles() {
 //    };
 
     std::vector<Item> input;
-//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
-    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
+    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+//    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
 //    input.insert(input.end(), rects.begin(), rects.end());
 
     Box bin(250*SCALE, 210*SCALE);
@@ -89,7 +89,7 @@ void arrangeRectangles() {
 //    pconf.alignment = NfpPlacer::Config::Alignment::CENTER;
 //    pconf.rotations = {0.0, Pi/2.0, Pi, 3*Pi/2};
     Packer::SelectionConfig sconf;
-    sconf.allow_parallel = true;
+    sconf.allow_parallel = false;
     sconf.try_reverse_order = false;
     Packer arrange(bin, min_obj_distance, pconf, sconf);
 

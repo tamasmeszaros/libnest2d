@@ -90,6 +90,7 @@ template<class RawPoint>
 class _Segment: PointPair<RawPoint> {
     using PointPair<RawPoint>::p1;
     using PointPair<RawPoint>::p2;
+    mutable Radians angletox_ = std::nan("");
 public:
 
     inline _Segment() {}
@@ -99,8 +100,8 @@ public:
     inline const RawPoint& first() const BP2D_NOEXCEPT { return p1; }
     inline const RawPoint& second() const BP2D_NOEXCEPT { return p2; }
 
-    inline RawPoint& first() BP2D_NOEXCEPT { return p1; }
-    inline RawPoint& second() BP2D_NOEXCEPT { return p2; }
+    inline RawPoint& first() BP2D_NOEXCEPT { angletox_ = std::nan(""); return p1; }
+    inline RawPoint& second() BP2D_NOEXCEPT { angletox_ = std::nan(""); return p2; }
 
     inline Radians angleToXaxis() const;
 
@@ -238,14 +239,17 @@ void setY(RawPoint& p, const TCoord<RawPoint>& val)
 template<class RawPoint>
 inline Radians _Segment<RawPoint>::angleToXaxis() const
 {
-    TCoord<RawPoint> dx = getX(second()) - getX(first());
-    TCoord<RawPoint> dy = getY(second()) - getY(first());
+    if(std::isnan(angletox_)) {
+        TCoord<RawPoint> dx = getX(second()) - getX(first());
+        TCoord<RawPoint> dy = getY(second()) - getY(first());
 
-    double a = std::atan2(dy, dx);
-    auto s = std::signbit(a);
+        double a = std::atan2(dy, dx);
+        auto s = std::signbit(a);
 
-    if(s) a += Pi_2;
-    return a;
+        if(s) a += Pi_2;
+        angletox_ = a;
+    }
+    return angletox_;
 }
 
 template<class RawPoint>

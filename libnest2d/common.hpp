@@ -138,6 +138,7 @@ const double BP2D_CONSTEXPR Pi_2 = 2*Pi;
  * @brief Only for the Radian and Degrees classes to behave as doubles.
  */
 class Double {
+protected:
   double val_;
 public:
   Double(): val_(double{}) { }
@@ -153,12 +154,23 @@ class Degrees;
  * @brief Data type representing radians. It supports conversion to degrees.
  */
 class Radians: public Double {
+    mutable double sin_ = std::nan(""), cos_ = std::nan("");
 public:
     Radians(double rads = Double() ): Double(rads) {}
     inline Radians(const Degrees& degs);
 
     inline operator Degrees();
     inline double toDegrees();
+
+    inline double sin() const {
+        if(std::isnan(sin_)) sin_ = std::sin(val_);
+        return sin_;
+    }
+
+    inline double cos() const {
+        if(std::isnan(cos_)) cos_ = std::cos(val_);
+        return cos_;
+    }
 };
 
 /**

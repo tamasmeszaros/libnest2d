@@ -10,7 +10,6 @@
 
 namespace libnest2d { namespace strategies {
 
-
 /**
  * Selection heuristic based on [López-Camacho]\
  * (http://www.cs.stir.ac.uk/~goc/papers/EffectiveHueristic2DAOR2013.pdf)
@@ -81,6 +80,7 @@ private:
     Config config_;
 
     static const unsigned MAX_ITEMS_SEQUENTIALLY = 30;
+    static const unsigned MAX_VERTICES_SEQUENTIALLY = MAX_ITEMS_SEQUENTIALLY*20;
 
 public:
 
@@ -113,6 +113,12 @@ public:
 
         std::sort(store_.begin(), store_.end(), [](Item& i1, Item& i2) {
             return i1.area() > i2.area();
+        });
+
+        unsigned glob_vertex_count = 0;
+        std::for_each(store_.begin(), store_.end(),
+                      [&glob_vertex_count](const Item& item) {
+             glob_vertex_count += item.vertexCount();
         });
 
         std::vector<Placer> placers;
@@ -528,10 +534,10 @@ public:
 
         // Do parallel if feasible
         bool do_parallel = config_.allow_parallel && bincount_guess > 1 &&
-                (bincount_guess >= std::thread::hardware_concurrency()/2 ||
-                store_.size() >= MAX_ITEMS_SEQUENTIALLY);
+                (glob_vertex_count >  MAX_VERTICES_SEQUENTIALLY ||
+                 store_.size() > MAX_ITEMS_SEQUENTIALLY);
 
-        if(do_parallel) std::cout << "Parallell" << std::endl;
+        if(do_parallel) dout() << "Parallel execution..." << "\n";
 
         // The DJD heuristic algorithm itself:
         auto packjob = [INITIAL_FILL_AREA, bin_area, w,

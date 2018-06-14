@@ -348,38 +348,30 @@ public:
                 for(unsigned ch = 0; ch < ecache.size(); ch++) {
                     auto& cache = ecache[ch];
 
-                    opt::Result<double> result;
-                    result.resultcode = opt::FAILURE;
-                    result.score = penality_;
-
                     std::for_each(cache.corners().begin(),
                                   cache.corners().end(),
                                   [ch, &solver, &objfunc,
-                                  &best_score, &optimum, &result]
+                                  &best_score, &optimum]
                                   (double pos)
                     {
-                        if((result.resultcode != opt::FTOL_REACHED &&
-                            result.resultcode != opt::SUCCESS ) ||
-                            result.score > 1.0) {
-                            try {
-                                result = solver.optimize_min(objfunc,
-                                                opt::initvals<double>(ch+pos),
-                                                opt::bound<double>(ch, 1.0 + ch)
-                                                );
+                        try {
+                            auto result = solver.optimize_min(objfunc,
+                                            opt::initvals<double>(ch+pos),
+                                            opt::bound<double>(ch, 1.0 + ch)
+                                            );
 
-                                if(result.score < best_score) {
-                                    best_score = result.score;
-                                    optimum = std::get<0>(result.optimum);
-                                }
-                            } catch(std::exception&
-                            #ifndef NDEBUG
-                                    e
-                            #endif
-                                    ) {
-                            #ifndef NDEBUG
-                                std::cerr << "ERROR " << e.what() << std::endl;
-                            #endif
+                            if(result.score < best_score) {
+                                best_score = result.score;
+                                optimum = std::get<0>(result.optimum);
                             }
+                        } catch(std::exception&
+                        #ifndef NDEBUG
+                                e
+                        #endif
+                                ) {
+                        #ifndef NDEBUG
+                            std::cerr << "ERROR " << e.what() << std::endl;
+                        #endif
                         }
                     });
                 }

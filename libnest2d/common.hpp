@@ -1,6 +1,15 @@
 #ifndef LIBNEST2D_CONFIG_HPP
 #define LIBNEST2D_CONFIG_HPP
 
+#ifndef NDEBUG
+#include <iostream>
+#endif
+
+#include <stdexcept>
+#include <string>
+#include <cmath>
+#include <type_traits>
+
 #if defined(_MSC_VER) &&  _MSC_VER <= 1800 || __cplusplus < 201103L
     #define BP2D_NOEXCEPT
     #define BP2D_CONSTEXPR
@@ -9,12 +18,49 @@
     #define BP2D_CONSTEXPR constexpr
 #endif
 
-#include <stdexcept>
-#include <string>
-#include <cmath>
-#include <type_traits>
+
+/*
+ * Debugging output dout and derr definition
+ */
+//#ifndef NDEBUG
+//#   define dout std::cout
+//#   define derr std::cerr
+//#else
+//#   define dout 0 && std::cout
+//#   define derr 0 && std::cerr
+//#endif
 
 namespace libnest2d {
+
+struct DOut {
+#ifndef NDEBUG
+    std::ostream& out = std::cout;
+#endif
+};
+
+struct DErr {
+#ifndef NDEBUG
+    std::ostream& out = std::cerr;
+#endif
+};
+
+template<class T>
+inline DOut&& operator<<( DOut&& out, T&& d) {
+#ifndef NDEBUG
+    out.out << d;
+#endif
+    return std::move(out);
+}
+
+template<class T>
+inline DErr&& operator<<( DErr&& out, T&& d) {
+#ifndef NDEBUG
+    out.out << d;
+#endif
+    return std::move(out);
+}
+inline DOut dout() { return DOut(); }
+inline DErr derr() { return DErr(); }
 
 template< class T >
 struct remove_cvref {

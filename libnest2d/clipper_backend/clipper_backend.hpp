@@ -263,8 +263,30 @@ inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs)
     for(auto& hole : sh.Childs) for(auto& p : hole->Contour) { p += offs; }
 }
 
-#define DISABLE_BOOST_NFP_MERGE
+#define DISABLE_BOOST_ROTATE
+template<>
+inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads)
+{
+    using Coord = TCoord<PointImpl>;
 
+    auto cosa = std::cos(rads);
+    auto sina = std::sin(rads);
+
+    for(auto& p : sh.Contour) {
+        p = {
+                static_cast<Coord>(std::round(p.X * cosa - p.Y * sina)),
+                static_cast<Coord>(std::round(p.X * sina + p.Y * cosa))
+             };
+    }
+    for(auto& hole : sh.Childs) for(auto& p : hole->Contour) {
+        p = {
+            static_cast<Coord>(std::round(p.X * cosa - p.Y * sina)),
+            static_cast<Coord>(std::round(p.X * sina + p.Y * cosa))
+             };
+    }
+}
+
+#define DISABLE_BOOST_NFP_MERGE
 template<> inline
 Nfp::Shapes<PolygonImpl> Nfp::merge(const Nfp::Shapes<PolygonImpl>& shapes,
                                     const PolygonImpl& sh)

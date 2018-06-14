@@ -413,6 +413,7 @@ inline PolygonImpl ShapeLike::convexHull(const bp2d::Shapes& shapes)
 }
 #endif
 
+#ifndef DISABLE_BOOST_ROTATE
 template<>
 inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads)
 {
@@ -424,6 +425,7 @@ inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads)
 
     boost::geometry::transform(cpy, sh, rotate);
 }
+#endif
 
 #ifndef DISABLE_BOOST_TRANSLATE
 template<>

@@ -7,7 +7,7 @@
 #include "placer_boilerplate.hpp"
 #include "../geometries_nfp.hpp"
 #include <libnest2d/optimizers/subplex.hpp>
-#include <libnest2d/optimizers/genetic.hpp>
+//#include <libnest2d/optimizers/genetic.hpp>
 
 namespace libnest2d { namespace strategies {
 
@@ -71,8 +71,8 @@ template<class RawShape> class EdgeCache {
 
         corners_ = std::vector<double>(NUM_CORNERS, 0.0);
 
-        std::vector<unsigned> idx_ud(emap_.size(), 0.0);
-        std::vector<unsigned> idx_lr(emap_.size(), 0.0);
+        std::vector<unsigned> idx_ud(emap_.size(), 0);
+        std::vector<unsigned> idx_lr(emap_.size(), 0);
 
         std::iota(idx_ud.begin(), idx_ud.end(), 0);
         std::iota(idx_lr.begin(), idx_lr.end(), 0);
@@ -348,30 +348,38 @@ public:
                 for(unsigned ch = 0; ch < ecache.size(); ch++) {
                     auto& cache = ecache[ch];
 
+                    opt::Result<double> result;
+                    result.resultcode = opt::FAILURE;
+                    result.score = penality_;
+
                     std::for_each(cache.corners().begin(),
                                   cache.corners().end(),
                                   [ch, &solver, &objfunc,
-                                  &best_score, &optimum]
+                                  &best_score, &optimum, &result]
                                   (double pos)
                     {
-                        try {
-                            auto result = solver.optimize_min(objfunc,
-                                            opt::initvals<double>(ch+pos),
-                                            opt::bound<double>(ch, 1.0 + ch)
-                                            );
+                        if((result.resultcode != opt::FTOL_REACHED &&
+                            result.resultcode != opt::SUCCESS ) ||
+                            result.score > 1.0) {
+                            try {
+                                result = solver.optimize_min(objfunc,
+                                                opt::initvals<double>(ch+pos),
+                                                opt::bound<double>(ch, 1.0 + ch)
+                                                );
 
-                            if(result.score < best_score) {
-                                best_score = result.score;
-                                optimum = std::get<0>(result.optimum);
+                                if(result.score < best_score) {
+                                    best_score = result.score;
+                                    optimum = std::get<0>(result.optimum);
+                                }
+                            } catch(std::exception&
+                            #ifndef NDEBUG
+                                    e
+                            #endif
+                                    ) {
+                            #ifndef NDEBUG
+                                std::cerr << "ERROR " << e.what() << std::endl;
+                            #endif
                             }
-                        } catch(std::exception&
-                        #ifndef NDEBUG
-                                e
-                        #endif
-                                ) {
-                        #ifndef NDEBUG
-                            std::cerr << "ERROR " << e.what() << std::endl;
-                        #endif
                         }
                     });
                 }

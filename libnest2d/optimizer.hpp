@@ -13,6 +13,7 @@ using std::tuple;
 using std::get;
 using std::tuple_element;
 
+/// A Type trait for upper and lower limit of a numeric type.
 template<class T, class B = void >
 struct limits {
     inline static T min() { return std::numeric_limits<T>::min(); }
@@ -25,6 +26,7 @@ struct limits<T, enable_if_t<std::numeric_limits<T>::has_infinity, void>> {
     inline static T max() { return std::numeric_limits<T>::infinity(); }
 };
 
+/// An interval of possible input values for optimization
 template<class T>
 class Bound {
     T min_;
@@ -36,9 +38,16 @@ public:
     inline const T max() const BP2D_NOEXCEPT { return max_; }
 };
 
+/**
+ * Helper function to make a Bound object with its type deduced automatically.
+ */
 template<class T>
 inline Bound<T> bound(const T& min, const T& max) { return Bound<T>(min, max); }
 
+/**
+ * This is the type of an input tuple for the object function. It holds the
+ * values and their type in each dimension.
+ */
 template<class...Args> using Input = tuple<Args...>;
 
 template<class...Args>
@@ -67,21 +76,19 @@ class metaloop {
 template<int N> using Int = std::integral_constant<int, N>;
 
 /*
- * Helper class to implement inplace functors.
+ * Helper class to implement in-place functors.
  *
- * We want to be able to use an inline functors like a lamda to keep the code
- * as clear as possible. I don't like if a functor is implemented kilometers far
- * from the place where it is used only once.
+ * We want to be able to use inline functors like a lambda to keep the code
+ * as clear as possible.
  */
 template<int N, class Fn> class MapFn {
     Fn&& fn_;
 public:
 
-    // It takes the real functor that can be specified in place but only
+    // It takes the real functor that can be specified in-place but only
     // with C++14 because the second parameter's type will depend on the
     // type of the parameter pack element that is processed. In C++14 we can
-    // specifying this second parameter type as auto int the lamda parameter
-    // list.
+    // specify this second parameter type as auto in the lamda parameter list.
     inline MapFn(Fn&& fn): fn_(forward<Fn>(fn)) {}
 
     template<class T> void operator ()(T&& pack_element) {
@@ -94,14 +101,14 @@ public:
 /*
  * Implementation of the template loop trick.
  * We create a mechanism for looping over a parameter pack in compile time.
- * \tparam Idx is the loop index which will be incremented at each recursion.
+ * \tparam Idx is the loop index which will be decremented at each recursion.
  * \tparam Args The parameter pack that will be processed.
  *
  */
 template <typename Idx, class...Args>
 class _MetaLoop {};
 
-// Implementation for the last element of Args...
+// Implementation for the first element of Args...
 template <class...Args>
 class _MetaLoop<Int<0>, Args...> {
 public:
@@ -133,11 +140,13 @@ public:
 };
 
 /*
- * Instantiation: We must instantiate the template with the zero index because
- * the generalized version calls the incremented instantiations recursively.
- * Once the instantiation with the last index is called, the terminating version
- * of run is called which does not call itself anymore. If you are annoyed, at
- * least you have learned a functional programming pattern.
+ * Instantiation: We must instantiate the template with the last index because
+ * the generalized version calls the decremented instantiations recursively.
+ * Once the instantiation with the first index is called, the terminating
+ * version of run is called which does not call itself anymore.
+ *
+ * If you are utterly annoyed, at least you have learned a super crazy
+ * functional metaprogramming pattern.
  */
 template<class...Args>
 using MetaLoop = _MetaLoop<Int<sizeof...(Args)-1>, Args...>;
@@ -149,7 +158,7 @@ public:
  *
  * This is similar to what varags was on C but in compile time C++11.
  * You can call:
- * map(<the mapping function>, <arbitrary number of arguments of any type>);
+ * apply(<the mapping function>, <arbitrary number of arguments of any type>);
  * For example:
  *
  *      struct mapfunc {
@@ -159,10 +168,10 @@ public:
  *          }
  *      };
  *
- *      map(mapfunc(), 'a', 10, 151.545);
+ *      apply(mapfunc(), 'a', 10, 151.545);
  *
  * C++14:
- *      map([](int N, auto&& element){
+ *      apply([](int N, auto&& element){
  *          std::cout << "The value of the parameter "<< N <<": "
  *                        << element << std::endl;
  *      }, 'a', 10, 151.545);
@@ -173,32 +182,40 @@ public:
  * The value of the parameter 2: 151.545
  *
  * As an addition, the function can be called with a tuple as the second
- * parameter holding the arguments insted of a parameter pack.
+ * parameter holding the arguments instead of a parameter pack.
  *
  */
 template<class...Args, class Fn>
-inline static void map(Fn&& fn, Args&&...args) {
+inline static void apply(Fn&& fn, Args&&...args) {
     MetaLoop<Args...>().run(tuple<Args&&...>(forward<Args>(args)...),
                             forward<Fn>(fn));
 }
 
+/// The version of apply with a tuple rvalue reference.
 template<class...Args, class Fn>
-inline static void map(Fn&& fn, tuple<Args...>&& tup) {
+inline static void apply(Fn&& fn, tuple<Args...>&& tup) {
     MetaLoop<Args...>().run(std::move(tup), forward<Fn>(fn));
 }
 
+/// The version of apply with a tuple lvalue reference.
 template<class...Args, class Fn>
-inline static void map(Fn&& fn, tuple<Args...>& tup) {
+inline static void apply(Fn&& fn, tuple<Args...>& tup) {
     MetaLoop<Args...>().run(tup, forward<Fn>(fn));
 }
 
+/// The version of apply with a tuple const reference.
 template<class...Args, class Fn>
-inline static void map(Fn&& fn, const tuple<Args...>& tup) {
+inline static void apply(Fn&& fn, const tuple<Args...>& tup) {
     MetaLoop<Args...>().run(tup, forward<Fn>(fn));
 }
 
+/**
+ * Call a function with its arguments encapsualted in a tuple.
+ */
 template<class Fn, class Tup, std::size_t...Is>
-inline static double callFunWithTuple(Fn&& fn, Tup&& tup, index_sequence<Is...>)
+inline static auto
+callFunWithTuple(Fn&& fn, Tup&& tup, index_sequence<Is...>) ->
+    decltype(fn(std::get<Is>(tup)...))
 {
     return fn(std::get<Is>(tup)...);
 }

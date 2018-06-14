@@ -94,7 +94,7 @@ protected:
         auto funval = std::tuple<Args...>();
 
         // copy the obtained objectfunction arguments to the funval tuple.
-        metaloop::map(FunvalCopyFunc(params), funval);
+        metaloop::apply(FunvalCopyFunc(params), funval);
 
         auto ret = metaloop::callFunWithTuple(*fnptr, funval,
                                               index_sequence_for<Args...>());
@@ -115,7 +115,7 @@ protected:
 
         // Copy the bounds which is obtained as a parameter pack in args into
         // lower_bounds_ and upper_bounds_
-        metaloop::map(BoundsFunc(*this), args...);
+        metaloop::apply(BoundsFunc(*this), args...);
 
         opt_.set_lower_bounds(lower_bounds_);
         opt_.set_upper_bounds(upper_bounds_);
@@ -143,7 +143,7 @@ protected:
             opt_.set_maxeval(this->stopcr_.max_iterations );
 
         // Take care of the initial values, copy them to initvals_
-        metaloop::map(InitValFunc(*this), initvals);
+        metaloop::apply(InitValFunc(*this), initvals);
 
         switch(dir_) {
         case OptDir::MIN:
@@ -157,7 +157,7 @@ protected:
         auto rescode = opt_.optimize(initvals_, result.score);
         result.resultcode = static_cast<ResultCodes>(rescode);
 
-        metaloop::map(ResultCopyFunc(*this), result.optimum);
+        metaloop::apply(ResultCopyFunc(*this), result.optimum);
 
         return result;
     }

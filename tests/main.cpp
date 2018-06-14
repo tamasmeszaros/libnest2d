@@ -41,28 +41,28 @@ void arrangeRectangles() {
     using namespace libnest2d;
 
     const int SCALE = 1000000;
-//    std::vector<Rectangle> rects = {
-//        {80*SCALE, 80*SCALE},
-//        {60*SCALE, 90*SCALE},
-//        {70*SCALE, 30*SCALE},
-//        {80*SCALE, 60*SCALE},
-//        {60*SCALE, 60*SCALE},
-//        {60*SCALE, 40*SCALE},
-//        {40*SCALE, 40*SCALE},
-//        {10*SCALE, 10*SCALE},
-//        {10*SCALE, 10*SCALE},
-//        {10*SCALE, 10*SCALE},
-//        {10*SCALE, 10*SCALE},
-//        {10*SCALE, 10*SCALE},
-//        {5*SCALE, 5*SCALE},
-//        {5*SCALE, 5*SCALE},
-//        {5*SCALE, 5*SCALE},
-//        {5*SCALE, 5*SCALE},
-//        {5*SCALE, 5*SCALE},
-//        {5*SCALE, 5*SCALE},
-//        {5*SCALE, 5*SCALE},
-//        {20*SCALE, 20*SCALE}
-//       };
+    std::vector<Rectangle> rects = {
+        {80*SCALE, 80*SCALE},
+        {60*SCALE, 90*SCALE},
+        {70*SCALE, 30*SCALE},
+        {80*SCALE, 60*SCALE},
+        {60*SCALE, 60*SCALE},
+        {60*SCALE, 40*SCALE},
+        {40*SCALE, 40*SCALE},
+        {10*SCALE, 10*SCALE},
+        {10*SCALE, 10*SCALE},
+        {10*SCALE, 10*SCALE},
+        {10*SCALE, 10*SCALE},
+        {10*SCALE, 10*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {20*SCALE, 20*SCALE}
+       };
 
 //    std::vector<Rectangle> rects = {
 //        {20*SCALE, 10*SCALE},
@@ -76,21 +76,21 @@ void arrangeRectangles() {
 
     std::vector<Item> input;
     input.insert(input.end(), prusaParts().begin(), prusaParts().end());
-//    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
+    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
 //    input.insert(input.end(), rects.begin(), rects.end());
 
     Box bin(250*SCALE, 210*SCALE);
 
-    Coord min_obj_distance = 0; //1.5*SCALE;
+    Coord min_obj_distance = 1.5*SCALE;
 
     using Packer = Arranger<NfpPlacer, DJDHeuristic>;
 
-    Packer::PlacementConfig pconf;
+//    Packer::PlacementConfig pconf;
 //    pconf.alignment = NfpPlacer::Config::Alignment::CENTER;
 //    pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/};
-    Packer::SelectionConfig sconf;
-    sconf.allow_parallel = true;
-    Packer arrange(bin, min_obj_distance, pconf, sconf);
+//    Packer::SelectionConfig sconf;
+//    sconf.allow_parallel = true;
+    Packer arrange(bin, min_obj_distance/*, pconf, sconf*/);
 
     arrange.progressIndicator([&](unsigned r){
 //        svg::SVGWriter::Config conf;
@@ -113,7 +113,7 @@ void arrangeRectangles() {
     std::vector<double> eff;
     eff.reserve(result.size());
 
-    double bin_area = bin.height()*bin.width();
+    auto bin_area = double(bin.height()*bin.width());
     for(auto& r : result) {
         double a = 0;
         std::for_each(r.begin(), r.end(), [&a] (Item& e ){ a += e.area(); });
@@ -124,15 +124,24 @@ void arrangeRectangles() {
               << std::endl;
 
     std::cout << "Bin efficiency: (";
-    for(double e : eff) std::cout << e << " ";
+    for(double e : eff) std::cout << e*100.0 << "% ";
     std::cout << ") Average: "
-              << std::accumulate(eff.begin(), eff.end(), 0.0)/result.size()
-              << std::endl;
+              << std::accumulate(eff.begin(), eff.end(), 0.0)*100.0/result.size()
+              << " %" << std::endl;
+
+    std::cout << "Bin usage: (";
+    unsigned total = 0;
+    for(auto& r : result) { std::cout << r.size() << " "; total += r.size(); }
+    std::cout << ") Total: " << total << std::endl;
 
     for(auto& it : input) {
         auto ret = ShapeLike::isValid(it.transformedShape());
         std::cout << ret.second << std::endl;
     }
+
+    if(total != input.size()) std::cout << "ERROR " << "could not pack "
+                                        << input.size() - total << " elements!"
+                                        << std::endl;
 
     svg::SVGWriter::Config conf;
     conf.mm_in_coord_units = SCALE;

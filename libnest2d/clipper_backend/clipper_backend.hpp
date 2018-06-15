@@ -103,7 +103,7 @@ inline TCoord<PointImpl>& PointLike::y(PointImpl& p)
 }
 
 template<>
-inline void ShapeLike::reserve(PolygonImpl& sh, unsigned long vertex_capacity)
+inline void ShapeLike::reserve(PolygonImpl& sh, size_t vertex_capacity)
 {
     return sh.Contour.reserve(vertex_capacity);
 }

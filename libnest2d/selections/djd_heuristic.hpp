@@ -115,7 +115,7 @@ public:
             return i1.area() > i2.area();
         });
 
-        unsigned glob_vertex_count = 0;
+        size_t glob_vertex_count = 0;
         std::for_each(store_.begin(), store_.end(),
                       [&glob_vertex_count](const Item& item) {
              glob_vertex_count += item.vertexCount();
@@ -510,7 +510,7 @@ public:
         SpinLock slock(flg);
 
         auto makeProgress = [this, &acounter, &slock]
-                (Placer& placer, unsigned idx, int packednum)
+                (Placer& placer, size_t idx, int packednum)
         {
 
             packed_bins_[idx] = placer.getItems();
@@ -545,7 +545,7 @@ public:
                         &tryGroupsOfTwo,
                         &tryGroupsOfThree,
                         &makeProgress]
-                        (Placer& placer, ItemList& not_packed, unsigned idx)
+                        (Placer& placer, ItemList& not_packed, size_t idx)
         {
             bool can_pack = true;
 
@@ -599,7 +599,7 @@ public:
             return can_pack;
         };
 
-        int idx = 0;
+        size_t idx = 0;
         ItemList remaining;
 
         if(do_parallel) {

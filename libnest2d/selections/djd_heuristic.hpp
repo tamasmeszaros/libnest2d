@@ -635,14 +635,16 @@ public:
                 remaining.merge( not_packeds[fi], [](Item& i1, Item& i2) {
                     return i1.area() > i2.area();
                 });
+
             }
 
             idx = placers.size();
 
             // Try to put the remaining items into one of the packed bins
-//            for(int j = 0; j < idx && !remaining.empty(); j++) {
-//                packjob(placers[j], remaining, j);
-//            }
+            if(remaining.size() <= placers.size())
+            for(int j = 0; j < idx && !remaining.empty(); j++) {
+                packjob(placers[j], remaining, j);
+            }
 
         } else {
             remaining = ItemList(store_.begin(), store_.end());

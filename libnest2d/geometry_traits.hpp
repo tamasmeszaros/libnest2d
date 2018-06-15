@@ -86,6 +86,9 @@ public:
     inline RawPoint center() const BP2D_NOEXCEPT;
 };
 
+/**
+ * \brief An abstraction of a directed line segment with two points.
+ */
 template<class RawPoint>
 class _Segment: PointPair<RawPoint> {
     using PointPair<RawPoint>::p1;
@@ -94,17 +97,35 @@ class _Segment: PointPair<RawPoint> {
 public:
 
     inline _Segment() {}
+
     inline _Segment(const RawPoint& p, const RawPoint& pp):
         PointPair<RawPoint>({p, pp}) {}
 
+    /**
+     * @brief Get the first point.
+     * @return Returns the starting point.
+     */
     inline const RawPoint& first() const BP2D_NOEXCEPT { return p1; }
+
+    /**
+     * @brief The end point.
+     * @return Returns the end point of the segment.
+     */
     inline const RawPoint& second() const BP2D_NOEXCEPT { return p2; }
 
-    inline RawPoint& first() BP2D_NOEXCEPT { angletox_ = std::nan(""); return p1; }
-    inline RawPoint& second() BP2D_NOEXCEPT { angletox_ = std::nan(""); return p2; }
+    inline void first(const RawPoint& p) BP2D_NOEXCEPT
+    {
+        angletox_ = std::nan(""); p1 = p;
+    }
 
+    inline void second(const RawPoint& p) BP2D_NOEXCEPT {
+        angletox_ = std::nan(""); p2 = p;
+    }
+
+    /// Returns the angle measured to the X (horizontal) axis.
     inline Radians angleToXaxis() const;
 
+    /// The length of the segment in the measure of the coordinate system.
     inline double length();
 };
 

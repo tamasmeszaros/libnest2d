@@ -283,6 +283,14 @@ public:
                     return ecache[nfp_idx].coords(p);
                 };
 
+                Nfp::Shapes<RawShape> pile;
+                pile.reserve(items_.size()+1);
+                double pile_area = 0;
+                for(Item& mitem : items_) {
+                    pile.emplace_back(mitem.transformedShape());
+                    pile_area += mitem.area();
+                }
+
                 // Our object function for placement
                 auto objfunc = [&] (double relpos)
                 {
@@ -291,20 +299,12 @@ public:
                     d += startpos;
                     item.translation(d);
 
-                    Nfp::Shapes<RawShape> pile;
-                    pile.reserve(items_.size());
-
-                    for(Item& mitem : items_)
-                        pile.emplace_back(mitem.transformedShape());
-
                     pile.emplace_back(item.transformedShape());
-                    double occupied_area = 0;
-                    std::for_each(pile.begin(), pile.end(),
-                                  [&occupied_area](const RawShape& mshape){
-                       occupied_area +=  ShapeLike::area(mshape);
-                    });
 
+                    double occupied_area = pile_area + item.area();
                     auto ch = ShapeLike::convexHull(pile);
+
+                    pile.pop_back();
 
                     // The pack ratio -- how much is the convex hull occupied
                     double pack_rate = occupied_area/ShapeLike::area(ch);

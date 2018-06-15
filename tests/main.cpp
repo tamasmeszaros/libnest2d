@@ -76,12 +76,12 @@ void arrangeRectangles() {
 
     std::vector<Item> input;
     input.insert(input.end(), prusaParts().begin(), prusaParts().end());
-//    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
+    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
 //    input.insert(input.end(), rects.begin(), rects.end());
 
     Box bin(250*SCALE, 210*SCALE);
 
-    Coord min_obj_distance = 1.5*SCALE;
+    Coord min_obj_distance = 0;//1.5*SCALE;
 
     using Packer = Arranger<NfpPlacer, DJDHeuristic>;
 

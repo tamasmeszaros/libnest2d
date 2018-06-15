@@ -208,9 +208,10 @@ static inline bool _vsort(const TPoint<RawShape>& v1,
                           const TPoint<RawShape>& v2)
 {
     using Coord = TCoord<TPoint<RawShape>>;
-    auto diff = getY(v1) - getY(v2);
+    Coord &&x1 = getX(v1), &&x2 = getX(v2), &&y1 = getY(v1), &&y2 = getY(v2);
+    auto diff = y1 - y2;
     if(std::abs(diff) <= std::numeric_limits<Coord>::epsilon())
-        return getX(v1) < getX(v2);
+        return x1 < x2;
 
     return diff < 0;
 }

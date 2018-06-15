@@ -155,7 +155,7 @@ template<> struct indexed_access<bp2d::Segment, 0, 0> {
         return bp2d::getX(seg.first());
     }
     static inline void set(bp2d::Segment &seg, bp2d::Coord const& coord) {
-        bp2d::setX(seg.first(), coord);
+        auto p = seg.first(); bp2d::setX(p, coord); seg.first(p);
     }
 };
 
@@ -164,7 +164,7 @@ template<> struct indexed_access<bp2d::Segment, 0, 1> {
         return bp2d::getY(seg.first());
     }
     static inline void set(bp2d::Segment &seg, bp2d::Coord const& coord) {
-        bp2d::setY(seg.first(), coord);
+        auto p = seg.first(); bp2d::setY(p, coord); seg.first(p);
     }
 };
 
@@ -173,7 +173,7 @@ template<> struct indexed_access<bp2d::Segment, 1, 0> {
         return bp2d::getX(seg.second());
     }
     static inline void set(bp2d::Segment &seg, bp2d::Coord const& coord) {
-        bp2d::setX(seg.second(), coord);
+        auto p = seg.second();  bp2d::setX(p, coord); seg.second(p);
     }
 };
 
@@ -182,7 +182,7 @@ template<> struct indexed_access<bp2d::Segment, 1, 1> {
         return bp2d::getY(seg.second());
     }
     static inline void set(bp2d::Segment &seg, bp2d::Coord const& coord) {
-        bp2d::setY(seg.second(), coord);
+        auto p = seg.second(); bp2d::setY(p, coord); seg.second(p);
     }
 };
 

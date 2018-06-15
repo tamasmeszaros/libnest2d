@@ -367,6 +367,16 @@ public:
                     objectfunction, initvals, Bound<Args>()... );
     }
 
+    template<class...Args, class Func>
+    inline Result<Args...> optimize_max(Func&& objectfunction)
+    {
+        dir_ = OptDir::MAX;
+        return static_cast<Subclass*>(this)->template optimize<Func, Args...>(
+                    objectfunction,
+                    Input<Args...>(),
+                    Bound<Args>()... );
+    }
+
 };
 
 // Just to be able to instantiate an unimplemented method and generate compile

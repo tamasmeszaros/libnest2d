@@ -75,7 +75,11 @@ endif()
 
 message(STATUS "clipper lib is: ${LIBNEST2D_GEOMETRIES_TARGET}")
 
-find_package(NLopt 1.4 REQUIRED)
+find_package(NLopt 1.4)
+if(NOT NLopt_FOUND)
+    message(STATUS "NLopt not found so downloading and automatic build is performed...")
+    include(DownloadNLopt)
+endif()
 find_package(Threads REQUIRED)
 
 add_library(libnest2d_static STATIC ${LIBNEST2D_SRCFILES} )

@@ -9,8 +9,8 @@
 #include <functional>
 
 #include "geometry_traits.hpp"
-#include "optimizers/subplex.hpp"
-#include "optimizers/simplex.hpp"
+//#include "optimizers/subplex.hpp"
+//#include "optimizers/simplex.hpp"
 #include "optimizers/genetic.hpp"
 
 namespace libnest2d {
@@ -635,7 +635,7 @@ template<class PlacementStrategy, class SelectionStrategy >
 class Arranger {
     using TSel = SelectionStrategyLike<SelectionStrategy>;
     TSel selector_;
-
+    bool use_min_bb_rotation_ = false;
 public:
     using Item = typename PlacementStrategy::Item;
     using ItemRef = std::reference_wrapper<Item>;
@@ -719,9 +719,9 @@ public:
     }
 
     /// Set a progress indicatior function object for the selector.
-    inline void progressIndicator(ProgressFunction func)
+    inline Arranger& progressIndicator(ProgressFunction func)
     {
-        selector_.progressIndicator(func);
+        selector_.progressIndicator(func); return *this;
     }
 
     inline PackGroup lastResult() {
@@ -731,6 +731,10 @@ public:
             ret.push_back(items);
         }
         return ret;
+    }
+
+    inline Arranger& useMinimumBoundigBoxRotation(bool s = true) {
+        use_min_bb_rotation_ = s; return *this;
     }
 
 private:
@@ -823,13 +827,14 @@ private:
     Radians findBestRotation(Item& item) {
         opt::StopCriteria stopcr;
         stopcr.stoplimit = 0.01;
+        stopcr.max_iterations = 10000;
         stopcr.type = opt::StopLimitType::RELATIVE;
-        opt::TOptimizer<opt::Method::L_SIMPLEX> solver(stopcr);
+        opt::TOptimizer<opt::Method::G_GENETIC> solver(stopcr);
 
         auto orig_rot = item.rotation();
 
-        auto result = solver.optimize_min([&item](Radians rot){
-            item.rotation(rot);
+        auto result = solver.optimize_min([&item, &orig_rot](Radians rot){
+            item.rotation(orig_rot + rot);
             auto bb = item.boundingBox();
             return std::sqrt(bb.height()*bb.width());
         }, opt::initvals(Radians(0)), opt::bound<Radians>(-Pi/2, Pi/2));
@@ -845,10 +850,11 @@ private:
             item.addOffset(static_cast<Unit>(std::ceil(min_obj_distance_/2.0)));
         });
 
-        std::for_each(from, to, [this](Item& item){
-            Radians rot = findBestRotation(item);
-            item.rotation(rot);
-        });
+        if(use_min_bb_rotation_)
+            std::for_each(from, to, [this](Item& item){
+                Radians rot = findBestRotation(item);
+                item.rotate(rot);
+            });
 
         selector_.template packItems<PlacementStrategy>(
                     from, to, bin_, pconfig_);

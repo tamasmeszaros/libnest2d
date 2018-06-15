@@ -69,6 +69,12 @@ public:
          * performance for large number of items.
          */
         bool allow_parallel = true;
+
+        /**
+         * @brief Always use parallel processing if the items don't fit into
+         * one bin.
+         */
+        bool force_parallel = false;
     };
 
 private:
@@ -535,7 +541,8 @@ public:
         // Do parallel if feasible
         bool do_parallel = config_.allow_parallel && bincount_guess > 1 &&
                 (glob_vertex_count >  MAX_VERTICES_SEQUENTIALLY ||
-                 store_.size() > MAX_ITEMS_SEQUENTIALLY);
+                 store_.size() > MAX_ITEMS_SEQUENTIALLY) ||
+                config_.force_parallel;
 
         if(do_parallel) dout() << "Parallel execution..." << "\n";
 

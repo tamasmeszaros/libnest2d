@@ -540,9 +540,9 @@ public:
 
         // Do parallel if feasible
         bool do_parallel = config_.allow_parallel && bincount_guess > 1 &&
-                (glob_vertex_count >  MAX_VERTICES_SEQUENTIALLY ||
+                ((glob_vertex_count >  MAX_VERTICES_SEQUENTIALLY ||
                  store_.size() > MAX_ITEMS_SEQUENTIALLY) ||
-                config_.force_parallel;
+                config_.force_parallel);
 
         if(do_parallel) dout() << "Parallel execution..." << "\n";
 
@@ -649,7 +649,7 @@ public:
 
             // Try to put the remaining items into one of the packed bins
             if(remaining.size() <= placers.size())
-            for(int j = 0; j < idx && !remaining.empty(); j++) {
+            for(size_t j = 0; j < idx && !remaining.empty(); j++) {
                 packjob(placers[j], remaining, j);
             }
 

@@ -90,7 +90,7 @@ void arrangeRectangles() {
 //    pconf.rotations = {0.0, Pi/2.0, Pi, 3*Pi/2};
     Packer::SelectionConfig sconf;
     sconf.allow_parallel = true;
-    sconf.force_parallel = true;
+    sconf.force_parallel = false;
     sconf.try_reverse_order = false;
     Packer arrange(bin, min_obj_distance, pconf, sconf);
 

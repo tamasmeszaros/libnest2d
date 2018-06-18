@@ -163,12 +163,18 @@ public:
     inline double toDegrees();
 
     inline double sin() const {
-        if(std::isnan(sin_)) sin_ = std::sin(val_);
+        if(std::isnan(sin_)) {
+            cos_ = std::cos(val_);
+            sin_ = std::sin(val_);
+        }
         return sin_;
     }
 
     inline double cos() const {
-        if(std::isnan(cos_)) cos_ = std::cos(val_);
+        if(std::isnan(cos_)) {
+            cos_ = std::cos(val_);
+            sin_ = std::sin(val_);
+        }
         return cos_;
     }
 };

@@ -317,8 +317,8 @@ public:
                 double& free_area,
                 double& filled_area)
         {
-
-            if(not_packed.size() < 3) return false;
+            auto np_size = not_packed.size();
+            if(np_size < 3) return false;
 
             auto it = not_packed.begin();           // from
             const auto endit = not_packed.end();    // to
@@ -328,6 +328,10 @@ public:
             // do not work.
             std::vector<TPair> wrong_pairs;
             std::vector<TTriplet> wrong_triplets;
+
+            auto cap = np_size*np_size / 2 ;
+            wrong_pairs.reserve(cap);
+            wrong_triplets.reserve(cap);
 
             // Will be true if a succesfull pack can be made.
             bool ret = false;

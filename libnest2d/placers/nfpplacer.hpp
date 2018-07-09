@@ -6,8 +6,6 @@
 #endif
 #include "placer_boilerplate.hpp"
 #include "../geometries_nfp.hpp"
-#include <libnest2d/optimizers/subplex.hpp>
-//#include <libnest2d/optimizers/genetic.hpp>
 
 namespace libnest2d { namespace strategies {
 

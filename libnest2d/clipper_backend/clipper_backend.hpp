@@ -4,7 +4,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <cassert>
-
+#include <vector>
 #include <iostream>
 
 #include "../geometry_traits.hpp"
@@ -14,8 +14,26 @@
 
 namespace ClipperLib {
 using PointImpl = IntPoint;
-using PolygonImpl = PolyNode;
 using PathImpl = Path;
+
+struct PolygonImpl {
+    PathImpl Contour;
+    std::vector<PathImpl> Holes;
+
+    inline PolygonImpl() {}
+
+    inline explicit PolygonImpl(const PathImpl& cont): Contour(cont) {}
+    inline explicit PolygonImpl(const std::vector<PathImpl>& holes):
+        Holes(holes) {}
+    inline PolygonImpl(const Path& cont, const std::vector<PathImpl>& holes):
+        Contour(cont), Holes(holes) {}
+
+    inline explicit PolygonImpl(PathImpl&& cont): Contour(std::move(cont)) {}
+    inline explicit PolygonImpl(std::vector<PathImpl>&& holes):
+        Holes(std::move(holes)) {}
+    inline PolygonImpl(Path&& cont, std::vector<PathImpl>&& holes):
+        Contour(std::move(cont)), Holes(std::move(holes)) {}
+};
 
 inline PointImpl& operator +=(PointImpl& p, const PointImpl& pa ) {
     // This could be done with SIMD
@@ -53,11 +71,9 @@ inline PointImpl operator-(const PointImpl& p1, const PointImpl& p2) {
 namespace libnest2d {
 
 // Aliases for convinience
-using PointImpl = ClipperLib::IntPoint;
-using PolygonImpl = ClipperLib::PolyNode;
-using PathImpl = ClipperLib::Path;
-
-//extern HoleCache holeCache;
+using ClipperLib::PointImpl;
+using ClipperLib::PathImpl;
+using ClipperLib::PolygonImpl;
 
 // Type of coordinate units used by Clipper
 template<> struct CoordType<PointImpl> {
@@ -149,29 +165,44 @@ inline void ShapeLike::offset(PolygonImpl& sh, TCoord<PointImpl> distance) {
     using ClipperLib::Paths;
 
     // If the input is not at least a triangle, we can not do this algorithm
-    if(sh.Contour.size() <= 3) throw GeometryException(GeomErr::OFFSET);
+    if(sh.Contour.size() <= 3 ||
+       std::any_of(sh.Holes.begin(), sh.Holes.end(),
+                   [](const PathImpl& p) { return p.size() <= 3; })
+       ) throw GeometryException(GeomErr::OFFSET);
 
     ClipperOffset offs;
     Paths result;
     offs.AddPath(sh.Contour, jtMiter, etClosedPolygon);
+    offs.AddPaths(sh.Holes, jtMiter, etClosedPolygon);
     offs.Execute(result, static_cast<double>(distance));
 
-    // I dont know why does the offsetting revert the orientation and
-    // it removes the last vertex as well so boost will not have a closed
-    // polygon
+    // Offsetting reverts the orientation and also removes the last vertex
+    // so boost will not have a closed polygon.
 
-    if(result.size() != 1) throw GeometryException(GeomErr::OFFSET);
-
-    sh.Contour = result.front();
-
-    // recreate closed polygon
-    sh.Contour.push_back(sh.Contour.front());
-
-    if(ClipperLib::Orientation(sh.Contour)) {
-        // Not clockwise then reverse the b*tch
-        ClipperLib::ReversePath(sh.Contour);
+    bool found_the_contour = false;
+    for(auto& r : result) {
+        if(ClipperLib::Orientation(r)) {
+            // We don't like if the offsetting generates more than one contour
+            // but throwing would be an overkill. Instead, we should warn the
+            // caller about the inability to create correct geometries
+            if(!found_the_contour) {
+                sh.Contour = r;
+                ClipperLib::ReversePath(sh.Contour);
+                sh.Contour.push_back(sh.Contour.front());
+                found_the_contour = true;
+            } else {
+                dout() << "Warning: offsetting result is invalid!";
+                /* TODO warning */
+            }
+        } else {
+            // TODO If there are multiple contours we can't be sure which hole
+            // belongs to the first contour. (But in this case the situation is
+            // bad enough to let it go...)
+            sh.Holes.push_back(r);
+            ClipperLib::ReversePath(sh.Holes.back());
+            sh.Holes.back().push_back(sh.Holes.back().front());
+        }
     }
-
 }
 
 // TODO : make it convex hull right and faster than boost
@@ -263,7 +294,7 @@ inline void ShapeLike::offset(PolygonImpl& sh, TCoord<PointImpl> distance) {
 //    return ret;
 //}
 
-template<>
+template<> // TODO make it support holes if this method will ever be needed.
 inline PolygonImpl& Nfp::minkowskiAdd(PolygonImpl& sh,
                                             const PolygonImpl& other)
 {
@@ -280,8 +311,16 @@ inline PolygonImpl& Nfp::minkowskiAdd(PolygonImpl& sh,
     return sh;
 }
 
-// Tell binpack2d how to make string out of a ClipperPolygon object
-template<> std::string ShapeLike::toString(const PolygonImpl& sh);
+// Tell libnest2d how to make string out of a ClipperPolygon object
+template<> inline std::string ShapeLike::toString(const PolygonImpl& sh) {
+    std::stringstream ss;
+
+    for(auto p : sh.Contour) {
+        ss << p.X << " " << p.Y << "\n";
+    }
+
+    return ss.str();
+}
 
 template<>
 inline TVertexIterator<PolygonImpl> ShapeLike::begin(PolygonImpl& sh)
@@ -313,34 +352,61 @@ template<> struct HolesContainer<PolygonImpl> {
     using Type = ClipperLib::Paths;
 };
 
-template<> PolygonImpl ShapeLike::create( const PathImpl& path);
+template<> inline PolygonImpl ShapeLike::create( const PathImpl& path) {
+    PolygonImpl p;
+    p.Contour = path;
 
-template<> PolygonImpl ShapeLike::create( PathImpl&& path);
+    // Expecting that the coordinate system Y axis is positive in upwards
+    // direction
+    if(ClipperLib::Orientation(p.Contour)) {
+        // Not clockwise then reverse the b*tch
+        ClipperLib::ReversePath(p.Contour);
+    }
 
-template<>
-const THolesContainer<PolygonImpl>& ShapeLike::holes(
-        const PolygonImpl& sh);
-
-template<>
-THolesContainer<PolygonImpl>& ShapeLike::holes(PolygonImpl& sh);
-
-template<>
-inline TContour<PolygonImpl>& ShapeLike::getHole(PolygonImpl& sh,
-                                                  unsigned long idx)
-{
-    return sh.Childs[idx]->Contour;
+    return p;
 }
 
-template<>
-inline const TContour<PolygonImpl>& ShapeLike::getHole(const PolygonImpl& sh,
-                                                        unsigned long idx)
+template<> inline PolygonImpl ShapeLike::create( PathImpl&& path) {
+    PolygonImpl p;
+    p.Contour.swap(path);
+
+    // Expecting that the coordinate system Y axis is positive in upwards
+    // direction
+    if(ClipperLib::Orientation(p.Contour)) {
+        // Not clockwise then reverse the b*tch
+        ClipperLib::ReversePath(p.Contour);
+    }
+
+    return p;
+}
+
+template<> inline const THolesContainer<PolygonImpl>&
+ShapeLike::holes(const PolygonImpl& sh)
 {
-    return sh.Childs[idx]->Contour;
+    return sh.Holes;
+}
+
+template<> inline THolesContainer<PolygonImpl>&
+ShapeLike::holes(PolygonImpl& sh)
+{
+    return sh.Holes;
+}
+
+template<> inline TContour<PolygonImpl>&
+ShapeLike::getHole(PolygonImpl& sh, unsigned long idx)
+{
+    return sh.Holes[idx];
+}
+
+template<> inline const TContour<PolygonImpl>&
+ShapeLike::getHole(const PolygonImpl& sh, unsigned long idx)
+{
+    return sh.Holes[idx];
 }
 
 template<> inline size_t ShapeLike::holeCount(const PolygonImpl& sh)
 {
-    return sh.Childs.size();
+    return sh.Holes.size();
 }
 
 template<> inline PathImpl& ShapeLike::getContour(PolygonImpl& sh)
@@ -359,7 +425,7 @@ template<>
 inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs)
 {
     for(auto& p : sh.Contour) { p += offs; }
-    for(auto& hole : sh.Childs) for(auto& p : hole->Contour) { p += offs; }
+    for(auto& hole : sh.Holes) for(auto& p : hole) { p += offs; }
 }
 
 #define DISABLE_BOOST_ROTATE
@@ -368,69 +434,87 @@ inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads)
 {
     using Coord = TCoord<PointImpl>;
 
-    auto cosa = rads.cos();//std::cos(rads);
-    auto sina = rads.sin(); //std::sin(rads);
+    auto cosa = rads.cos();
+    auto sina = rads.sin();
 
     for(auto& p : sh.Contour) {
         p = {
                 static_cast<Coord>(p.X * cosa - p.Y * sina),
                 static_cast<Coord>(p.X * sina + p.Y * cosa)
-             };
+            };
     }
-    for(auto& hole : sh.Childs) for(auto& p : hole->Contour) {
+    for(auto& hole : sh.Holes) for(auto& p : hole) {
         p = {
-            static_cast<Coord>(p.X * cosa - p.Y * sina),
-            static_cast<Coord>(p.X * sina + p.Y * cosa)
-             };
+                static_cast<Coord>(p.X * cosa - p.Y * sina),
+                static_cast<Coord>(p.X * sina + p.Y * cosa)
+            };
     }
 }
 
 #define DISABLE_BOOST_NFP_MERGE
-template<> inline
-Nfp::Shapes<PolygonImpl> Nfp::merge(const Nfp::Shapes<PolygonImpl>& shapes,
-                                    const PolygonImpl& sh)
+template<> inline Nfp::Shapes<PolygonImpl>
+Nfp::merge(const Nfp::Shapes<PolygonImpl>& shapes, const PolygonImpl& sh)
 {
     Nfp::Shapes<PolygonImpl> retv;
 
-    ClipperLib::Clipper clipper;
+    ClipperLib::Clipper clipper(ClipperLib::ioReverseSolution);
 
-    bool closed =  true;
-
-#ifndef NDEBUG
-#define _valid() valid =
+    bool closed = true;
     bool valid = false;
-#else
-#define _valid()
-#endif
 
-    _valid() clipper.AddPath(sh.Contour, ClipperLib::ptSubject, closed);
+    valid = clipper.AddPath(sh.Contour, ClipperLib::ptSubject, closed);
 
-    for(auto& hole : sh.Childs) {
-        _valid() clipper.AddPath(hole->Contour, ClipperLib::ptSubject, closed);
-        assert(valid);
+    for(auto& hole : sh.Holes) {
+        valid &= clipper.AddPath(hole, ClipperLib::ptSubject, closed);
     }
 
     for(auto& path : shapes) {
-        _valid() clipper.AddPath(path.Contour, ClipperLib::ptSubject, closed);
-        assert(valid);
-        for(auto& hole : path.Childs) {
-            _valid() clipper.AddPath(hole->Contour, ClipperLib::ptSubject, closed);
-            assert(valid);
+        valid &= clipper.AddPath(path.Contour, ClipperLib::ptSubject, closed);
+
+        for(auto& hole : path.Holes) {
+            valid &= clipper.AddPath(hole, ClipperLib::ptSubject, closed);
         }
     }
 
-    ClipperLib::Paths rret;
-    clipper.Execute(ClipperLib::ctUnion, rret, ClipperLib::pftNonZero);
-    retv.reserve(rret.size());
-    for(auto& p : rret) {
-        if(ClipperLib::Orientation(p)) {
-            // Not clockwise then reverse the b*tch
-            ClipperLib::ReversePath(p);
+    if(!valid) throw GeometryException(GeomErr::MERGE);
+
+    ClipperLib::PolyTree result;
+    clipper.Execute(ClipperLib::ctUnion, result, ClipperLib::pftNonZero);
+    retv.reserve(result.Total());
+
+    std::function<void(ClipperLib::PolyNode*, PolygonImpl&)> processHole;
+
+    auto processPoly = [&retv, &processHole](ClipperLib::PolyNode *pptr) {
+        PolygonImpl poly(pptr->Contour);
+        poly.Contour.push_back(poly.Contour.front());
+        for(auto h : pptr->Childs) { processHole(h, poly); }
+        retv.push_back(poly);
+    };
+
+    processHole = [&processPoly](ClipperLib::PolyNode *pptr, PolygonImpl& poly) {
+        poly.Holes.push_back(pptr->Contour);
+        poly.Holes.back().push_back(poly.Holes.back().front());
+        for(auto c : pptr->Childs) processPoly(c);
+    };
+
+    auto traverse = [&processPoly] (ClipperLib::PolyNode *node)
+    {
+        for(auto ch : node->Childs) {
+            processPoly(ch);
         }
-        retv.emplace_back();
-        retv.back().Contour = p;
-        retv.back().Contour.emplace_back(p.front());
-    }
+    };
+
+    traverse(&result);
+
+//    for(auto& p : rret) {
+//        if(ClipperLib::Orientation(p)) {
+//            // Not clockwise then reverse the b*tch
+//            ClipperLib::ReversePath(p);
+//        }
+//        retv.emplace_back();
+//        retv.back().Contour = p;
+//        retv.back().Contour.emplace_back(p.front());
+//    }
 
     return retv;
 }

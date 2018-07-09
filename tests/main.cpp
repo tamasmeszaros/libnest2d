@@ -507,10 +507,10 @@ void arrangeRectangles() {
     };
 
     std::vector<Item> input;
-//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
 //    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
 //    input.insert(input.end(), rects.begin(), rects.end());
-    input.insert(input.end(), crasher.begin(), crasher.end());
+//    input.insert(input.end(), crasher.begin(), crasher.end());
 
     Box bin(250*SCALE, 210*SCALE);
 

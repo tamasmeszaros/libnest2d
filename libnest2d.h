@@ -5,6 +5,10 @@
 // for now we set it statically to clipper backend
 #include <libnest2d/clipper_backend/clipper_backend.hpp>
 
+// We include the stock optimizers for local and global optimization
+#include <libnest2d/optimizers/subplex.hpp>     // Local subplex for NfpPlacer
+#include <libnest2d/optimizers/genetic.hpp>     // Genetic for min. bounding box
+
 #include <libnest2d/libnest2d.hpp>
 #include <libnest2d/placers/bottomleftplacer.hpp>
 #include <libnest2d/placers/nfpplacer.hpp>

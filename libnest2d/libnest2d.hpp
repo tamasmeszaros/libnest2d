@@ -9,9 +9,6 @@
 #include <functional>
 
 #include "geometry_traits.hpp"
-//#include "optimizers/subplex.hpp"
-//#include "optimizers/simplex.hpp"
-#include "optimizers/genetic.hpp"
 
 namespace libnest2d {
 

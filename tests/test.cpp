@@ -718,6 +718,29 @@ TEST(GeometryAlgorithms, pointOnPolygonContour) {
     }
 }
 
+TEST(GeometryAlgorithms, mergePileWithPolygon) {
+    using namespace libnest2d;
+
+    Rectangle rect1(10, 15);
+    Rectangle rect2(15, 15);
+    Rectangle rect3(20, 15);
+
+    rect2.translate({10, 0});
+    rect3.translate({25, 0});
+
+    ShapeLike::Shapes<PolygonImpl> pile;
+    pile.push_back(rect1.transformedShape());
+    pile.push_back(rect2.transformedShape());
+
+    auto result = Nfp::merge(pile, rect3.transformedShape());
+
+    ASSERT_EQ(result.size(), 1);
+
+    Rectangle ref(45, 15);
+
+    ASSERT_EQ(ShapeLike::area(result.front()), ref.area());
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

@@ -536,7 +536,7 @@ void arrangeRectangles() {
 
     Packer::SelectionConfig sconf;
     sconf.allow_parallel = true;
-    sconf.force_parallel = true;
+    sconf.force_parallel = false;
     sconf.try_reverse_order = true;
 
     arrange.configure(pconf, sconf);
@@ -610,10 +610,42 @@ void arrangeRectangles() {
     svgw.save("out");
 }
 
+void moveItemsWithHoles() {
 
+    PolygonImpl poly = {
+        {
+            {0, 0},
+            {0, 20},
+            {20, 20},
+            {20, 0},
+            {0, 0}
+        },
+        {
+            {5, 5},
+            {15, 5},
+            {15, 15},
+            {5, 15},
+            {5, 5}
+        }
+    };
+
+    Box bin(250, 210);
+
+    svg::SVGWriter::Config conf;
+    conf.mm_in_coord_units = 1;
+    svg::SVGWriter svgw(conf);
+
+    svgw.setSize(bin);
+    svgw.writeItem(Item(poly));
+    svgw.save("out");
+
+}
 
 int main(void /*int argc, char **argv*/) {
-    arrangeRectangles();
+//    arrangeRectangles();
 //    findDegenerateCase();
+
+    moveItemsWithHoles();
+
     return EXIT_SUCCESS;
 }

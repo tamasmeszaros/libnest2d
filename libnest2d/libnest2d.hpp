@@ -98,11 +98,14 @@ public:
     inline _Item(const std::initializer_list< Vertex >& il):
         sh_(ShapeLike::create<RawShape>(il)) {}
 
-    inline _Item(const TContour<RawShape>& contour):
-        sh_(ShapeLike::create<RawShape>(contour)) {}
+    inline _Item(const TContour<RawShape>& contour,
+                 const THolesContainer<RawShape>& holes = {}):
+        sh_(ShapeLike::create<RawShape>(contour, holes)) {}
 
-    inline _Item(TContour<RawShape>&& contour):
-        sh_(ShapeLike::create<RawShape>(std::move(contour))) {}
+    inline _Item(TContour<RawShape>&& contour,
+                 THolesContainer<RawShape>&& holes):
+        sh_(ShapeLike::create<RawShape>(std::move(contour),
+                                        std::move(holes))) {}
 
     /**
      * @brief Convert the polygon to string representation. The format depends

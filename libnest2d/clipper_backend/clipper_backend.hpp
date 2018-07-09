@@ -15,23 +15,23 @@
 namespace ClipperLib {
 using PointImpl = IntPoint;
 using PathImpl = Path;
+using HoleStore = std::vector<PathImpl>;
 
 struct PolygonImpl {
     PathImpl Contour;
-    std::vector<PathImpl> Holes;
+    HoleStore Holes;
 
     inline PolygonImpl() {}
 
     inline explicit PolygonImpl(const PathImpl& cont): Contour(cont) {}
-    inline explicit PolygonImpl(const std::vector<PathImpl>& holes):
+    inline explicit PolygonImpl(const HoleStore& holes):
         Holes(holes) {}
-    inline PolygonImpl(const Path& cont, const std::vector<PathImpl>& holes):
+    inline PolygonImpl(const Path& cont, const HoleStore& holes):
         Contour(cont), Holes(holes) {}
 
     inline explicit PolygonImpl(PathImpl&& cont): Contour(std::move(cont)) {}
-    inline explicit PolygonImpl(std::vector<PathImpl>&& holes):
-        Holes(std::move(holes)) {}
-    inline PolygonImpl(Path&& cont, std::vector<PathImpl>&& holes):
+    inline explicit PolygonImpl(HoleStore&& holes): Holes(std::move(holes)) {}
+    inline PolygonImpl(Path&& cont, HoleStore&& holes):
         Contour(std::move(cont)), Holes(std::move(holes)) {}
 };
 
@@ -74,6 +74,7 @@ namespace libnest2d {
 using ClipperLib::PointImpl;
 using ClipperLib::PathImpl;
 using ClipperLib::PolygonImpl;
+using ClipperLib::HoleStore;
 
 // Type of coordinate units used by Clipper
 template<> struct CoordType<PointImpl> {
@@ -352,7 +353,8 @@ template<> struct HolesContainer<PolygonImpl> {
     using Type = ClipperLib::Paths;
 };
 
-template<> inline PolygonImpl ShapeLike::create( const PathImpl& path) {
+template<> inline PolygonImpl ShapeLike::create(const PathImpl& path,
+                                                const HoleStore& holes) {
     PolygonImpl p;
     p.Contour = path;
 
@@ -363,10 +365,19 @@ template<> inline PolygonImpl ShapeLike::create( const PathImpl& path) {
         ClipperLib::ReversePath(p.Contour);
     }
 
+    p.Holes = holes;
+    for(auto& h : p.Holes) {
+        if(!ClipperLib::Orientation(h)) {
+            ClipperLib::ReversePath(h);
+        }
+    }
+
+
     return p;
 }
 
-template<> inline PolygonImpl ShapeLike::create( PathImpl&& path) {
+template<> inline PolygonImpl ShapeLike::create( PathImpl&& path,
+                                                 HoleStore&& holes) {
     PolygonImpl p;
     p.Contour.swap(path);
 
@@ -375,6 +386,14 @@ template<> inline PolygonImpl ShapeLike::create( PathImpl&& path) {
     if(ClipperLib::Orientation(p.Contour)) {
         // Not clockwise then reverse the b*tch
         ClipperLib::ReversePath(p.Contour);
+    }
+
+    p.Holes.swap(holes);
+
+    for(auto& h : p.Holes) {
+        if(!ClipperLib::Orientation(h)) {
+            ClipperLib::ReversePath(h);
+        }
     }
 
     return p;

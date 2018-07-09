@@ -484,14 +484,27 @@ inline std::string ShapeLike::serialize<libnest2d::Formats::SVG>(
     using Polygonf = model::polygon<Pointf>;
 
     Polygonf::ring_type ring;
+    Polygonf::inner_container_type holes;
     ring.reserve(ShapeLike::contourVertexCount(sh));
 
     for(auto it = ShapeLike::cbegin(sh); it != ShapeLike::cend(sh); it++) {
         auto& v = *it;
         ring.emplace_back(getX(v)*scale, getY(v)*scale);
     };
+
+    auto H = ShapeLike::holes(sh);
+    for(PathImpl& h : H ) {
+        Polygonf::ring_type hf;
+        for(auto it = h.begin(); it != h.end(); it++) {
+            auto& v = *it;
+            hf.emplace_back(getX(v)*scale, getY(v)*scale);
+        };
+        holes.push_back(hf);
+    }
+
     Polygonf poly;
     poly.outer() = ring;
+    poly.inners() = holes;
     auto svg_data = boost::geometry::svg(poly, style);
 
     ss << svg_data << std::endl;

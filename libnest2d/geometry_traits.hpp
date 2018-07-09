@@ -336,15 +336,29 @@ struct ShapeLike {
     using Shapes = std::vector<RawShape>;
 
     template<class RawShape>
+    static RawShape create(const TContour<RawShape>& contour,
+                           const THolesContainer<RawShape>& holes)
+    {
+        return RawShape(contour, holes);
+    }
+
+    template<class RawShape>
+    static RawShape create(TContour<RawShape>&& contour,
+                           THolesContainer<RawShape>&& holes)
+    {
+        return RawShape(contour, holes);
+    }
+
+    template<class RawShape>
     static RawShape create(const TContour<RawShape>& contour)
     {
-        return RawShape(contour);
+        return create<RawShape>(contour, {});
     }
 
     template<class RawShape>
     static RawShape create(TContour<RawShape>&& contour)
     {
-        return RawShape(contour);
+        return create<RawShape>(contour, {});
     }
 
     // Optional, does nothing by default

@@ -18,7 +18,6 @@
     #define BP2D_CONSTEXPR constexpr
 #endif
 
-
 /*
  * Debugging output dout and derr definition
  */

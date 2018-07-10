@@ -33,9 +33,12 @@ using FillerSelection = strategies::_FillerSelection<PolygonImpl>;
 using FirstFitSelection = strategies::_FirstFitSelection<PolygonImpl>;
 using DJDHeuristic  = strategies::_DJDHeuristic<PolygonImpl>;
 
-using NfpPlacer = strategies::_NofitPolyPlacer<PolygonImpl>;
+template<NfpLevel lvl = NfpLevel::ONE_CONVEX>
+using NfpPlacer = strategies::_NofitPolyPlacer<PolygonImpl, lvl>;
 using BottomLeftPlacer = strategies::_BottomLeftPlacer<PolygonImpl>;
-using NofitPolyPlacer = strategies::_NofitPolyPlacer<PolygonImpl>;
+
+//template<NfpLevel lvl = NfpLevel::BOTH_CONCAVE_WITH_HOLES>
+//using NofitPolyPlacer = strategies::_NofitPolyPlacer<PolygonImpl, lvl>;
 
 }
 

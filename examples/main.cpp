@@ -5,13 +5,11 @@
 //#define DEBUG_EXPORT_NFP
 
 #include <libnest2d.h>
-#include <libnest2d/geometries_io.hpp>
 
-#include "printer_parts.h"
-#include "benchmark.h"
-#include "svgtools.hpp"
-//#include <libnest2d/optimizer.hpp>
-//#include <libnest2d/optimizers/simplex.hpp>
+#include "tests/printer_parts.h"
+#include "tools/benchmark.h"
+#include "tools/svgtools.hpp"
+#include "libnfpglue.hpp"
 
 using namespace libnest2d;
 using ItemGroup = std::vector<std::reference_wrapper<Item>>;
@@ -516,20 +514,20 @@ void arrangeRectangles() {
 
     Coord min_obj_distance = 6*SCALE;
 
-    using Packer = Arranger<NfpPlacer, DJDHeuristic>;
+    using Packer = Arranger<NfpPlacer<>, DJDHeuristic>;
 
     Packer arrange(bin, min_obj_distance);
 
     Packer::PlacementConfig pconf;
-    pconf.alignment = NfpPlacer::Config::Alignment::CENTER;
+    pconf.alignment = NfpPlacer<>::Config::Alignment::CENTER;
     pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/};
-    pconf.object_function = [&bin](NfpPlacer::Pile pile, double area,
+    pconf.object_function = [&bin](NfpPlacer<>::Pile pile, double area,
                                double norm, double penality) {
 
         auto bb = ShapeLike::boundingBox(pile);
         double score = (2*bb.width() + 2*bb.height()) / norm;
 
-        if(!NfpPlacer::wouldFit(bb, bin)) score = 2*penality - score;
+        if(!NfpPlacer<>::wouldFit(bb, bin)) score = 2*penality - score;
 
         return score;
     };
@@ -610,42 +608,9 @@ void arrangeRectangles() {
     svgw.save("out");
 }
 
-void moveItemsWithHoles() {
-
-    PolygonImpl poly = {
-        {
-            {0, 0},
-            {0, 20},
-            {20, 20},
-            {20, 0},
-            {0, 0}
-        },
-        {
-            {5, 5},
-            {15, 5},
-            {15, 15},
-            {5, 15},
-            {5, 5}
-        }
-    };
-
-    Box bin(250, 210);
-
-    svg::SVGWriter::Config conf;
-    conf.mm_in_coord_units = 1;
-    svg::SVGWriter svgw(conf);
-
-    svgw.setSize(bin);
-    svgw.writeItem(Item(poly));
-    svgw.save("out");
-
-}
-
 int main(void /*int argc, char **argv*/) {
-//    arrangeRectangles();
+    arrangeRectangles();
 //    findDegenerateCase();
-
-    moveItemsWithHoles();
 
     return EXIT_SUCCESS;
 }

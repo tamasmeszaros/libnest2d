@@ -525,16 +525,6 @@ Nfp::merge(const Nfp::Shapes<PolygonImpl>& shapes, const PolygonImpl& sh)
 
     traverse(&result);
 
-//    for(auto& p : rret) {
-//        if(ClipperLib::Orientation(p)) {
-//            // Not clockwise then reverse the b*tch
-//            ClipperLib::ReversePath(p);
-//        }
-//        retv.emplace_back();
-//        retv.back().Contour = p;
-//        retv.back().Contour.emplace_back(p.front());
-//    }
-
     return retv;
 }
 

@@ -640,8 +640,8 @@ TEST(GeometryAlgorithms, nfpConvexConvex) {
 
         orbiter.translate({210*SCALE, 0});
 
-        auto&& nfp = Nfp::noFitPolygon(stationary.rawShape(),
-                                       orbiter.transformedShape());
+        auto&& nfp = Nfp::noFitPolygon<NfpLevel::CONVEX_ONLY>(
+                    stationary.rawShape(), orbiter.transformedShape());
 
         auto v = ShapeLike::isValid(nfp);
 

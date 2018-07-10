@@ -174,18 +174,21 @@ public:
 
 };
 
-// Nfp for a bunch of polygons. If the polygons are convex, the nfp calculated
-// for trsh can be the union of nfp-s calculated with each polygon
+template<NfpLevel lvl>
+struct Lvl { static const NfpLevel value = lvl; };
+
 template<class RawShape, class Container>
-Nfp::Shapes<RawShape> nfp(const Container& polygons, const RawShape& trsh )
+Nfp::Shapes<RawShape> nfp( const Container& polygons,
+                           const RawShape& trsh,
+                           Lvl<NfpLevel::CONVEX_ONLY>)
 {
     using Item = _Item<RawShape>;
 
     Nfp::Shapes<RawShape> nfps;
 
     for(Item& sh : polygons) {
-        auto subnfp = Nfp::noFitPolygon(sh.transformedShape(),
-                                        trsh);
+        auto subnfp = Nfp::noFitPolygon<NfpLevel::CONVEX_ONLY>(
+                    sh.transformedShape(), trsh);
         #ifndef NDEBUG
             auto vv = ShapeLike::isValid(sh.transformedShape());
             assert(vv.first);
@@ -200,11 +203,39 @@ Nfp::Shapes<RawShape> nfp(const Container& polygons, const RawShape& trsh )
     return nfps;
 }
 
-template<class RawShape>
-class _NofitPolyPlacer: public PlacerBoilerplate<_NofitPolyPlacer<RawShape>,
+template<class RawShape, class Container, class Level>
+Nfp::Shapes<RawShape> nfp( const Container& polygons,
+                           const RawShape& trsh,
+                           Level)
+{
+    using Item = _Item<RawShape>;
+
+    Nfp::Shapes<RawShape> nfps;
+
+    for(Item& sh : polygons) {
+        // TODO runtime polygon complexity check and nfp call dispatch
+        // if not disabled in the config
+        auto subnfp = Nfp::noFitPolygon<Level::value>(
+                    sh.transformedShape(), trsh);
+        #ifndef NDEBUG
+            auto vv = ShapeLike::isValid(sh.transformedShape());
+            assert(vv.first);
+
+            auto vnfp = ShapeLike::isValid(subnfp);
+            assert(vnfp.first);
+        #endif
+
+        nfps = Nfp::merge(nfps, subnfp);
+    }
+
+    return nfps;
+}
+
+template<class RawShape, NfpLevel nfplevel>
+class _NofitPolyPlacer: public PlacerBoilerplate<_NofitPolyPlacer<RawShape, nfplevel>,
         RawShape, _Box<TPoint<RawShape>>, NfpPConfig<RawShape>> {
 
-    using Base = PlacerBoilerplate<_NofitPolyPlacer<RawShape>,
+    using Base = PlacerBoilerplate<_NofitPolyPlacer<RawShape, nfplevel>,
     RawShape, _Box<TPoint<RawShape>>, NfpPConfig<RawShape>>;
 
     DECLARE_PLACER(Base)
@@ -273,7 +304,7 @@ public:
 
                 auto trsh = item.transformedShape();
 
-                nfps = nfp(items_, trsh);
+                nfps = nfp(items_, trsh, Lvl<nfplevel>());
                 auto iv = Nfp::referenceVertex(trsh);
 
                 auto startpos = item.translation();

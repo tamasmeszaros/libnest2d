@@ -202,7 +202,7 @@ template<>
      static const LIBNFP_CONSTEXPR int digits = std::numeric_limits<long double>::digits;
      static const LIBNFP_CONSTEXPR int digits10 = std::numeric_limits<long double>::digits10;
 #if __cplusplus >= 201103L
-     static LIBNFP_CONSTEXPR int max_digits10
+     static const LIBNFP_CONSTEXPR int max_digits10
 	 = std::numeric_limits<long double>::max_digits10;
 #endif
      static const LIBNFP_CONSTEXPR bool is_signed = true;

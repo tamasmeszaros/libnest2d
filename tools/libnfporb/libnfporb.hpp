@@ -12,6 +12,14 @@
 #include <random>
 #include <limits>
 
+#if defined(_MSC_VER) &&  _MSC_VER <= 1800 || __cplusplus < 201103L
+    #define LIBNFP_NOEXCEPT
+    #define LIBNFP_CONSTEXPR
+#elif __cplusplus >= 201103L
+    #define LIBNFP_NOEXCEPT noexcept
+    #define LIBNFP_CONSTEXPR constexpr
+#endif
+
 #ifdef LIBNFP_USE_RATIONAL
 #include <boost/multiprecision/gmp.hpp>
 #include <boost/multiprecision/number.hpp>
@@ -43,7 +51,7 @@ namespace libnfporb {
 
 using std::string;
 
-static constexpr long double NFP_EPSILON=0.00000001;
+static LIBNFP_CONSTEXPR long double NFP_EPSILON=0.00000001;
 
 class LongDouble {
 private:
@@ -178,74 +186,74 @@ namespace std {
 template<>
    struct numeric_limits<libnfporb::LongDouble>
    {
-     static constexpr bool is_specialized = true;
+     static const LIBNFP_CONSTEXPR bool is_specialized = true;
 
-     static constexpr long double
-     min() noexcept { return std::numeric_limits<long double>::min(); }
+     static const LIBNFP_CONSTEXPR long double
+     min() LIBNFP_NOEXCEPT { return std::numeric_limits<long double>::min(); }
 
-     static constexpr long double
-     max() noexcept { return std::numeric_limits<long double>::max(); }
+     static LIBNFP_CONSTEXPR long double
+     max() LIBNFP_NOEXCEPT { return std::numeric_limits<long double>::max(); }
 
 #if __cplusplus >= 201103L
-     static constexpr long double
-     lowest() noexcept { return -std::numeric_limits<long double>::lowest(); }
+     static LIBNFP_CONSTEXPR long double
+     lowest() LIBNFP_NOEXCEPT { return -std::numeric_limits<long double>::lowest(); }
 #endif
 
-     static constexpr int digits = std::numeric_limits<long double>::digits;
-     static constexpr int digits10 = std::numeric_limits<long double>::digits10;
+     static const LIBNFP_CONSTEXPR int digits = std::numeric_limits<long double>::digits;
+     static const LIBNFP_CONSTEXPR int digits10 = std::numeric_limits<long double>::digits10;
 #if __cplusplus >= 201103L
-     static constexpr int max_digits10
+     static LIBNFP_CONSTEXPR int max_digits10
 	 = std::numeric_limits<long double>::max_digits10;
 #endif
-     static constexpr bool is_signed = true;
-     static constexpr bool is_integer = false;
-     static constexpr bool is_exact = false;
-     static constexpr int radix = std::numeric_limits<long double>::radix;
+     static const LIBNFP_CONSTEXPR bool is_signed = true;
+     static const LIBNFP_CONSTEXPR bool is_integer = false;
+     static const LIBNFP_CONSTEXPR bool is_exact = false;
+     static const LIBNFP_CONSTEXPR int radix = std::numeric_limits<long double>::radix;
 
-     static constexpr long double
-     epsilon() noexcept { return libnfporb::NFP_EPSILON; }
+     static const LIBNFP_CONSTEXPR long double
+     epsilon() LIBNFP_NOEXCEPT { return libnfporb::NFP_EPSILON; }
 
-     static constexpr long double
-     round_error() noexcept { return 0.5L; }
+     static const LIBNFP_CONSTEXPR long double
+     round_error() LIBNFP_NOEXCEPT { return 0.5L; }
 
-     static constexpr int min_exponent = std::numeric_limits<long double>::min_exponent;
-     static constexpr int min_exponent10 = std::numeric_limits<long double>::min_exponent10;
-     static constexpr int max_exponent = std::numeric_limits<long double>::max_exponent;
-     static constexpr int max_exponent10 = std::numeric_limits<long double>::max_exponent10;
+     static const LIBNFP_CONSTEXPR int min_exponent = std::numeric_limits<long double>::min_exponent;
+     static const LIBNFP_CONSTEXPR int min_exponent10 = std::numeric_limits<long double>::min_exponent10;
+     static const LIBNFP_CONSTEXPR int max_exponent = std::numeric_limits<long double>::max_exponent;
+     static const LIBNFP_CONSTEXPR int max_exponent10 = std::numeric_limits<long double>::max_exponent10;
 
 	 
-     static constexpr bool has_infinity = std::numeric_limits<long double>::has_infinity;
-     static constexpr bool has_quiet_NaN = std::numeric_limits<long double>::has_quiet_NaN;
-     static constexpr bool has_signaling_NaN = has_quiet_NaN;
-     static constexpr float_denorm_style has_denorm
+     static const LIBNFP_CONSTEXPR bool has_infinity = std::numeric_limits<long double>::has_infinity;
+     static const LIBNFP_CONSTEXPR bool has_quiet_NaN = std::numeric_limits<long double>::has_quiet_NaN;
+     static const LIBNFP_CONSTEXPR bool has_signaling_NaN = has_quiet_NaN;
+     static const LIBNFP_CONSTEXPR float_denorm_style has_denorm
 		 = std::numeric_limits<long double>::has_denorm;
-     static constexpr bool has_denorm_loss
+     static const LIBNFP_CONSTEXPR bool has_denorm_loss
 	     = std::numeric_limits<long double>::has_denorm_loss;
 	 
 
-     static constexpr long double
-		infinity() noexcept { return std::numeric_limits<long double>::infinity(); }
+     static const LIBNFP_CONSTEXPR long double
+        infinity() LIBNFP_NOEXCEPT { return std::numeric_limits<long double>::infinity(); }
 
-     static constexpr long double
-		 quiet_NaN() noexcept { return std::numeric_limits<long double>::quiet_NaN(); }
+     static const LIBNFP_CONSTEXPR long double
+         quiet_NaN() LIBNFP_NOEXCEPT { return std::numeric_limits<long double>::quiet_NaN(); }
 
-     static constexpr long double
-		 signaling_NaN() noexcept { return std::numeric_limits<long double>::signaling_NaN(); }
+     static const LIBNFP_CONSTEXPR long double
+         signaling_NaN() LIBNFP_NOEXCEPT { return std::numeric_limits<long double>::signaling_NaN(); }
 
 	 
-     static constexpr long double
-		 denorm_min() noexcept { return std::numeric_limits<long double>::denorm_min(); }
+     static const LIBNFP_CONSTEXPR long double
+         denorm_min() LIBNFP_NOEXCEPT { return std::numeric_limits<long double>::denorm_min(); }
 
-     static constexpr bool is_iec559
+     static const LIBNFP_CONSTEXPR bool is_iec559
 	 = has_infinity && has_quiet_NaN && has_denorm == denorm_present;
 	 
-     static constexpr bool is_bounded = true;
-     static constexpr bool is_modulo = false;
+     static const LIBNFP_CONSTEXPR bool is_bounded = true;
+     static const LIBNFP_CONSTEXPR bool is_modulo = false;
 
-     static constexpr bool traps = std::numeric_limits<long double>::traps;
-     static constexpr bool tinyness_before =
+     static const LIBNFP_CONSTEXPR bool traps = std::numeric_limits<long double>::traps;
+     static const LIBNFP_CONSTEXPR bool tinyness_before =
     		 std::numeric_limits<long double>::tinyness_before;
-     static constexpr float_round_style round_style =
+     static const LIBNFP_CONSTEXPR float_round_style round_style =
 						      round_to_nearest;
    };
 }
@@ -255,8 +263,8 @@ namespace numeric {
 	template<>
 	struct raw_converter<boost::numeric::conversion_traits<double, libnfporb::LongDouble>>
 	{
-		typedef typename boost::numeric::conversion_traits<double, libnfporb::LongDouble>::result_type   result_type   ;
-		typedef typename boost::numeric::conversion_traits<double, libnfporb::LongDouble>::argument_type argument_type ;
+        typedef boost::numeric::conversion_traits<double, libnfporb::LongDouble>::result_type   result_type   ;
+        typedef boost::numeric::conversion_traits<double, libnfporb::LongDouble>::argument_type argument_type ;
 
 		static result_type low_level_convert ( argument_type s ) { return s.val() ; }
 	} ;
@@ -278,7 +286,7 @@ bool equals(const rational_t& lhs, const rational_t& rhs);
 #endif
 bool equals(const long double& lhs, const long double& rhs);
 
-const coord_t MAX_COORD = 999999999999999999;
+const coord_t MAX_COORD = 999999999999999999.0;
 const coord_t MIN_COORD = std::numeric_limits<coord_t>::min();
 
 class point_t {
@@ -488,7 +496,7 @@ typedef bg::model::polygon<point_t, false, true> polygon_t;
 typedef std::vector<polygon_t::ring_type> nfp_t;
 typedef bg::model::linestring<point_t> linestring_t;
 
-typedef typename polygon_t::ring_type::size_type psize_t;
+typedef polygon_t::ring_type::size_type psize_t;
 
 typedef bg::model::d2::point_xy<long double> pointf_t;
 typedef bg::model::segment<pointf_t> segmentf_t;
@@ -553,7 +561,7 @@ void write_svg(std::string const& filename,	const polygon_t& p, const polygon_t:
 	mapper.map(rf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
 }
 
-void write_svg(std::string const& filename,	typename std::vector<polygon_t> const& polygons) {
+void write_svg(std::string const& filename, std::vector<polygon_t> const& polygons) {
 	std::ofstream svg(filename.c_str());
 
 	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
@@ -564,7 +572,7 @@ void write_svg(std::string const& filename,	typename std::vector<polygon_t> cons
 	}
 }
 
-void write_svg(std::string const& filename,	typename std::vector<polygon_t> const& polygons, const nfp_t& nfp) {
+void write_svg(std::string const& filename, std::vector<polygon_t> const& polygons, const nfp_t& nfp) {
 	polygon_t nfppoly;
 	for (const auto& pt : nfp.front()) {
 		nfppoly.outer().push_back(pt);
@@ -839,10 +847,10 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 		vertexA.marked_ = true;
 
 		// adjacent A vertices
-		signed long prevAindex = touchers[i].A_ - 1;
-		signed long nextAindex = touchers[i].A_ + 1;
+        auto prevAindex = static_cast<signed long>(touchers[i].A_ - 1);
+        auto nextAindex = static_cast<signed long>(touchers[i].A_ + 1);
 
-		prevAindex = (prevAindex < 0) ? ringA.size() - 2 : prevAindex; // loop
+        prevAindex = (prevAindex < 0) ? static_cast<signed long>(ringA.size() - 2) : prevAindex; // loop
 		nextAindex = (static_cast<psize_t>(nextAindex) >= ringA.size()) ? 1 : nextAindex; // loop
 
 		point_t& prevA = ringA[prevAindex];
@@ -851,10 +859,10 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 		// adjacent B vertices
 		point_t& vertexB = ringB[touchers[i].B_];
 
-		signed long prevBindex = touchers[i].B_ - 1;
-		signed long nextBindex = touchers[i].B_ + 1;
+        auto prevBindex = static_cast<signed long>(touchers[i].B_ - 1);
+        auto nextBindex = static_cast<signed long>(touchers[i].B_ + 1);
 
-		prevBindex = (prevBindex < 0) ? ringB.size() - 2 : prevBindex; // loop
+        prevBindex = (prevBindex < 0) ? static_cast<signed long>(ringB.size() - 2) : prevBindex; // loop
 		nextBindex = (static_cast<psize_t>(nextBindex) >= ringB.size()) ? 1 : nextBindex; // loop
 
 		point_t& prevB = ringB[prevBindex];

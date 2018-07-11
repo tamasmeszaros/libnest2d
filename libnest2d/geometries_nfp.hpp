@@ -7,19 +7,23 @@
 
 namespace libnest2d {
 
+/// The complexity level of a polygon that an NFP implementation can handle.
 enum class NfpLevel {
     CONVEX_ONLY,
     ONE_CONVEX,
-    ONE_CONVEX_WITH_HOLES,
     BOTH_CONCAVE,
+    ONE_CONVEX_WITH_HOLES,
     BOTH_CONCAVE_WITH_HOLES
 };
 
+/// A collection of static methods for handling the no fit polygon creation.
 struct Nfp {
 
+// Shorthand for a pile of polygons
 template<class RawShape>
 using Shapes = typename ShapeLike::Shapes<RawShape>;
 
+/// Minkowski addition (not used yet)
 template<class RawShape>
 static RawShape& minkowskiAdd(RawShape& sh, const RawShape& /*other*/)
 {
@@ -28,6 +32,17 @@ static RawShape& minkowskiAdd(RawShape& sh, const RawShape& /*other*/)
     return sh;
 }
 
+/**
+ * Merge a bunch of polygons with the specified additional polygon.
+ *
+ * \tparam RawShape the Polygon data type.
+ * \param shc The pile of polygons that will be unified with sh.
+ * \param sh A single polygon to unify with shc.
+ *
+ * \return A set of polygons that is the union of the input polygons. Note that
+ * mostly it will be a set containing only one big polygon but if the input
+ * polygons are disjuct than the resulting set will contain more polygons.
+ */
 template<class RawShape>
 static Shapes<RawShape> merge(const Shapes<RawShape>& shc, const RawShape& sh)
 {
@@ -35,12 +50,24 @@ static Shapes<RawShape> merge(const Shapes<RawShape>& shc, const RawShape& sh)
                   "Nfp::merge(shapes, shape) unimplemented!");
 }
 
+/**
+ * A method to get a vertex from a polygon that always maintains a relative
+ * position to the coordinate system: It is always the rightmost top vertex.
+ *
+ * This way it does not matter in what order the vertices are stored, the
+ * reference will be always the same for the same polygon.
+ */
 template<class RawShape>
 inline static TPoint<RawShape> referenceVertex(const RawShape& sh)
 {
     return rightmostUpVertex(sh);
 }
 
+/**
+ * Get the vertex of the polygon that is at the lowest values (bottom) in the Y
+ * axis and if there are more than one vertices on the same Y coordinate than
+ * the result will be the leftmost (with the highest X coordinate).
+ */
 template<class RawShape>
 static TPoint<RawShape> leftmostDownVertex(const RawShape& sh) {
 
@@ -51,6 +78,11 @@ static TPoint<RawShape> leftmostDownVertex(const RawShape& sh) {
     return *it;
 }
 
+/**
+ * Get the vertex of the polygon that is at the highest values (top) in the Y
+ * axis and if there are more than one vertices on the same Y coordinate than
+ * the result will be the rightmost (with the lowest X coordinate).
+ */
 template<class RawShape>
 static TPoint<RawShape> rightmostUpVertex(const RawShape& sh) {
 
@@ -61,7 +93,7 @@ static TPoint<RawShape> rightmostUpVertex(const RawShape& sh) {
     return *it;
 }
 
-// Helper function to get the NFP
+/// Helper function to get the NFP
 template<NfpLevel nfptype, class RawShape>
 static RawShape noFitPolygon(const RawShape& sh, const RawShape& other)
 {
@@ -69,14 +101,27 @@ static RawShape noFitPolygon(const RawShape& sh, const RawShape& other)
     return nfp(sh, other);
 }
 
-// The "trivial" implementation of NFP for convex polygons. You can
-// use this even if you provide implementations for the more complex cases
-// (Through specializing the the NfpImpl struct).
-// Currently, no other cases are covered in the library.
+/**
+ * The "trivial" Cuninghame-Green implementation of NFP for convex polygons.
+ *
+ * You can use this even if you provide implementations for the more complex
+ * cases (Through specializing the the NfpImpl struct). Currently, no other
+ * cases are covered in the library.
+ *
+ * Complexity should be no more than linear in the number of edges of the input
+ * polygons.
+ *
+ * \tparam RawShape the Polygon data type.
+ * \param sh The stationary polygon
+ * \param cother The orbiting polygon
+ * \return Returns the NFP of the two input polygons which have to be strictly
+ * convex. The resulting NFP is proven to be convex as well in this case.
+ *
+ */
 template<class RawShape>
-static RawShape nfpConvexOnly(const RawShape& sh, const RawShape& cother) {
-    using Vertex = TPoint<RawShape>;
-    using Edge = _Segment<Vertex>;
+static RawShape nfpConvexOnly(const RawShape& sh, const RawShape& cother)
+{
+    using Vertex = TPoint<RawShape>; using Edge = _Segment<Vertex>;
 
     RawShape other = cother;
 

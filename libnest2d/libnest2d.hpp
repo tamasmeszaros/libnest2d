@@ -117,7 +117,7 @@ public:
         return ShapeLike::toString(sh_);
     }
 
-    /// Iterator tho the first vertex in the polygon.
+    /// Iterator tho the first contour vertex in the polygon.
     inline Iterator begin() const
     {
         return ShapeLike::cbegin(sh_);
@@ -129,7 +129,7 @@ public:
         return ShapeLike::cbegin(sh_);
     }
 
-    /// Iterator to the last element.
+    /// Iterator to the last contour vertex.
     inline Iterator end() const
     {
         return ShapeLike::cend(sh_);

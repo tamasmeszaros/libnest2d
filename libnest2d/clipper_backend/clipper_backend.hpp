@@ -141,12 +141,26 @@ inline double area(const PolygonImpl& sh) {
 
 template<>
 inline double area<Orientation::CLOCKWISE>(const PolygonImpl& sh) {
-    return -ClipperLib::Area(sh.Contour);
+    double a = 0;
+
+    std::for_each(sh.Holes.begin(), sh.Holes.end(), [&a](const PathImpl& h)
+    {
+        a -= ClipperLib::Area(h);
+    });
+
+    return -ClipperLib::Area(sh.Contour) + a;
 }
 
 template<>
 inline double area<Orientation::COUNTER_CLOCKWISE>(const PolygonImpl& sh) {
-    return ClipperLib::Area(sh.Contour);
+    double a = 0;
+
+    std::for_each(sh.Holes.begin(), sh.Holes.end(), [&a](const PathImpl& h)
+    {
+        a += ClipperLib::Area(h);
+    });
+
+    return ClipperLib::Area(sh.Contour) + a;
 }
 }
 
@@ -371,7 +385,6 @@ template<> inline PolygonImpl ShapeLike::create(const PathImpl& path,
             ClipperLib::ReversePath(h);
         }
     }
-
 
     return p;
 }

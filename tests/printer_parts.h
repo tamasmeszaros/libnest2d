@@ -35,6 +35,6 @@ using TestDataEx = std::vector<ClipperLib::PolygonImpl>;
 
 extern const TestData PRINTER_PART_POLYGONS;
 extern const TestData STEGOSAUR_POLYGONS;
-extern const TestDataEx OBJECTS;
+extern const TestDataEx PRINTER_PART_POLYGONS_EX;
 
 #endif // PRINTER_PARTS_H

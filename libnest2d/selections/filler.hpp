@@ -32,17 +32,20 @@ public:
     {
 
         store_.clear();
-        store_.reserve(last-first);
+        auto total = last-first;
+        store_.reserve(total);
         packed_bins_.emplace_back();
 
-        auto makeProgress = [this](PlacementStrategyLike<TPlacer>& placer) {
+        auto makeProgress = [this, total](
+                PlacementStrategyLike<TPlacer>& placer)
+        {
             packed_bins_.back() = placer.getItems();
 #ifndef NDEBUG
             packed_bins_.back().insert(packed_bins_.back().end(),
                                        placer.getDebugItems().begin(),
                                        placer.getDebugItems().end());
 #endif
-            this->progress_(packed_bins_.back().size());
+            this->progress_(total - packed_bins_.back().size());
         };
 
         std::copy(first, last, std::back_inserter(store_));

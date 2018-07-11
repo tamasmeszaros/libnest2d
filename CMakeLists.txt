@@ -86,26 +86,31 @@ if(LIBNEST2D_OPTIMIZER_BACKEND STREQUAL "nlopt")
     list(APPEND LIBNEST2D_HEADERS ${NLopt_INCLUDE_DIR})
 endif()
 
+# Currently we are outsourcing the non-convex NFP implementation from
+# libnfporb and it needs libgmp to work
+#find_package(GMP)
+#if(GMP_FOUND)
+#    list(APPEND LIBNEST2D_LIBRARIES ${GMP_LIBRARIES})
+#    list(APPEND LIBNEST2D_HEADERS ${GMP_INCLUDE_DIR})
+#    add_definitions(-DLIBNFP_USE_RATIONAL)
+#endif()
+
 if(LIBNEST2D_UNITTESTS)
     add_subdirectory(tests)
 endif()
 
 if(LIBNEST2D_BUILD_EXAMPLES)
     add_executable(example examples/main.cpp
-                           examples/libnfpglue.hpp
+                           tools/libnfpglue.hpp
+                           tools/libnfpglue.cpp
                            tools/svgtools.hpp
                            tests/printer_parts.cpp
                            tests/printer_parts.h
-                           tools/libnfporb.hpp
                            ${LIBNEST2D_SRCFILES})
 
-    # Currently we are outsourcing the non-convex NFP implementation from
-    # libnfporb and it needs libgmp to work
-    find_package(GMP REQUIRED)
 
-    target_link_libraries(example ${LIBNEST2D_LIBRARIES} ${GMP_LIBRARIES})
-    target_include_directories(example PUBLIC ${LIBNEST2D_HEADERS}
-                                              ${GMP_INCLUDE_DIR})
+    target_link_libraries(example ${LIBNEST2D_LIBRARIES})
+    target_include_directories(example PUBLIC ${LIBNEST2D_HEADERS})
 endif()
 
 get_directory_property(hasParent PARENT_DIRECTORY)

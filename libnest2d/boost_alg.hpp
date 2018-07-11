@@ -471,7 +471,7 @@ inline PolygonImpl& Nfp::minkowskiAdd(PolygonImpl& sh,
 #endif
 
 #ifndef DISABLE_BOOST_SERIALIZE
-template<> std::string ShapeLike::serialize<libnest2d::Formats::SVG>(
+template<> inline std::string ShapeLike::serialize<libnest2d::Formats::SVG>(
         const PolygonImpl& sh, double scale)
 {
     std::stringstream ss;

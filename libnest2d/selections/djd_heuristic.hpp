@@ -60,7 +60,7 @@ public:
         /**
          * @brief How much is the acceptable waste incremented at each iteration
          */
-        double waste_increment = 0.1;
+        double waste_increment = 0.01;
 
         /**
          * @brief Allow parallel jobs for filling multiple bins.

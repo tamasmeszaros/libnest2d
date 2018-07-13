@@ -6,7 +6,6 @@
 #include <string>
 
 #include <libnest2d.h>
-#include <libnest2d/geometries_io.hpp>
 
 namespace libnest2d { namespace svg {
 

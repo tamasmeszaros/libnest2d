@@ -8,7 +8,7 @@
 namespace libnest2d {
 
 /// The complexity level of a polygon that an NFP implementation can handle.
-enum class NfpLevel {
+enum class NfpLevel: unsigned {
     CONVEX_ONLY,
     ONE_CONVEX,
     BOTH_CONCAVE,
@@ -25,10 +25,10 @@ using Shapes = typename ShapeLike::Shapes<RawShape>;
 
 /// Minkowski addition (not used yet)
 template<class RawShape>
-static RawShape& minkowskiAdd(RawShape& sh, const RawShape& /*other*/)
+static RawShape minkowskiDiff(const RawShape& sh, const RawShape& /*other*/)
 {
-    static_assert(always_false<RawShape>::value,
-                  "Nfp::minkowskiAdd() unimplemented!");
+
+
     return sh;
 }
 
@@ -69,7 +69,8 @@ inline static TPoint<RawShape> referenceVertex(const RawShape& sh)
  * the result will be the leftmost (with the highest X coordinate).
  */
 template<class RawShape>
-static TPoint<RawShape> leftmostDownVertex(const RawShape& sh) {
+static TPoint<RawShape> leftmostDownVertex(const RawShape& sh)
+{
 
     // find min x and min y vertex
     auto it = std::min_element(ShapeLike::cbegin(sh), ShapeLike::cend(sh),
@@ -84,7 +85,8 @@ static TPoint<RawShape> leftmostDownVertex(const RawShape& sh) {
  * the result will be the rightmost (with the lowest X coordinate).
  */
 template<class RawShape>
-static TPoint<RawShape> rightmostUpVertex(const RawShape& sh) {
+static TPoint<RawShape> rightmostUpVertex(const RawShape& sh)
+{
 
     // find min x and min y vertex
     auto it = std::max_element(ShapeLike::cbegin(sh), ShapeLike::cend(sh),
@@ -227,6 +229,10 @@ struct NfpImpl {
         // use it if feasible.
         return nfpConvexOnly(sh, other);
     }
+};
+
+template<class RawShape> struct MaxNfpLevel {
+    static const BP2D_CONSTEXPR NfpLevel value = NfpLevel::CONVEX_ONLY;
 };
 
 private:

@@ -461,14 +461,14 @@ inline bp2d::Shapes Nfp::merge(const bp2d::Shapes& shapes,
 }
 #endif
 
-#ifndef DISABLE_BOOST_MINKOWSKI_ADD
-template<>
-inline PolygonImpl& Nfp::minkowskiAdd(PolygonImpl& sh,
-                                      const PolygonImpl& /*other*/)
-{
-    return sh;
-}
-#endif
+//#ifndef DISABLE_BOOST_MINKOWSKI_ADD
+//template<>
+//inline PolygonImpl& Nfp::minkowskiAdd(PolygonImpl& sh,
+//                                      const PolygonImpl& /*other*/)
+//{
+//    return sh;
+//}
+//#endif
 
 #ifndef DISABLE_BOOST_SERIALIZE
 template<> inline std::string ShapeLike::serialize<libnest2d::Formats::SVG>(

@@ -49,6 +49,14 @@ class _Item {
     mutable RawShape offset_cache_;
     mutable bool offset_cache_valid_ = false;
 
+    enum class Convexity: char {
+        UNCHECKED,
+        TRUE,
+        FALSE
+    };
+
+    mutable Convexity convexity_ = Convexity::UNCHECKED;
+
 public:
 
     /// The type of the shape which was handed over as the template argument.
@@ -165,8 +173,7 @@ public:
      * @param idx The index of the requested vertex.
      * @param v The new vertex data.
      */
-    inline void setVertex(unsigned long idx,
-                          const Vertex& v )
+    inline void setVertex(unsigned long idx, const Vertex& v )
     {
         invalidateCache();
         ShapeLike::vertex(sh_, idx) = v;
@@ -191,9 +198,36 @@ public:
         return ret;
     }
 
+    inline bool isContourConvex() const {
+        bool ret = false;
+
+        switch(convexity_) {
+        case Convexity::UNCHECKED:
+            ret = ShapeLike::isConvex<RawShape>(ShapeLike::getContour(transformedShape()));
+            convexity_ = ret? Convexity::TRUE : Convexity::FALSE;
+            break;
+        case Convexity::TRUE: ret = true; break;
+        case Convexity::FALSE:;
+        }
+
+        return ret;
+    }
+
+    inline bool isHoleConvex(unsigned holeidx) const {
+        return false;
+    }
+
+    inline bool areHolesConvex() const {
+        return false;
+    }
+
     /// The number of the outer ring vertices.
     inline size_t vertexCount() const {
         return ShapeLike::contourVertexCount(sh_);
+    }
+
+    inline size_t holeCount() const {
+        return ShapeLike::holeCount(sh_);
     }
 
     /**
@@ -262,7 +296,7 @@ public:
         }
     }
 
-    inline RawShape transformedShape() const
+    inline const RawShape& transformedShape() const
     {
         if(tr_cache_valid_) return tr_cache_;
 
@@ -271,7 +305,7 @@ public:
         if(has_translation_) ShapeLike::translate(cpy, translation_);
         tr_cache_ = cpy; tr_cache_valid_ = true;
 
-        return cpy;
+        return tr_cache_;
     }
 
     inline operator RawShape() const
@@ -327,6 +361,7 @@ private:
         tr_cache_valid_ = false;
         area_cache_valid_ = false;
         offset_cache_valid_ = false;
+        convexity_ = Convexity::UNCHECKED;
     }
 };
 

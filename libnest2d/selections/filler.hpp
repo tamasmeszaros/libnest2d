@@ -36,7 +36,7 @@ public:
         store_.reserve(total);
         packed_bins_.emplace_back();
 
-        auto makeProgress = [this, total](
+        auto makeProgress = [this, &total](
                 PlacementStrategyLike<TPlacer>& placer)
         {
             packed_bins_.back() = placer.getItems();
@@ -45,7 +45,7 @@ public:
                                        placer.getDebugItems().begin(),
                                        placer.getDebugItems().end());
 #endif
-            this->progress_(total - packed_bins_.back().size());
+            this->progress_(--total);
         };
 
         std::copy(first, last, std::back_inserter(store_));
@@ -67,7 +67,7 @@ public:
         while(it != store_.end()) {
             if(!placer.pack(*it))  {
                 if(packed_bins_.back().empty()) ++it;
-                makeProgress(placer);
+//                makeProgress(placer);
                 placer.clearItems();
                 packed_bins_.emplace_back();
             } else {

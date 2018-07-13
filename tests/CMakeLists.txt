@@ -37,8 +37,8 @@ endif()
 
 add_executable(bp2d_tests   test.cpp
                             ../tools/svgtools.hpp
-                            ../tools/libnfpglue.hpp
-                            ../tools/libnfpglue.cpp
+#                            ../tools/libnfpglue.hpp
+#                            ../tools/libnfpglue.cpp
                             printer_parts.h
                             printer_parts.cpp
                             ${LIBNEST2D_SRCFILES}

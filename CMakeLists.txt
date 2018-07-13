@@ -30,13 +30,12 @@ set(LIBNEST2D_SRCFILES
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/libnest2d.hpp         # Templates only
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d.h                     # Exports ready made types using template arguments
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/geometry_traits.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/geometries_io.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/common.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/optimizer.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/placers/placer_boilerplate.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/placers/bottomleftplacer.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/placers/nfpplacer.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/geometries_nfp.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/geometry_traits_nfp.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/selections/selection_boilerplate.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/selections/filler.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/selections/firstfit.hpp
@@ -101,8 +100,8 @@ endif()
 
 if(LIBNEST2D_BUILD_EXAMPLES)
     add_executable(example examples/main.cpp
-                           tools/libnfpglue.hpp
-                           tools/libnfpglue.cpp
+#                           tools/libnfpglue.hpp
+#                           tools/libnfpglue.cpp
                            tools/svgtools.hpp
                            tests/printer_parts.cpp
                            tests/printer_parts.h

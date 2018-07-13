@@ -5,7 +5,7 @@
 #include <iostream>
 #endif
 #include "placer_boilerplate.hpp"
-#include "../geometries_nfp.hpp"
+#include "../geometry_traits_nfp.hpp"
 
 namespace libnest2d { namespace strategies {
 
@@ -83,6 +83,7 @@ template<class RawShape> class EdgeCache {
         {
             const Vertex& v1 = emap_[idx1].first();
             const Vertex& v2 = emap_[idx2].first();
+
             auto diff = getY(v1) - getY(v2);
             if(std::abs(diff) <= std::numeric_limits<Coord>::epsilon())
               return getX(v1) < getX(v2);
@@ -179,7 +180,7 @@ struct Lvl { static const NfpLevel value = lvl; };
 
 template<class RawShape, class Container>
 Nfp::Shapes<RawShape> nfp( const Container& polygons,
-                           const RawShape& trsh,
+                           const _Item<RawShape>& trsh,
                            Lvl<NfpLevel::CONVEX_ONLY>)
 {
     using Item = _Item<RawShape>;
@@ -188,7 +189,7 @@ Nfp::Shapes<RawShape> nfp( const Container& polygons,
 
     for(Item& sh : polygons) {
         auto subnfp = Nfp::noFitPolygon<NfpLevel::CONVEX_ONLY>(
-                    sh.transformedShape(), trsh);
+                    sh.transformedShape(), trsh.transformedShape());
         #ifndef NDEBUG
             auto vv = ShapeLike::isValid(sh.transformedShape());
             assert(vv.first);
@@ -205,25 +206,42 @@ Nfp::Shapes<RawShape> nfp( const Container& polygons,
 
 template<class RawShape, class Container, class Level>
 Nfp::Shapes<RawShape> nfp( const Container& polygons,
-                           const RawShape& trsh,
+                           const _Item<RawShape>& trsh,
                            Level)
 {
     using Item = _Item<RawShape>;
 
-    Nfp::Shapes<RawShape> nfps;
+    Nfp::Shapes<RawShape> nfps, stationary;
 
     for(Item& sh : polygons) {
-        // TODO runtime polygon complexity check and nfp call dispatch
-        // if not disabled in the config
-        auto subnfp = Nfp::noFitPolygon<Level::value>(
-                    sh.transformedShape(), trsh);
-        #ifndef NDEBUG
-            auto vv = ShapeLike::isValid(sh.transformedShape());
-            assert(vv.first);
+        stationary = Nfp::merge(stationary, sh.transformedShape());
+    }
 
-            auto vnfp = ShapeLike::isValid(subnfp);
-            assert(vnfp.first);
-        #endif
+    std::cout << "pile size: " << stationary.size() << std::endl;
+    for(RawShape& sh : stationary) {
+
+        RawShape subnfp;
+//        if(sh.isContourConvex() && trsh.isContourConvex()) {
+//            subnfp = Nfp::noFitPolygon<NfpLevel::CONVEX_ONLY>(
+//                        sh.transformedShape(), trsh.transformedShape());
+//        } else {
+            subnfp = Nfp::noFitPolygon<Level::value>( sh/*.transformedShape()*/,
+                                                      trsh.transformedShape());
+//        }
+
+//        #ifndef NDEBUG
+//            auto vv = ShapeLike::isValid(sh.transformedShape());
+//            assert(vv.first);
+
+//            auto vnfp = ShapeLike::isValid(subnfp);
+//            assert(vnfp.first);
+//        #endif
+
+//            auto vnfp = ShapeLike::isValid(subnfp);
+//            if(!vnfp.first) {
+//                std::cout << vnfp.second << std::endl;
+//                std::cout << ShapeLike::toString(subnfp) << std::endl;
+//            }
 
         nfps = Nfp::merge(nfps, subnfp);
     }
@@ -231,11 +249,11 @@ Nfp::Shapes<RawShape> nfp( const Container& polygons,
     return nfps;
 }
 
-template<class RawShape, NfpLevel nfplevel>
-class _NofitPolyPlacer: public PlacerBoilerplate<_NofitPolyPlacer<RawShape, nfplevel>,
+template<class RawShape>
+class _NofitPolyPlacer: public PlacerBoilerplate<_NofitPolyPlacer<RawShape>,
         RawShape, _Box<TPoint<RawShape>>, NfpPConfig<RawShape>> {
 
-    using Base = PlacerBoilerplate<_NofitPolyPlacer<RawShape, nfplevel>,
+    using Base = PlacerBoilerplate<_NofitPolyPlacer<RawShape>,
     RawShape, _Box<TPoint<RawShape>>, NfpPConfig<RawShape>>;
 
     DECLARE_PLACER(Base)
@@ -244,6 +262,8 @@ class _NofitPolyPlacer: public PlacerBoilerplate<_NofitPolyPlacer<RawShape, nfpl
 
     const double norm_;
     const double penality_;
+
+    using MaxNfpLevel = Nfp::MaxNfpLevel<RawShape>;
 
 public:
 
@@ -304,7 +324,7 @@ public:
 
                 auto trsh = item.transformedShape();
 
-                nfps = nfp(items_, trsh, Lvl<nfplevel>());
+                nfps = nfp(items_, item, Lvl<MaxNfpLevel::value>());
                 auto iv = Nfp::referenceVertex(trsh);
 
                 auto startpos = item.translation();
@@ -415,14 +435,8 @@ public:
                                 best_score = result.score;
                                 optimum = std::get<0>(result.optimum);
                             }
-                        } catch(std::exception&
-                        #ifndef NDEBUG
-                                e
-                        #endif
-                                ) {
-                        #ifndef NDEBUG
-                            std::cerr << "ERROR " << e.what() << std::endl;
-                        #endif
+                        } catch(std::exception& e) {
+                            derr() << "ERROR: " << e.what() << "\n";
                         }
                     });
                 }
@@ -449,6 +463,10 @@ public:
     }
 
     ~_NofitPolyPlacer() {
+        clearItems();
+    }
+
+    inline void clearItems() {
         Nfp::Shapes<RawShape> m;
         m.reserve(items_.size());
 
@@ -487,6 +505,8 @@ public:
 
         auto d = cb - ci;
         for(Item& item : items_) item.translate(d);
+
+        Base::clearItems();
     }
 
 private:

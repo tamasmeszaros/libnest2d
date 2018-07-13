@@ -8,7 +8,7 @@
 #include <iostream>
 
 #include "../geometry_traits.hpp"
-#include "../geometries_nfp.hpp"
+#include "../geometry_traits_nfp.hpp"
 
 #include <clipper.hpp>
 
@@ -220,118 +220,40 @@ inline void ShapeLike::offset(PolygonImpl& sh, TCoord<PointImpl> distance) {
     }
 }
 
-// TODO : make it convex hull right and faster than boost
-
-//#define DISABLE_BOOST_CONVEX_HULL
-//inline TCoord<PointImpl> cross( const PointImpl &O,
-//                                const PointImpl &A,
-//                                const PointImpl &B)
+//template<> // TODO make it support holes if this method will ever be needed.
+//inline PolygonImpl Nfp::minkowskiDiff(const PolygonImpl& sh,
+//                                      const PolygonImpl& other)
 //{
-//    return (A.X - O.X) * (B.Y - O.Y) - (A.Y - O.Y) * (B.X - O.X);
-//}
+//    #define DISABLE_BOOST_MINKOWSKI_ADD
 
-//template<>
-//inline PolygonImpl ShapeLike::convexHull(const PolygonImpl& sh)
-//{
-//    auto& P = sh.Contour;
+//    ClipperLib::Paths solution;
+
+//    ClipperLib::MinkowskiDiff(sh.Contour, other.Contour, solution);
+
 //    PolygonImpl ret;
+//    ret.Contour = solution.front();
 
-//    size_t n = P.size(), k = 0;
-//    if (n <= 3) return ret;
-
-//    auto& H = ret.Contour;
-//    H.resize(2*n);
-//    std::vector<unsigned> indices(P.size(), 0);
-//    std::iota(indices.begin(), indices.end(), 0);
-
-//    // Sort points lexicographically
-//    std::sort(indices.begin(), indices.end(), [&P](unsigned i1, unsigned i2){
-//        auto& p1 = P[i1], &p2 = P[i2];
-//        return p1.X < p2.X || (p1.X == p2.X && p1.Y < p2.Y);
-//    });
-
-//    // Build lower hull
-//    for (size_t i = 0; i < n; ++i) {
-//        while (k >= 2 && cross(H[k-2], H[k-1], P[i]) <= 0) k--;
-//        H[k++] = P[i];
-//    }
-
-//    // Build upper hull
-//    for (size_t i = n-1, t = k+1; i > 0; --i) {
-//        while (k >= t && cross(H[k-2], H[k-1], P[i-1]) <= 0) k--;
-//        H[k++] = P[i-1];
-//    }
-
-//    H.resize(k-1);
-//    return ret;
+//    return sh;
 //}
-
-//template<>
-//inline PolygonImpl ShapeLike::convexHull(
-//        const ShapeLike::Shapes<PolygonImpl>& shapes)
-//{
-//    PathImpl P;
-//    PolygonImpl ret;
-
-//    size_t n = 0, k = 0;
-//    for(auto& sh : shapes) { n += sh.Contour.size(); }
-
-//    P.reserve(n);
-//    for(auto& sh : shapes) { P.insert(P.end(),
-//                                      sh.Contour.begin(), sh.Contour.end()); }
-
-//    if (n <= 3) { ret.Contour = P; return ret; }
-
-//    auto& H = ret.Contour;
-//    H.resize(2*n);
-//    std::vector<unsigned> indices(P.size(), 0);
-//    std::iota(indices.begin(), indices.end(), 0);
-
-//    // Sort points lexicographically
-//    std::sort(indices.begin(), indices.end(), [&P](unsigned i1, unsigned i2){
-//        auto& p1 = P[i1], &p2 = P[i2];
-//        return p1.X < p2.X || (p1.X == p2.X && p1.Y < p2.Y);
-//    });
-
-//    // Build lower hull
-//    for (size_t i = 0; i < n; ++i) {
-//        while (k >= 2 && cross(H[k-2], H[k-1], P[i]) <= 0) k--;
-//        H[k++] = P[i];
-//    }
-
-//    // Build upper hull
-//    for (size_t i = n-1, t = k+1; i > 0; --i) {
-//        while (k >= t && cross(H[k-2], H[k-1], P[i-1]) <= 0) k--;
-//        H[k++] = P[i-1];
-//    }
-
-//    H.resize(k-1);
-//    return ret;
-//}
-
-template<> // TODO make it support holes if this method will ever be needed.
-inline PolygonImpl& Nfp::minkowskiAdd(PolygonImpl& sh,
-                                            const PolygonImpl& other)
-{
-    #define DISABLE_BOOST_MINKOWSKI_ADD
-
-    ClipperLib::Paths solution;
-
-    ClipperLib::MinkowskiSum(sh.Contour, other.Contour, solution, true);
-
-    assert(solution.size() == 1);
-
-    sh.Contour = solution.front();
-
-    return sh;
-}
 
 // Tell libnest2d how to make string out of a ClipperPolygon object
 template<> inline std::string ShapeLike::toString(const PolygonImpl& sh) {
     std::stringstream ss;
 
+    ss << "Contour {\n";
     for(auto p : sh.Contour) {
-        ss << p.X << " " << p.Y << "\n";
+        ss << "\t" << p.X << " " << p.Y << "\n";
+    }
+    ss << "}\n";
+
+    for(auto& h : sh.Holes) {
+        ss << "Holes {\n";
+        for(auto p : h)  {
+            ss << "\t{\n";
+            ss << "\t\t" << p.X << " " << p.Y << "\n";
+            ss << "\t}\n";
+        }
+        ss << "}\n";
     }
 
     return ss.str();

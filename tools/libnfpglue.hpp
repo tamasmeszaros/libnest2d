@@ -23,11 +23,20 @@ struct Nfp::NfpImpl<PolygonImpl, NfpLevel::BOTH_CONCAVE> {
 };
 
 template<>
+struct Nfp::NfpImpl<PolygonImpl, NfpLevel::ONE_CONVEX_WITH_HOLES> {
+    PolygonImpl operator()(const PolygonImpl& sh, const PolygonImpl& cother);
+};
+
+template<>
 struct Nfp::NfpImpl<PolygonImpl, NfpLevel::BOTH_CONCAVE_WITH_HOLES> {
     PolygonImpl operator()(const PolygonImpl& sh, const PolygonImpl& cother);
 };
 
-
+template<> struct Nfp::MaxNfpLevel<PolygonImpl> {
+    static const BP2D_CONSTEXPR NfpLevel value =
+//            NfpLevel::CONVEX_ONLY;
+            NfpLevel::BOTH_CONCAVE_WITH_HOLES;
+};
 
 }
 

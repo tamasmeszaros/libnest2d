@@ -60,8 +60,8 @@ public:
             while(!was_packed) {
 
                 for(size_t j = 0; j < placers.size() && !was_packed; j++) {
-                    was_packed = placers[j].pack(item);
-                    makeProgress(placers[j], j);
+                    if(was_packed = placers[j].pack(item))
+                        makeProgress(placers[j], j);
                 }
 
                 if(!was_packed) {

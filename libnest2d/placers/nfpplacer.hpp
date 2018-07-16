@@ -29,6 +29,13 @@ struct NfpPConfig {
     std::function<double(const Nfp::Shapes<RawShape>&, double, double, double)>
     object_function;
 
+    /**
+     * @brief The quality of search for an optimal placement.
+     * This is a compromise slider between quality and speed. Zero is the
+     * fast and poor solution while 1.0 is the slowest but most accurate.
+     */
+    float accuracy = 1.0;
+
     NfpPConfig(): rotations({0.0, Pi/2.0, Pi, 3*Pi/2}),
         alignment(Alignment::CENTER) {}
 };
@@ -38,14 +45,6 @@ template<class RawShape> class EdgeCache {
     using Vertex = TPoint<RawShape>;
     using Coord = TCoord<Vertex>;
     using Edge = _Segment<Vertex>;
-
-//    enum Corners {
-//        BOTTOM,
-//        LEFT,
-//        RIGHT,
-//        TOP,
-//        NUM_CORNERS
-//    };
 
     mutable std::vector<double> corners_;
 
@@ -70,49 +69,9 @@ template<class RawShape> class EdgeCache {
     void fetchCorners() const {
         if(!corners_.empty()) return;
 
+        // TODO Accuracy
         corners_ = distances_;
-        for(auto& d : corners_) {
-            d /= full_distance_;
-        }
-
-//        corners_ = std::vector<double>(NUM_CORNERS, 0.0);
-
-//        std::vector<unsigned> idx_ud(emap_.size(), 0);
-//        std::vector<unsigned> idx_lr(emap_.size(), 0);
-
-//        std::iota(idx_ud.begin(), idx_ud.end(), 0);
-//        std::iota(idx_lr.begin(), idx_lr.end(), 0);
-
-//        std::sort(idx_ud.begin(), idx_ud.end(),
-//                  [this](unsigned idx1, unsigned idx2)
-//        {
-//            const Vertex& v1 = emap_[idx1].first();
-//            const Vertex& v2 = emap_[idx2].first();
-
-//            auto diff = getY(v1) - getY(v2);
-//            if(std::abs(diff) <= std::numeric_limits<Coord>::epsilon())
-//              return getX(v1) < getX(v2);
-
-//            return diff < 0;
-//        });
-
-//        std::sort(idx_lr.begin(), idx_lr.end(),
-//                  [this](unsigned idx1, unsigned idx2)
-//        {
-//            const Vertex& v1 = emap_[idx1].first();
-//            const Vertex& v2 = emap_[idx2].first();
-
-//            auto diff = getX(v1) - getX(v2);
-//            if(std::abs(diff) <= std::numeric_limits<Coord>::epsilon())
-//                return getY(v1) < getY(v2);
-
-//            return diff < 0;
-//        });
-
-//        corners_[BOTTOM] = distances_[idx_ud.front()]/full_distance_;
-//        corners_[TOP] = distances_[idx_ud.back()]/full_distance_;
-//        corners_[LEFT] = distances_[idx_lr.front()]/full_distance_;
-//        corners_[RIGHT] = distances_[idx_lr.back()]/full_distance_;
+        for(auto& d : corners_) d /= full_distance_;
     }
 
 public:
@@ -166,12 +125,6 @@ public:
     }
 
     inline double circumference() const BP2D_NOEXCEPT { return full_distance_; }
-
-//    inline double corner(Corners c) const BP2D_NOEXCEPT {
-//        assert(c < NUM_CORNERS);
-//        fetchCorners();
-//        return corners_[c];
-//    }
 
     inline const std::vector<double>& corners() const BP2D_NOEXCEPT {
         fetchCorners();

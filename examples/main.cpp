@@ -527,16 +527,16 @@ void arrangeRectangles() {
     };
 
     std::vector<Item> input;
-//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
 //    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
 //    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
 //    input.insert(input.end(), rects.begin(), rects.end());
 //    input.insert(input.end(), proba.begin(), proba.end());
-    input.insert(input.end(), crasher.begin(), crasher.end());
+//    input.insert(input.end(), crasher.begin(), crasher.end());
 
     Box bin(250*SCALE, 210*SCALE);
 
-    Coord min_obj_distance = 6*SCALE;
+    Coord min_obj_distance = 1.5*SCALE;
 
     using Placer = NfpPlacer;
     using Packer = Arranger<Placer, FirstFitSelection>;
@@ -546,29 +546,31 @@ void arrangeRectangles() {
     Packer::PlacementConfig pconf;
     pconf.alignment = Placer::Config::Alignment::CENTER;
     pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/};
-    pconf.object_function = [&bin](Placer::Pile pile, double area,
-                               double norm, double penality) {
+//    pconf.object_function = [&bin](Placer::Pile pile, double area,
+//                               double norm, double penality) {
 
-        auto bb = ShapeLike::boundingBox(pile);
+//        auto bb = ShapeLike::boundingBox(pile);
 
-        double diameter = PointLike::distance(bb.minCorner(),
-                                              bb.maxCorner());
+//        double diameter = PointLike::distance(bb.minCorner(),
+//                                              bb.maxCorner());
 
-        // We will optimize to the diameter of the circle around the bounding
-        // box and use the norming factor to get rid of the physical dimensions
-        double score = diameter / norm;
+//        // We will optimize to the diameter of the circle around the bounding
+//        // box and use the norming factor to get rid of the physical dimensions
+//        double score = diameter / norm;
 
-        // If it does not fit into the print bed we will beat it
-        // with a large penality
-        if(!NfpPlacer::wouldFit(bb, bin)) score = 2*penality - score;
+//        // If it does not fit into the print bed we will beat it
+//        // with a large penality
+//        if(!NfpPlacer::wouldFit(bb, bin)) score = 2*penality - score;
 
-        return score;
-    };
+//        return score;
+//    };
 
     Packer::SelectionConfig sconf;
 //    sconf.allow_parallel = false;
 //    sconf.force_parallel = false;
+//    sconf.try_triplets = false;
 //    sconf.try_reverse_order = true;
+//    sconf.waste_increment = 0.001;
 
     arrange.configure(pconf, sconf);
 

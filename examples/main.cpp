@@ -51,28 +51,28 @@ void arrangeRectangles() {
 
     const int SCALE = 1000000;
 //    const int SCALE = 1;
-//    std::vector<Rectangle> rects = {
-//        {80*SCALE, 80*SCALE},
-//        {60*SCALE, 90*SCALE},
-//        {70*SCALE, 30*SCALE},
-//        {80*SCALE, 60*SCALE},
-//        {60*SCALE, 60*SCALE},
-//        {60*SCALE, 40*SCALE},
-//        {40*SCALE, 40*SCALE},
-//        {10*SCALE, 10*SCALE},
-//        {10*SCALE, 10*SCALE},
-//        {10*SCALE, 10*SCALE},
-//        {10*SCALE, 10*SCALE},
-//        {10*SCALE, 10*SCALE},
-//        {5*SCALE, 5*SCALE},
-//        {5*SCALE, 5*SCALE},
-//        {5*SCALE, 5*SCALE},
-//        {5*SCALE, 5*SCALE},
-//        {5*SCALE, 5*SCALE},
-//        {5*SCALE, 5*SCALE},
-//        {5*SCALE, 5*SCALE},
-//        {20*SCALE, 20*SCALE}
-//       };
+    std::vector<Rectangle> rects = {
+        {80*SCALE, 80*SCALE},
+        {60*SCALE, 90*SCALE},
+        {70*SCALE, 30*SCALE},
+        {80*SCALE, 60*SCALE},
+        {60*SCALE, 60*SCALE},
+        {60*SCALE, 40*SCALE},
+        {40*SCALE, 40*SCALE},
+        {10*SCALE, 10*SCALE},
+        {10*SCALE, 10*SCALE},
+        {10*SCALE, 10*SCALE},
+        {10*SCALE, 10*SCALE},
+        {10*SCALE, 10*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {5*SCALE, 5*SCALE},
+        {20*SCALE, 20*SCALE}
+       };
 
 //    std::vector<Rectangle> rects = {
 //        {20*SCALE, 10*SCALE},
@@ -527,48 +527,48 @@ void arrangeRectangles() {
     };
 
     std::vector<Item> input;
-    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
 //    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
 //    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
 //    input.insert(input.end(), rects.begin(), rects.end());
 //    input.insert(input.end(), proba.begin(), proba.end());
-//    input.insert(input.end(), crasher.begin(), crasher.end());
+    input.insert(input.end(), crasher.begin(), crasher.end());
 
     Box bin(250*SCALE, 210*SCALE);
 
-    Coord min_obj_distance = 0;//6*SCALE;
+    Coord min_obj_distance = 6*SCALE;
 
     using Placer = NfpPlacer;
-    using Packer = Arranger<Placer, DJDHeuristic>;
+    using Packer = Arranger<Placer, FirstFitSelection>;
 
     Packer arrange(bin, min_obj_distance);
 
     Packer::PlacementConfig pconf;
     pconf.alignment = Placer::Config::Alignment::CENTER;
     pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/};
-//    pconf.object_function = [&bin](Placer::Pile pile, double area,
-//                               double norm, double penality) {
+    pconf.object_function = [&bin](Placer::Pile pile, double area,
+                               double norm, double penality) {
 
-//        auto bb = ShapeLike::boundingBox(pile);
+        auto bb = ShapeLike::boundingBox(pile);
 
-//        double diameter = PointLike::distance(bb.minCorner(),
-//                                              bb.maxCorner());
+        double diameter = PointLike::distance(bb.minCorner(),
+                                              bb.maxCorner());
 
-//        // We will optimize to the diameter of the circle around the bounding
-//        // box and use the norming factor to get rid of the physical dimensions
-//        double score = diameter / norm;
+        // We will optimize to the diameter of the circle around the bounding
+        // box and use the norming factor to get rid of the physical dimensions
+        double score = diameter / norm;
 
-//        // If it does not fit into the print bed we will beat it
-//        // with a large penality
-//        if(!NfpPlacer::wouldFit(bb, bin)) score = 2*penality - score;
+        // If it does not fit into the print bed we will beat it
+        // with a large penality
+        if(!NfpPlacer::wouldFit(bb, bin)) score = 2*penality - score;
 
-//        return score;
-//    };
+        return score;
+    };
 
     Packer::SelectionConfig sconf;
-    sconf.allow_parallel = true;
-    sconf.force_parallel = false;
-    sconf.try_reverse_order = true;
+//    sconf.allow_parallel = false;
+//    sconf.force_parallel = false;
+//    sconf.try_reverse_order = true;
 
     arrange.configure(pconf, sconf);
 

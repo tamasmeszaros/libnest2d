@@ -164,8 +164,8 @@ public:
             return std::any_of(wrong_pairs.begin(), wrong_pairs.end(),
                                [&i1, &i2](const TPair& pair)
             {
-                Item& pi1 = std::get<0>(pair), pi2 = std::get<1>(pair);
-                Item& ri1 = i1, ri2 = i2;
+                Item& pi1 = std::get<0>(pair), &pi2 = std::get<1>(pair);
+                Item& ri1 = i1, &ri2 = i2;
                 return (&pi1 == &ri1 && &pi2 == &ri2) ||
                        (&pi1 == &ri2 && &pi2 == &ri1);
             });
@@ -185,7 +185,7 @@ public:
                 Item& pi1 = std::get<0>(tripl);
                 Item& pi2 = std::get<1>(tripl);
                 Item& pi3 = std::get<2>(tripl);
-                Item& ri1 = i1, ri2 = i2, ri3 = i3;
+                Item& ri1 = i1, &ri2 = i2, &ri3 = i3;
                 return  (&pi1 == &ri1 && &pi2 == &ri2 && &pi3 == &ri3) ||
                         (&pi1 == &ri1 && &pi2 == &ri3 && &pi3 == &ri2) ||
                         (&pi1 == &ri2 && &pi2 == &ri1 && &pi3 == &ri3) ||

@@ -84,7 +84,8 @@ void arrangeRectangles() {
 //        {{0, 0}, {0, 20*SCALE}, {10*SCALE, 0}, {0, 0}}
 //    };
 
-    std::vector<Item> crasher = {
+    std::vector<Item> crasher =
+    {
         {
             {-5000000, 8954050},
             {5000000, 8954050},
@@ -536,7 +537,7 @@ void arrangeRectangles() {
 
     Box bin(250*SCALE, 210*SCALE);
 
-    Coord min_obj_distance = 1.5*SCALE;
+    Coord min_obj_distance = 6*SCALE;
 
     using Placer = NfpPlacer;
     using Packer = Arranger<Placer, FirstFitSelection>;
@@ -545,32 +546,32 @@ void arrangeRectangles() {
 
     Packer::PlacementConfig pconf;
     pconf.alignment = Placer::Config::Alignment::CENTER;
+    pconf.starting_point = Placer::Config::Alignment::CENTER;
     pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/};
-//    pconf.object_function = [&bin](Placer::Pile pile, double area,
-//                               double norm, double penality) {
+    pconf.object_function = [&bin](Placer::Pile pile, double area,
+                               double norm, double penality) {
 
-//        auto bb = ShapeLike::boundingBox(pile);
+        auto bb = ShapeLike::boundingBox(pile);
 
-//        double diameter = PointLike::distance(bb.minCorner(),
-//                                              bb.maxCorner());
+        auto& sh = pile.back();
+        auto rv = Nfp::referenceVertex(sh);
+        auto c = bin.center();
+        auto d = PointLike::distance(rv, c);
+        double score = double(d)/norm;
 
-//        // We will optimize to the diameter of the circle around the bounding
-//        // box and use the norming factor to get rid of the physical dimensions
-//        double score = diameter / norm;
+        // If it does not fit into the print bed we will beat it
+        // with a large penality
+        if(!NfpPlacer::wouldFit(bb, bin)) score = 2*penality - score;
 
-//        // If it does not fit into the print bed we will beat it
-//        // with a large penality
-//        if(!NfpPlacer::wouldFit(bb, bin)) score = 2*penality - score;
-
-//        return score;
-//    };
+        return score;
+    };
 
     Packer::SelectionConfig sconf;
 //    sconf.allow_parallel = false;
 //    sconf.force_parallel = false;
-//    sconf.try_triplets = false;
+//    sconf.try_triplets = true;
 //    sconf.try_reverse_order = true;
-//    sconf.waste_increment = 0.001;
+//    sconf.waste_increment = 0.1;
 
     arrange.configure(pconf, sconf);
 

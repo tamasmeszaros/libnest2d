@@ -26,6 +26,8 @@ struct NfpPConfig {
     /// Where to align the resulting packed pile
     Alignment alignment;
 
+    Alignment starting_point;
+
     std::function<double(const Nfp::Shapes<RawShape>&, double, double, double)>
     object_function;
 
@@ -37,7 +39,7 @@ struct NfpPConfig {
     float accuracy = 1.0;
 
     NfpPConfig(): rotations({0.0, Pi/2.0, Pi, 3*Pi/2}),
-        alignment(Alignment::CENTER) {}
+        alignment(Alignment::CENTER), starting_point(Alignment::CENTER) {}
 };
 
 // A class for getting a point on the circumference of the polygon (in log time)
@@ -353,7 +355,7 @@ public:
 
                 opt::StopCriteria stopcr;
                 stopcr.max_iterations = 1000;
-                stopcr.stoplimit = 0.01;
+                stopcr.stoplimit = 0.001;
                 stopcr.type = opt::StopLimitType::RELATIVE;
                 opt::TOptimizer<opt::Method::L_SIMPLEX> solver(stopcr);
 
@@ -471,11 +473,37 @@ private:
 
     void setInitialPosition(Item& item) {
         Box&& bb = item.boundingBox();
+        Vertex ci, cb;
 
-        Vertex ci = bb.minCorner();
-        Vertex cb = bin_.minCorner();
+        switch(config_.starting_point) {
+        case Config::Alignment::CENTER: {
+            ci = bb.center();
+            cb = bin_.center();
+            break;
+        }
+        case Config::Alignment::BOTTOM_LEFT: {
+            ci = bb.minCorner();
+            cb = bin_.minCorner();
+            break;
+        }
+        case Config::Alignment::BOTTOM_RIGHT: {
+            ci = {getX(bb.maxCorner()), getY(bb.minCorner())};
+            cb = {getX(bin_.maxCorner()), getY(bin_.minCorner())};
+            break;
+        }
+        case Config::Alignment::TOP_LEFT: {
+            ci = {getX(bb.minCorner()), getY(bb.maxCorner())};
+            cb = {getX(bin_.minCorner()), getY(bin_.maxCorner())};
+            break;
+        }
+        case Config::Alignment::TOP_RIGHT: {
+            ci = bb.maxCorner();
+            cb = bin_.maxCorner();
+            break;
+        }
+        }
 
-        auto&& d = cb - ci;
+        auto d = cb - ci;
         item.translate(d);
     }
 

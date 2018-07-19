@@ -66,6 +66,19 @@ inline PointImpl operator-(const PointImpl& p1, const PointImpl& p2) {
     ret -= p2;
     return ret;
 }
+
+inline PointImpl& operator *=(PointImpl& p, const PointImpl& pa ) {
+    p.X *= pa.X;
+    p.Y *= pa.Y;
+    return p;
+}
+
+inline PointImpl operator*(const PointImpl& p1, const PointImpl& p2) {
+    PointImpl ret = p1;
+    ret *= p2;
+    return ret;
+}
+
 }
 
 namespace libnest2d {
@@ -219,22 +232,6 @@ inline void ShapeLike::offset(PolygonImpl& sh, TCoord<PointImpl> distance) {
         }
     }
 }
-
-//template<> // TODO make it support holes if this method will ever be needed.
-//inline PolygonImpl Nfp::minkowskiDiff(const PolygonImpl& sh,
-//                                      const PolygonImpl& other)
-//{
-//    #define DISABLE_BOOST_MINKOWSKI_ADD
-
-//    ClipperLib::Paths solution;
-
-//    ClipperLib::MinkowskiDiff(sh.Contour, other.Contour, solution);
-
-//    PolygonImpl ret;
-//    ret.Contour = solution.front();
-
-//    return sh;
-//}
 
 // Tell libnest2d how to make string out of a ClipperPolygon object
 template<> inline std::string ShapeLike::toString(const PolygonImpl& sh) {
@@ -445,7 +442,8 @@ Nfp::merge(const Nfp::Shapes<PolygonImpl>& shapes, const PolygonImpl& sh)
         retv.push_back(poly);
     };
 
-    processHole = [&processPoly](ClipperLib::PolyNode *pptr, PolygonImpl& poly) {
+    processHole = [&processPoly](ClipperLib::PolyNode *pptr, PolygonImpl& poly)
+    {
         poly.Holes.push_back(pptr->Contour);
         poly.Holes.back().push_back(poly.Holes.back().front());
         for(auto c : pptr->Childs) processPoly(c);

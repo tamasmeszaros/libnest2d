@@ -690,7 +690,7 @@ void testNfp(const std::vector<ItemPair>& testdata) {
 
         ASSERT_TRUE(v.first);
 
-        Item infp(nfp);
+        Item infp(nfp.first);
 
         int i = 0;
         auto rorbiter = orbiter.transformedShape();
@@ -741,6 +741,15 @@ TEST(GeometryAlgorithms, nfpConvexConvex) {
 //TEST(GeometryAlgorithms, nfpConcaveConcave) {
 //    testNfp<NfpLevel::BOTH_CONCAVE, 1000>(nfp_concave_testdata);
 //}
+
+TEST(GeometryAlgorithms, nfpConcaveConcave) {
+    using namespace libnest2d;
+
+    Rectangle r1(10, 10);
+    Rectangle r2(20, 20);
+    auto result = Nfp::nfpSimpleSimple(r1.transformedShape(),
+                                       r2.transformedShape());
+}
 
 TEST(GeometryAlgorithms, pointOnPolygonContour) {
     using namespace libnest2d;

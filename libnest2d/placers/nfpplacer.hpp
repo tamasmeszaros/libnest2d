@@ -20,15 +20,63 @@ struct NfpPConfig {
         TOP_RIGHT,
     };
 
-    /// Which angles to try out for better results
+    /// Which angles to try out for better results.
     std::vector<Radians> rotations;
 
-    /// Where to align the resulting packed pile
+    /// Where to align the resulting packed pile.
     Alignment alignment;
 
+    /// Where to start putting objects in the bin.
     Alignment starting_point;
 
-    std::function<double(const Nfp::Shapes<RawShape>&, double, double, double)>
+    /**
+     * @brief A function object representing the fitting function in the
+     * placement optimization process. (Optional)
+     *
+     * This is the most versatile tool to configure the placer. The fitting
+     * function is evaluated many times when a new item is being placed into the
+     * bin. The output should be a rated score of the new item's position.
+     *
+     * This is not a mandatory option as there is a default fitting function
+     * that will optimize for the best pack efficiency. With a custom fitting
+     * function you can e.g. influence the shape of the arranged pile.
+     *
+     * \param shapes The first parameter is a container with all the placed
+     * polygons including the current candidate. You can calculate a bounding
+     * box or convex hull on this pile of polygons.
+     *
+     * \param item The second parameter is the candidate item. Note that calling
+     * transformedShape() on this second argument returns and identical shape as
+     * calling back() on the first argument (polygon list). These will not be
+     * the same objects only identical shapes! Using the second parameter is a
+     * lot faster due to caching some properties of the polygon (area, etc...)
+     *
+     * \param occupied_area The third parameter is the sum of areas of the
+     * items in the first parameter so you don't have to iterate through them
+     * if you need only their area.
+     *
+     * \param norm The fourth parameter is a norming factor for physical
+     * dimensions. E.g. if your score is the distance between the item and the
+     * bin center, you should divide that distance with the norming factor. If
+     * the score is an area than divide it with the square of the norming
+     * factor. Imagine it as a unit of distance.
+     *
+     * \param penality The fifth parameter is the amount of minimum penality if
+     * the arranged pile would't fit into the bin. You can use the wouldFit()
+     * function to check this. Note that the pile can be outside the bin's
+     * boundaries while the placement algorithm is running. Your job is only to
+     * check if the pile could be translated into a position in the bin where
+     * all the items would be inside. For a box shaped bin you can use the
+     * pile's bounding box to check whether it's width and height is small
+     * enough. If the pile would not fit, you have to make sure that the
+     * resulting score will be higher then penality value. A good solution
+     * would be to set score = 2*penality-score when the pile wouldn't fit into
+     * the bin.
+     *
+     *
+     */
+    std::function<double(const Nfp::Shapes<RawShape>&, const _Item<RawShape>&,
+                         double, double, double)>
     object_function;
 
     /**
@@ -194,6 +242,30 @@ public:
 template<NfpLevel lvl>
 struct Lvl { static const NfpLevel value = lvl; };
 
+template<class RawShape>
+inline void correctNfpPosition(Nfp::NfpResult<RawShape>& nfp,
+                               const _Item<RawShape>& stationary,
+                               const _Item<RawShape>& orbiter)
+{
+    // Now we have an nfp somewhere in the dark. We need to get it
+    // to the right position around the stationary shape.
+    // This is done by choosing the leftmost lowest vertex of the
+    // orbiting polygon to be touched with the rightmost upper
+    // vertex of the stationary polygon. In this configuration, the
+    // reference vertex of the orbiting polygon (which can be dragged around
+    // the nfp) will be its rightmost upper vertex that coincides with the
+    // rightmost upper vertex of the nfp. No proof provided other than Jonas
+    // Lindmark's reasoning about the reference vertex of nfp in his thesis
+    // ("No fit polygon problem" - section 2.1.9)
+
+    auto touch_sh = stationary.rightmostTopVertex();
+    auto touch_other = orbiter.leftmostBottomVertex();
+    auto dtouch = touch_sh - touch_other;
+    auto top_other = orbiter.rightmostTopVertex() + dtouch;
+    auto dnfp = top_other - nfp.second; // nfp.second is the nfp reference point
+    ShapeLike::translate(nfp.first, dnfp);
+}
+
 template<class RawShape, class Container>
 Nfp::Shapes<RawShape> nfp( const Container& polygons,
                            const _Item<RawShape>& trsh,
@@ -204,17 +276,19 @@ Nfp::Shapes<RawShape> nfp( const Container& polygons,
     Nfp::Shapes<RawShape> nfps;
 
     for(Item& sh : polygons) {
-        auto subnfp = Nfp::noFitPolygon<NfpLevel::CONVEX_ONLY>(
-                    sh.transformedShape(), trsh.transformedShape());
+        auto subnfp_r = Nfp::noFitPolygon<NfpLevel::CONVEX_ONLY>(
+                            sh.transformedShape(), trsh.transformedShape());
         #ifndef NDEBUG
             auto vv = ShapeLike::isValid(sh.transformedShape());
             assert(vv.first);
 
-            auto vnfp = ShapeLike::isValid(subnfp);
+            auto vnfp = ShapeLike::isValid(subnfp_r.first);
             assert(vnfp.first);
         #endif
 
-        nfps = Nfp::merge(nfps, subnfp);
+        correctNfpPosition(subnfp_r, sh, trsh);
+
+        nfps = Nfp::merge(nfps, subnfp_r.first);
     }
 
     return nfps;
@@ -378,8 +452,9 @@ public:
                 // customizable by the library client
                 auto _objfunc = config_.object_function?
                             config_.object_function :
-                [this](const Nfp::Shapes<RawShape>& pile, double occupied_area,
-                            double /*norm*/, double penality)
+                [this](const Nfp::Shapes<RawShape>& pile, Item,
+                            double occupied_area, double /*norm*/,
+                            double penality)
                 {
                     auto ch = ShapeLike::convexHull(pile);
 
@@ -410,7 +485,7 @@ public:
 
                     double occupied_area = pile_area + item.area();
 
-                    double score = _objfunc(pile, occupied_area,
+                    double score = _objfunc(pile, item, occupied_area,
                                             norm_, penality_);
 
                     pile.pop_back();

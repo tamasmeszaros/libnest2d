@@ -538,14 +538,14 @@ void arrangeRectangles() {
     std::vector<Item> input;
     input.insert(input.end(), prusaParts().begin(), prusaParts().end());
 //    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
-    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
+//    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
 //    input.insert(input.end(), rects.begin(), rects.end());
-    input.insert(input.end(), proba.begin(), proba.end());
+//    input.insert(input.end(), proba.begin(), proba.end());
 //    input.insert(input.end(), crasher.begin(), crasher.end());
 
     Box bin(250*SCALE, 210*SCALE);
 
-    Coord min_obj_distance = 6*SCALE;
+    Coord min_obj_distance = 0;//6*SCALE;
 
     using Placer = NfpPlacer;
     using Packer = Arranger<Placer, FirstFitSelection>;
@@ -556,23 +556,22 @@ void arrangeRectangles() {
     pconf.alignment = Placer::Config::Alignment::CENTER;
     pconf.starting_point = Placer::Config::Alignment::CENTER;
     pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/};
-    pconf.object_function = [&bin](Placer::Pile pile, double area,
-                               double norm, double penality) {
+//    pconf.object_function = [&bin](Placer::Pile pile, const Item& item,
+//            double /*area*/, double norm, double penality) {
 
-        auto bb = ShapeLike::boundingBox(pile);
+//        auto&& bb = ShapeLike::boundingBox(pile);
 
-        auto& sh = pile.back();
-        auto rv = Nfp::referenceVertex(sh);
-        auto c = bin.center();
-        auto d = PointLike::distance(rv, c);
-        double score = double(d)/norm;
+//        auto&& rv = item.referenceVertex();
+//        auto&& c = bin.center();
+//        auto d = PointLike::distance(rv, c);
+//        double score = d/norm;
 
-        // If it does not fit into the print bed we will beat it
-        // with a large penality
-        if(!NfpPlacer::wouldFit(bb, bin)) score = 2*penality - score;
+//        // If it does not fit into the print bed we will beat it
+//        // with a large penality
+//        if(!NfpPlacer::wouldFit(bb, bin)) score = 2*penality - score;
 
-        return score;
-    };
+//        return score;
+//    };
 
     Packer::SelectionConfig sconf;
 //    sconf.allow_parallel = false;

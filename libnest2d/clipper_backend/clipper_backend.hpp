@@ -21,7 +21,7 @@ struct PolygonImpl {
     PathImpl Contour;
     HoleStore Holes;
 
-    inline PolygonImpl() {}
+    inline PolygonImpl() = default;
 
     inline explicit PolygonImpl(const PathImpl& cont): Contour(cont) {}
     inline explicit PolygonImpl(const HoleStore& holes):
@@ -148,7 +148,7 @@ inline void ShapeLike::reserve(PolygonImpl& sh, size_t vertex_capacity)
 
 namespace _smartarea {
 template<Orientation o>
-inline double area(const PolygonImpl& sh) {
+inline double area(const PolygonImpl& /*sh*/) {
     return std::nan("");
 }
 
@@ -403,35 +403,12 @@ inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads)
 }
 
 #define DISABLE_BOOST_NFP_MERGE
-template<> inline Nfp::Shapes<PolygonImpl>
-Nfp::merge(const Nfp::Shapes<PolygonImpl>& shapes, const PolygonImpl& sh)
-{
+inline Nfp::Shapes<PolygonImpl> _merge(ClipperLib::Clipper& clipper) {
     Nfp::Shapes<PolygonImpl> retv;
 
-    ClipperLib::Clipper clipper(ClipperLib::ioReverseSolution);
-
-    bool closed = true;
-    bool valid = false;
-
-    valid = clipper.AddPath(sh.Contour, ClipperLib::ptSubject, closed);
-
-    for(auto& hole : sh.Holes) {
-        valid &= clipper.AddPath(hole, ClipperLib::ptSubject, closed);
-    }
-
-    for(auto& path : shapes) {
-        valid &= clipper.AddPath(path.Contour, ClipperLib::ptSubject, closed);
-
-        for(auto& hole : path.Holes) {
-            valid &= clipper.AddPath(hole, ClipperLib::ptSubject, closed);
-        }
-    }
-
-    if(!valid) throw GeometryException(GeomErr::MERGE);
-
     ClipperLib::PolyTree result;
-    clipper.Execute(ClipperLib::ctUnion, result, ClipperLib::pftNonZero);
-    retv.reserve(result.Total());
+    clipper.Execute(ClipperLib::ctUnion, result, ClipperLib::pftNegative);
+    retv.reserve(static_cast<size_t>(result.Total()));
 
     std::function<void(ClipperLib::PolyNode*, PolygonImpl&)> processHole;
 
@@ -459,6 +436,27 @@ Nfp::merge(const Nfp::Shapes<PolygonImpl>& shapes, const PolygonImpl& sh)
     traverse(&result);
 
     return retv;
+}
+
+template<> inline Nfp::Shapes<PolygonImpl>
+Nfp::merge(const Nfp::Shapes<PolygonImpl>& shapes)
+{
+    ClipperLib::Clipper clipper(ClipperLib::ioReverseSolution);
+
+    bool closed = true;
+    bool valid = true;
+
+    for(auto& path : shapes) {
+        valid &= clipper.AddPath(path.Contour, ClipperLib::ptSubject, closed);
+
+        for(auto& hole : path.Holes) {
+            valid &= clipper.AddPath(hole, ClipperLib::ptSubject, closed);
+        }
+    }
+
+    if(!valid) throw GeometryException(GeomErr::MERGE);
+
+    return _merge(clipper);
 }
 
 }

@@ -536,8 +536,8 @@ void arrangeRectangles() {
     proba[1].rotate(Pi-Pi/3);
 
     std::vector<Item> input;
-    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
-//    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
+//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
 //    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
 //    input.insert(input.end(), rects.begin(), rects.end());
 //    input.insert(input.end(), proba.begin(), proba.end());
@@ -545,7 +545,7 @@ void arrangeRectangles() {
 
     Box bin(250*SCALE, 210*SCALE);
 
-    Coord min_obj_distance = 0;//6*SCALE;
+    auto min_obj_distance = static_cast<Coord>(0*SCALE);
 
     using Placer = NfpPlacer;
     using Packer = Arranger<Placer, FirstFitSelection>;
@@ -576,7 +576,7 @@ void arrangeRectangles() {
     Packer::SelectionConfig sconf;
 //    sconf.allow_parallel = false;
 //    sconf.force_parallel = false;
-//    sconf.try_triplets = false;
+//    sconf.try_triplets = true;
 //    sconf.try_reverse_order = true;
 //    sconf.waste_increment = 0.005;
 

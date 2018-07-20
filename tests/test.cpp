@@ -682,7 +682,9 @@ void testNfp(const std::vector<ItemPair>& testdata) {
         auto&& nfp = Nfp::noFitPolygon<lvl>(stationary.rawShape(),
                                             orbiter.transformedShape());
 
-        auto v = ShapeLike::isValid(nfp);
+        strategies::correctNfpPosition(nfp, stationary, orbiter);
+
+        auto v = ShapeLike::isValid(nfp.first);
 
         if(!v.first) {
             std::cout << v.second << std::endl;

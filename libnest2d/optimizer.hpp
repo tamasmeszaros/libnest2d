@@ -390,10 +390,14 @@ public:
         static_assert(always_false<T>::value, "Optimizer unimplemented!");
     }
 
+    DummyOptimizer(const StopCriteria&) {
+        static_assert(always_false<T>::value, "Optimizer unimplemented!");
+    }
+
     template<class Func, class...Args>
-    Result<Args...> optimize(Func&& func,
-                             std::tuple<Args...> initvals,
-                             Bound<Args>... args)
+    Result<Args...> optimize(Func&& /*func*/,
+                             std::tuple<Args...> /*initvals*/,
+                             Bound<Args>...  /*args*/)
     {
         return Result<Args...>();
     }

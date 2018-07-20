@@ -217,7 +217,7 @@ public:
         return ret;
     }
 
-    inline bool isHoleConvex(unsigned holeidx) const {
+    inline bool isHoleConvex(unsigned /*holeidx*/) const {
         return false;
     }
 
@@ -370,12 +370,11 @@ private:
     inline const RawShape& offsettedShape() const {
         if(has_offset_ ) {
             if(offset_cache_valid_) return offset_cache_;
-            else {
-                offset_cache_ = sh_;
-                sl::offset(offset_cache_, offset_distance_);
-                offset_cache_valid_ = true;
-                return offset_cache_;
-            }
+
+            offset_cache_ = sh_;
+            sl::offset(offset_cache_, offset_distance_);
+            offset_cache_valid_ = true;
+            return offset_cache_;
         }
         return sh_;
     }
@@ -943,10 +942,9 @@ private:
         selector_.template packItems<PlacementStrategy>(
                     from, to, bin_, pconfig_);
 
-        if(min_obj_distance_ > 0) std::for_each(from, to, [](Item& item) {
-            item.removeOffset();
-        });
-
+//        if(min_obj_distance_ > 0) std::for_each(from, to, [](Item& item) {
+//            item.removeOffset();
+//        });
     }
 };
 

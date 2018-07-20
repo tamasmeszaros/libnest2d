@@ -6,6 +6,8 @@
 #endif
 #include "placer_boilerplate.hpp"
 #include "../geometry_traits_nfp.hpp"
+#include "libnest2d/optimizer.hpp"
+#include <cassert>
 
 namespace libnest2d { namespace strategies {
 
@@ -45,21 +47,21 @@ struct NfpPConfig {
      * polygons including the current candidate. You can calculate a bounding
      * box or convex hull on this pile of polygons.
      *
-     * \param item The second parameter is the candidate item. Note that calling
-     * transformedShape() on this second argument returns and identical shape as
-     * calling back() on the first argument (polygon list). These will not be
-     * the same objects only identical shapes! Using the second parameter is a
-     * lot faster due to caching some properties of the polygon (area, etc...)
+     * \param item The second parameter is the candidate item. Note that
+     * calling transformedShape() on this second argument returns an identical
+     * shape as calling shapes.back(). These would not be the same objects only
+     * identical shapes! Using the second parameter is a lot faster due to
+     * caching some properties of the polygon (area, etc...)
      *
      * \param occupied_area The third parameter is the sum of areas of the
      * items in the first parameter so you don't have to iterate through them
-     * if you need only their area.
+     * if you only need their area.
      *
-     * \param norm The fourth parameter is a norming factor for physical
-     * dimensions. E.g. if your score is the distance between the item and the
-     * bin center, you should divide that distance with the norming factor. If
-     * the score is an area than divide it with the square of the norming
-     * factor. Imagine it as a unit of distance.
+     * \param norm A norming factor for physical dimensions. E.g. if your score
+     * is the distance between the item and the bin center, you should divide
+     * that distance with the norming factor. If the score is an area than
+     * divide it with the square of the norming factor. Imagine it as a unit of
+     * distance.
      *
      * \param penality The fifth parameter is the amount of minimum penality if
      * the arranged pile would't fit into the bin. You can use the wouldFit()
@@ -69,10 +71,9 @@ struct NfpPConfig {
      * all the items would be inside. For a box shaped bin you can use the
      * pile's bounding box to check whether it's width and height is small
      * enough. If the pile would not fit, you have to make sure that the
-     * resulting score will be higher then penality value. A good solution
-     * would be to set score = 2*penality-score when the pile wouldn't fit into
-     * the bin.
-     *
+     * resulting score will be higher then the penality value. A good solution
+     * would be to set score = 2*penality-score in case the pile wouldn't fit
+     * into the bin.
      *
      */
     std::function<double(const Nfp::Shapes<RawShape>&, const _Item<RawShape>&,
@@ -86,11 +87,30 @@ struct NfpPConfig {
      */
     float accuracy = 1.0;
 
+    /**
+     * @brief If you want to see items inside other item's holes, you have to
+     * turn this switch on.
+     *
+     * This will only work if a suitable nfp implementation is provided.
+     * The library has no such implementation right now.
+     */
+    bool explore_holes = false;
+
     NfpPConfig(): rotations({0.0, Pi/2.0, Pi, 3*Pi/2}),
         alignment(Alignment::CENTER), starting_point(Alignment::CENTER) {}
 };
 
-// A class for getting a point on the circumference of the polygon (in log time)
+/**
+ * A class for getting a point on the circumference of the polygon (in log time)
+ *
+ * This is a transformation of the provided polygon to be able to pinpoint
+ * locations on the circumference. The optimizer will pass a floating point
+ * value e.g. within <0,1> and we have to transform this value quickly into a
+ * coordinate on the circumference. By definition 0 should yield the first
+ * vertex and 1.0 would be the last (which should coincide with first).
+ *
+ * We also have to make this work for the holes of the captured polygon.
+ */
 template<class RawShape> class EdgeCache {
     using Vertex = TPoint<RawShape>;
     using Coord = TCoord<Vertex>;
@@ -224,17 +244,20 @@ public:
         return holes_[hidx].full_distance;
     }
 
+    /// Get the normalized distance values for each vertex
     inline const std::vector<double>& corners() const BP2D_NOEXCEPT {
         fetchCorners();
         return contour_.corners;
     }
 
+    /// corners for a specific hole
     inline const std::vector<double>&
     corners(unsigned holeidx) const BP2D_NOEXCEPT {
         fetchHoleCorners(holeidx);
         return holes_[holeidx].corners;
     }
 
+    /// The number of holes in the abstracted polygon
     inline unsigned holeCount() const BP2D_NOEXCEPT { return holes_.size(); }
 
 };
@@ -247,7 +270,7 @@ inline void correctNfpPosition(Nfp::NfpResult<RawShape>& nfp,
                                const _Item<RawShape>& stationary,
                                const _Item<RawShape>& orbiter)
 {
-    // Now we have an nfp somewhere in the dark. We need to get it
+    // The provided nfp is somewhere in the dark. We need to get it
     // to the right position around the stationary shape.
     // This is done by choosing the leftmost lowest vertex of the
     // orbiting polygon to be touched with the rightmost upper
@@ -263,6 +286,19 @@ inline void correctNfpPosition(Nfp::NfpResult<RawShape>& nfp,
     auto dtouch = touch_sh - touch_other;
     auto top_other = orbiter.rightmostTopVertex() + dtouch;
     auto dnfp = top_other - nfp.second; // nfp.second is the nfp reference point
+    ShapeLike::translate(nfp.first, dnfp);
+}
+
+template<class RawShape>
+inline void correctNfpPosition(Nfp::NfpResult<RawShape>& nfp,
+                               const RawShape& stationary,
+                               const _Item<RawShape>& orbiter)
+{
+    auto touch_sh = Nfp::rightmostUpVertex(stationary);
+    auto touch_other = orbiter.leftmostBottomVertex();
+    auto dtouch = touch_sh - touch_other;
+    auto top_other = orbiter.rightmostTopVertex() + dtouch;
+    auto dnfp = top_other - nfp.second;
     ShapeLike::translate(nfp.first, dnfp);
 }
 
@@ -301,42 +337,65 @@ Nfp::Shapes<RawShape> nfp( const Container& polygons,
 {
     using Item = _Item<RawShape>;
 
-    Nfp::Shapes<RawShape> nfps, stationary;
+    Nfp::Shapes<RawShape> nfps;
+
+    auto& orb = trsh.transformedShape();
+    bool orbconvex = trsh.isContourConvex();
 
     for(Item& sh : polygons) {
-        stationary = Nfp::merge(stationary, sh.transformedShape());
-    }
+        Nfp::NfpResult<RawShape> subnfp;
+        auto& stat = sh.transformedShape();
 
-    std::cout << "pile size: " << stationary.size() << std::endl;
-    for(RawShape& sh : stationary) {
+        if(sh.isContourConvex() && orbconvex)
+            subnfp = Nfp::noFitPolygon<NfpLevel::CONVEX_ONLY>(stat, orb);
+        else if(orbconvex)
+            subnfp = Nfp::noFitPolygon<NfpLevel::ONE_CONVEX>(stat, orb);
+        else
+            subnfp = Nfp::noFitPolygon<Level::value>(stat, orb);
 
-        RawShape subnfp;
-//        if(sh.isContourConvex() && trsh.isContourConvex()) {
-//            subnfp = Nfp::noFitPolygon<NfpLevel::CONVEX_ONLY>(
-//                        sh.transformedShape(), trsh.transformedShape());
-//        } else {
-            subnfp = Nfp::noFitPolygon<Level::value>( sh/*.transformedShape()*/,
-                                                      trsh.transformedShape());
-//        }
+        correctNfpPosition(subnfp, sh, trsh);
 
-//        #ifndef NDEBUG
-//            auto vv = ShapeLike::isValid(sh.transformedShape());
-//            assert(vv.first);
-
-//            auto vnfp = ShapeLike::isValid(subnfp);
-//            assert(vnfp.first);
-//        #endif
-
-//            auto vnfp = ShapeLike::isValid(subnfp);
-//            if(!vnfp.first) {
-//                std::cout << vnfp.second << std::endl;
-//                std::cout << ShapeLike::toString(subnfp) << std::endl;
-//            }
-
-        nfps = Nfp::merge(nfps, subnfp);
+        nfps = Nfp::merge(nfps, subnfp.first);
     }
 
     return nfps;
+
+
+//    using Item = _Item<RawShape>;
+//    using sl = ShapeLike;
+
+//    Nfp::Shapes<RawShape> nfps, stationary;
+
+//    for(Item& sh : polygons) {
+//        stationary = Nfp::merge(stationary, sh.transformedShape());
+//    }
+
+//    for(RawShape& sh : stationary) {
+
+////        auto vv = sl::isValid(sh);
+////        std::cout << vv.second << std::endl;
+
+
+//        Nfp::NfpResult<RawShape> subnfp;
+//        bool shconvex = sl::isConvex<RawShape>(sl::getContour(sh));
+//        if(shconvex && trsh.isContourConvex()) {
+//            subnfp = Nfp::noFitPolygon<NfpLevel::CONVEX_ONLY>(
+//                        sh, trsh.transformedShape());
+//        } else if(trsh.isContourConvex()) {
+//            subnfp = Nfp::noFitPolygon<NfpLevel::ONE_CONVEX>(
+//                        sh, trsh.transformedShape());
+//        }
+//        else {
+//            subnfp = Nfp::noFitPolygon<Level::value>( sh,
+//                                                      trsh.transformedShape());
+//        }
+
+//        correctNfpPosition(subnfp, sh, trsh);
+
+//        nfps = Nfp::merge(nfps, subnfp.first);
+//    }
+
+//    return nfps;
 }
 
 template<class RawShape>
@@ -363,6 +422,11 @@ public:
         Base(bin),
         norm_(std::sqrt(ShapeLike::area<RawShape>(bin))),
         penality_(1e6*norm_) {}
+
+    _NofitPolyPlacer(const _NofitPolyPlacer&) = default;
+    _NofitPolyPlacer(_NofitPolyPlacer&&) noexcept = default;
+    _NofitPolyPlacer& operator=(const _NofitPolyPlacer&) = default;
+    _NofitPolyPlacer& operator=(_NofitPolyPlacer&&) noexcept = default;
 
     bool static inline wouldFit(const RawShape& chull, const RawShape& bin) {
         auto bbch = ShapeLike::boundingBox<RawShape>(chull);

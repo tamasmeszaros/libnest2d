@@ -36,11 +36,30 @@ using Shapes = typename ShapeLike::Shapes<RawShape>;
  * polygons are disjuct than the resulting set will contain more polygons.
  */
 template<class RawShape>
-static Shapes<RawShape> merge(const Shapes<RawShape>& /*shc*/,
-                              const RawShape& /*sh*/)
+static Shapes<RawShape> merge(const Shapes<RawShape>& /*shc*/)
 {
     static_assert(always_false<RawShape>::value,
                   "Nfp::merge(shapes, shape) unimplemented!");
+}
+
+/**
+ * Merge a bunch of polygons with the specified additional polygon.
+ *
+ * \tparam RawShape the Polygon data type.
+ * \param shc The pile of polygons that will be unified with sh.
+ * \param sh A single polygon to unify with shc.
+ *
+ * \return A set of polygons that is the union of the input polygons. Note that
+ * mostly it will be a set containing only one big polygon but if the input
+ * polygons are disjuct than the resulting set will contain more polygons.
+ */
+template<class RawShape>
+static Shapes<RawShape> merge(const Shapes<RawShape>& shc,
+                              const RawShape& sh)
+{
+    auto m = merge(shc);
+    m.push_back(sh);
+    return merge(m);
 }
 
 /**
@@ -195,9 +214,21 @@ static NfpResult<RawShape> nfpConvexOnly(const RawShape& sh,
 }
 
 template<class RawShape>
-static NfpResult<RawShape> nfpSimpleSimple(const RawShape& stationary,
+static NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
                                            const RawShape& cother)
 {
+
+    // Algorithms are from the original algorithm proposed in paper:
+    // https://eprints.soton.ac.uk/36850/1/CORMSIS-05-05.pdf
+
+    // /////////////////////////////////////////////////////////////////////////
+    // Algorithm 1: Obtaining the minkowski sum
+    // /////////////////////////////////////////////////////////////////////////
+
+    // I guess this is not a full minkowski sum of the two input polygons by
+    // definition. This yields a subset that is compatible with the next 2
+    // algorithms.
+
     using Result = NfpResult<RawShape>;
     using Vertex = TPoint<RawShape>;
     using Coord = TCoord<Vertex>;
@@ -209,15 +240,29 @@ static NfpResult<RawShape> nfpSimpleSimple(const RawShape& stationary,
     using std::ref;
     using std::reference_wrapper;
 
-    // Copy the orbiter (controur only), we will have to work on it
-    RawShape orbiter = sl::create<RawShape>(sl::getContour(cother));
+    // TODO The original algorithms expects the stationary polygon in
+    // counter clockwise and the orbiter in clockwise order.
+    // So for preventing any further complication, I will make the input
+    // the way it should be, than make my way around the orientations.
 
-    // Make the orbiter reverse oriented
+    // Reverse the stationary contour to counter clockwise
+    auto stcont = sl::getContour(cstationary);
+    std::reverse(stcont.begin(), stcont.end());
+    RawShape stationary = sl::create<RawShape>(std::move(stcont));
+
+    // Reverse the orbiter contour to counter clockwise
+    auto orbcont = sl::getContour(cother);
+    std::reverse(orbcont.begin(), orbcont.end());
+
+    // Copy the orbiter (controur only), we will have to work on it
+    RawShape orbiter = sl::create<RawShape>(std::move(orbcont));
+
+    // Step 1: Make the orbiter reverse oriented
     for(auto &v : sl::getContour(orbiter)) v = -v;
 
     // An egde with additional data for marking it
     struct MarkedEdge {
-        Edge e; Radians turn_angle; bool is_turning_point;
+        Edge e; Radians turn_angle = 0; bool is_turning_point = false;
         MarkedEdge() = default;
         MarkedEdge(const Edge& ed, Radians ta, bool tp):
             e(ed), turn_angle(ta), is_turning_point(tp) {}
@@ -258,7 +303,7 @@ static NfpResult<RawShape> nfpSimpleSimple(const RawShape& stationary,
         if(L.front().turn_angle > Pi) L.front().turn_angle -= 2*Pi;
     };
 
-    // Fill the edgelists
+    // Step 2: Fill the edgelists
     fillEdgeList(A, stationary);
     fillEdgeList(B, orbiter);
 
@@ -276,7 +321,9 @@ static NfpResult<RawShape> nfpSimpleSimple(const RawShape& stationary,
         inline bool isFrom(const vector<MarkedEdgeRef>& cont ) {
             return &(container.get()) == &cont;
         }
-        inline bool eq(const MarkedEdgeRef& mr) { return &eref == &(mr.eref); }
+        inline bool eq(const MarkedEdgeRef& mr) {
+            return &(eref.get()) == &(mr.eref.get());
+        }
 
         MarkedEdgeRef(reference_wrapper<MarkedEdge> er,
                       reference_wrapper<vector<MarkedEdgeRef>> ec):
@@ -310,39 +357,41 @@ static NfpResult<RawShape> nfpSimpleSimple(const RawShape& stationary,
 
     struct EdgeGroup { typename EdgeRefList::const_iterator first, last; };
 
-    auto mink = [sortfn]
+    auto mink = [sortfn] // the Mink(Q, R, direction) sub-procedure
             (const EdgeGroup& Q, const EdgeGroup& R, bool positive)
     {
-        EdgeRefList sort_listQ(Q.first, Q.last);
-        EdgeRefList sort_listR(R.first, R.last);
 
-        // sort the containers of edge references
-        sort(sort_listQ.begin(), sort_listQ.end(), sortfn);
-        sort(sort_listR.begin(), sort_listR.end(), sortfn);
+        // Step 1 "merge sort_list(Q) and sort_list(R) to form merge_list(Q,R)"
+        // Sort the containers of edge references and merge them.
+        // Q could be sorted only once and be reused here but we would still
+        // need to merge it with sorted(R).
 
         EdgeRefList merged;
         EdgeRefList S, seq;
-        merged.reserve(sort_listQ.size() + sort_listR.size());
+        merged.reserve((Q.last - Q.first) + (R.last - R.first));
+        merged.insert(merged.end(), Q.first, Q.last);
+        merged.insert(merged.end(), R.first, R.last);
+        sort(merged.begin(), merged.end(), sortfn);
 
-//        auto edgeDir = [](Edge& e, Coord dir) {
-//            Vertex d = Vertex{dir, dir};
-//            e.first( e.first() * d );
-//            e.second( e.second() * d );
-//        };
+        // Step 2 "set i = 1, k = 1, direction = 1, s1 = q1"
+        // we dont use i, instead, q is an iterator into Q. k would be an index
+        // into the merged sequence but we use "it" as an iterator for that
 
-        std::merge(sort_listQ.begin(), sort_listQ.end(),
-                   sort_listR.begin(), sort_listR.end(),
-                   std::back_inserter(merged), sortfn);
-
+        // here we obtain references for the containers for later comparisons
         const auto& Rcont = R.first->container.get();
+        const auto& Qcont = Q.first->container.get();
+
+        // Set the intial direction
         Coord dir = positive? 1 : -1;
 
+        // roughly i = 1 (so q = Q.first) and s1 = q1 so S[0] = q;
         auto q = Q.first;
-        S.push_back(*q);
+        S.push_back(*q++);
 
+        // Roughly step 3
         while(q != Q.last) {
             auto it = merged.begin();
-            while(it != merged.end() && !(it->eq(*q) && q == Q.first) ) {
+            while(it != merged.end() && !(it->eq(*(Q.first))) ) {
                 if(it->isFrom(Rcont)) {
                     auto s = *it;
                     s.dir = dir;
@@ -351,31 +400,76 @@ static NfpResult<RawShape> nfpSimpleSimple(const RawShape& stationary,
                 if(it->eq(*q)) {
                     S.push_back(*q);
                     if(it->isTurningPoint()) dir = -dir;
+                    if(q != Q.first) it += dir;
                 }
-                if(dir > 0) ++it;
-                else --it;
+                else it += dir;
             }
-            ++q;
+            ++q; // "Set i = i + 1"
         }
 
-        dir = 1;
-        S.insert(S.begin(), *R.first);
+        // Step 4:
+
+        // "Let starting edge r1 be in position si in sequence"
+        // whaaat? I guess this means the following:
+        S[0] = *R.first;
+        auto it = S.begin();
+
+        // "Set j = 1, next = 2, direction = 1, seq1 = si"
+        // we dont use j, seq is expanded dynamically.
+        dir = 1; auto next = std::next(R.first);
+
+        // Step 5:
+        // "If all si edges have been allocated to seqj" should mean that
+        // we loop until seq has equal size with S
+        while(seq.size() < S.size()) {
+            ++it; if(it == S.end()) it = S.begin();
+
+            if(it->isFrom(Qcont)) {
+                seq.push_back(*it); // "If si is from Q, j = j + 1, seqj = si"
+
+                // "If si is a turning point in Q,
+                // direction = - direction, next = next + direction"
+                if(it->isTurningPoint()) { dir = -dir; next += dir; }
+            }
+
+            if(it->eq(*next) && dir == next->dir) { // "If si = direction.rnext"
+                // "j = j + 1, seqj = si, next = next + direction"
+                seq.push_back(*it); next += dir;
+            }
+        }
 
         return seq;
-
-        // TODO and step 5
     };
 
     EdgeGroup R{ Bref.begin(), Bref.begin() }, Q{ Aref.begin(), Aref.end() };
     auto it = Bref.begin();
-    bool orientation = false;
-    while(it != Bref.end())
-        if(it->isTurningPoint()) {
-            R = {R.last, it++}; mink(Q, R, orientation);
-            orientation = !orientation;
-        }
+    bool orientation = true;
+    EdgeRefList seqlist;
+    seqlist.reserve(3*(Aref.size() + Bref.size()));
 
-    // TODO step 6
+    while(it != Bref.end()) // This is step 3 and step 4 in one loop
+        if(it->isTurningPoint()) {
+            R = {R.last, it++};
+            auto seq = mink(Q, R, orientation);
+
+            // TODO step 6 (should be 5 shouldn't it?): linking edges from A
+            // I don't get this step
+
+            seqlist.insert(seqlist.end(), seq.begin(), seq.end());
+            orientation = !orientation;
+        } else ++it;
+
+    if(seqlist.empty()) seqlist = mink(Q, {Bref.begin(), Bref.end()}, true);
+
+    // /////////////////////////////////////////////////////////////////////////
+    // Algorithm 2: breaking Minkowski sums into track line trips
+    // /////////////////////////////////////////////////////////////////////////
+
+
+    // /////////////////////////////////////////////////////////////////////////
+    // Algorithm 3: finding the boundary of the NFP from track line trips
+    // /////////////////////////////////////////////////////////////////////////
+
 
 
     return Result(stationary, Vertex());

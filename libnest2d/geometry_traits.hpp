@@ -402,7 +402,7 @@ struct ShapeLike {
     }
 
     template<Formats, class RawShape>
-    static std::string serialize(const RawShape& /*sh*/, double scale=1)
+    static std::string serialize(const RawShape& /*sh*/, double /*scale*/=1)
     {
         static_assert(always_false<RawShape>::value,
                       "ShapeLike::serialize() unimplemented!");
@@ -621,14 +621,12 @@ struct ShapeLike {
     }
 
     template<class RawShape>
-    static double area(const Shapes<RawShape>& shapes)
+    static inline double area(const Shapes<RawShape>& shapes)
     {
-        double ret = 0;
-        std::accumulate(shapes.first(), shapes.end(),
-                        [](const RawShape& a, const RawShape& b) {
-            return area(a) + area(b);
+        return std::accumulate(shapes.begin(), shapes.end(), 0.0,
+                        [](double a, const RawShape& b) {
+            return a += area(b);
         });
-        return ret;
     }
 
     template<class RawShape> // Potential O(1) implementation may exist

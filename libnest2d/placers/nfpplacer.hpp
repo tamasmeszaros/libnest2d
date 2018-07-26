@@ -9,6 +9,8 @@
 #include "libnest2d/optimizer.hpp"
 #include <cassert>
 
+#include "tools/svgtools.hpp"
+
 namespace libnest2d { namespace strategies {
 
 template<class RawShape>
@@ -311,6 +313,7 @@ Nfp::Shapes<RawShape> nfp( const Container& polygons,
 
     Nfp::Shapes<RawShape> nfps;
 
+    int pi = 0;
     for(Item& sh : polygons) {
         auto subnfp_r = Nfp::noFitPolygon<NfpLevel::CONVEX_ONLY>(
                             sh.transformedShape(), trsh.transformedShape());
@@ -325,6 +328,20 @@ Nfp::Shapes<RawShape> nfp( const Container& polygons,
         correctNfpPosition(subnfp_r, sh, trsh);
 
         nfps = Nfp::merge(nfps, subnfp_r.first);
+
+//        double SCALE = 1000000;
+//        using SVGWriter = svg::SVGWriter<RawShape>;
+//        SVGWriter::Config conf;
+//        conf.mm_in_coord_units = SCALE;
+//        SVGWriter svgw(conf);
+//        Box bin(250*SCALE, 210*SCALE);
+//        svgw.setSize(bin);
+//        for(int i = 0; i <= pi; i++) svgw.writeItem(polygons[i]);
+//        svgw.writeItem(trsh);
+////        svgw.writeItem(Item(subnfp_r.first));
+//        for(auto& n : nfps) svgw.writeItem(Item(n));
+//        svgw.save("nfpout");
+//        pi++;
     }
 
     return nfps;
@@ -504,7 +521,7 @@ public:
                 auto getNfpPoint = [&ecache](const Optimum& opt)
                 {
                     return opt.hidx < 0? ecache[opt.nfpidx].coords(opt.relpos) :
-                            ecache[opt.nfpidx].coords(opt.nfpidx, opt.relpos);
+                            ecache[opt.nfpidx].coords(opt.hidx, opt.relpos);
                 };
 
                 Nfp::Shapes<RawShape> pile;
@@ -562,8 +579,8 @@ public:
 
                 opt::StopCriteria stopcr;
                 stopcr.max_iterations = 1000;
-                stopcr.stoplimit = 0.001;
-                stopcr.type = opt::StopLimitType::RELATIVE;
+                stopcr.absolute_score_difference = 1e-20*norm_;
+//                stopcr.relative_score_difference = 1e-20;
                 opt::TOptimizer<opt::Method::L_SIMPLEX> solver(stopcr);
 
                 Optimum optimum(0, 0);
@@ -600,6 +617,14 @@ public:
                         } catch(std::exception& e) {
                             derr() << "ERROR: " << e.what() << "\n";
                         }
+
+//                        auto sc = contour_ofn(pos);
+//                        if(sc < best_score) {
+//                            best_score = sc;
+//                            optimum.relpos = pos;
+//                            optimum.nfpidx = ch;
+//                            optimum.hidx = -1;
+//                        }
                     });
 
                     for(unsigned hidx = 0; hidx < cache.holeCount(); ++hidx) {
@@ -632,6 +657,13 @@ public:
                             } catch(std::exception& e) {
                                 derr() << "ERROR: " << e.what() << "\n";
                             }
+//                            auto sc = hole_ofn(pos);
+//                            if(sc < best_score) {
+//                                best_score = sc;
+//                                optimum.relpos = pos;
+//                                optimum.nfpidx = ch;
+//                                optimum.hidx = hidx;
+//                            }
                         });
                     }
                 }

@@ -133,12 +133,10 @@ protected:
         default: ;
         }
 
-        switch(this->stopcr_.type) {
-        case StopLimitType::ABSOLUTE:
-            opt_.set_ftol_abs(stopcr_.stoplimit); break;
-        case StopLimitType::RELATIVE:
-            opt_.set_ftol_rel(stopcr_.stoplimit); break;
-        }
+        auto abs_diff = stopcr_.absolute_score_difference;
+        auto rel_diff = stopcr_.relative_score_difference;
+        if(!std::isnan(abs_diff)) opt_.set_ftol_abs(abs_diff);
+        if(!std::isnan(rel_diff)) opt_.set_ftol_rel(rel_diff);
 
         if(this->stopcr_.max_iterations > 0)
             opt_.set_maxeval(this->stopcr_.max_iterations );

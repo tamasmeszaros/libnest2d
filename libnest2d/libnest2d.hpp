@@ -910,9 +910,8 @@ private:
 
     Radians findBestRotation(Item& item) {
         opt::StopCriteria stopcr;
-        stopcr.stoplimit = 0.01;
+        stopcr.absolute_score_difference = 0.01;
         stopcr.max_iterations = 10000;
-        stopcr.type = opt::StopLimitType::RELATIVE;
         opt::TOptimizer<opt::Method::G_GENETIC> solver(stopcr);
 
         auto orig_rot = item.rotation();
@@ -943,9 +942,9 @@ private:
         selector_.template packItems<PlacementStrategy>(
                     from, to, bin_, pconfig_);
 
-//        if(min_obj_distance_ > 0) std::for_each(from, to, [](Item& item) {
-//            item.removeOffset();
-//        });
+        if(min_obj_distance_ > 0) std::for_each(from, to, [](Item& item) {
+            item.removeOffset();
+        });
     }
 };
 

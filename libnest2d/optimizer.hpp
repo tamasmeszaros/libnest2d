@@ -92,24 +92,15 @@ struct Result {
 };
 
 /**
- * @brief The stop limit can be specified as the absolute error or as the
- * relative error, just like in nlopt.
- */
-enum class StopLimitType {
-    ABSOLUTE,
-    RELATIVE
-};
-
-/**
  * @brief A type for specifying the stop criteria.
  */
 struct StopCriteria {
 
-    /// Relative or absolute termination error
-    StopLimitType type = StopLimitType::RELATIVE;
+    /// If the absolute value difference between two scores.
+    double absolute_score_difference = std::nan("");
 
-    /// The error value that is interpredted depending on the type property.
-    double stoplimit = 0.0001;
+    /// If the relative value difference between two scores.
+    double relative_score_difference = std::nan("");
 
     unsigned max_iterations = 0;
 };

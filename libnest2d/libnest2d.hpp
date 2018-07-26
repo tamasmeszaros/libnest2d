@@ -9,6 +9,7 @@
 #include <functional>
 
 #include "geometry_traits.hpp"
+#include "optimizer.hpp"
 
 namespace libnest2d {
 
@@ -405,7 +406,6 @@ private:
  */
 template<class RawShape>
 class _Rectangle: public _Item<RawShape> {
-    RawShape sh_;
     using _Item<RawShape>::vertex;
     using TO = Orientation;
 public:

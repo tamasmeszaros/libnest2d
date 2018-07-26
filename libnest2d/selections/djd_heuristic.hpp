@@ -537,8 +537,7 @@ public:
             while (it != store_.end()) {
                 Placer p(bin);
                 if(!p.pack(*it)) {
-                    auto itmp = it++;
-                    store_.erase(itmp);
+                    it = store_.erase(it);
                 } else it++;
             }
         }
@@ -605,8 +604,7 @@ public:
                         if(placer.pack(*it)) {
                             filled_area += it->get().area();
                             free_area = bin_area - filled_area;
-                            auto itmp = it++;
-                            not_packed.erase(itmp);
+                            it = not_packed.erase(it);
                             makeProgress(placer, idx, 1);
                         } else it++;
                     }

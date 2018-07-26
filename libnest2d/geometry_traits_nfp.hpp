@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <functional>
 #include <vector>
+#include <iterator>
 
 namespace libnest2d {
 
@@ -139,15 +140,10 @@ static NfpResult<RawShape> noFitPolygon(const RawShape& sh,
  */
 template<class RawShape>
 static NfpResult<RawShape> nfpConvexOnly(const RawShape& sh,
-                                         const RawShape& cother)
+                                         const RawShape& other)
 {
     using Vertex = TPoint<RawShape>; using Edge = _Segment<Vertex>;
     using sl = ShapeLike;
-
-    RawShape other = cother;
-
-    // Make the other polygon counter-clockwise
-    std::reverse(sl::begin(other), sl::end(other));
 
     RawShape rsh;   // Final nfp placeholder
     Vertex top_nfp;
@@ -161,18 +157,22 @@ static NfpResult<RawShape> nfpConvexOnly(const RawShape& sh,
 
     { // place all edges from sh into edgelist
         auto first = sl::cbegin(sh);
-        auto next = first + 1;
-        auto endit = sl::cend(sh);
+        auto next = std::next(first);
 
-        while(next != endit) edgelist.emplace_back(*(first++), *(next++));
+        while(next != sl::cend(sh)) {
+            edgelist.emplace_back(*(first), *(next));
+            ++first; ++next;
+        }
     }
 
     { // place all edges from other into edgelist
         auto first = sl::cbegin(other);
-        auto next = first + 1;
-        auto endit = sl::cend(other);
+        auto next = std::next(first);
 
-        while(next != endit) edgelist.emplace_back(*(first++), *(next++));
+        while(next != sl::cend(other)) {
+            edgelist.emplace_back(*(next), *(first));
+            ++first; ++next;
+        }
     }
 
     // Sort the edges by angle to X axis.
@@ -248,14 +248,17 @@ static NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
     // Reverse the stationary contour to counter clockwise
     auto stcont = sl::getContour(cstationary);
     std::reverse(stcont.begin(), stcont.end());
-    RawShape stationary = sl::create<RawShape>(std::move(stcont));
+    RawShape stationary;
+    sl::getContour(stationary) = stcont;
 
     // Reverse the orbiter contour to counter clockwise
     auto orbcont = sl::getContour(cother);
+
     std::reverse(orbcont.begin(), orbcont.end());
 
-    // Copy the orbiter (controur only), we will have to work on it
-    RawShape orbiter = sl::create<RawShape>(std::move(orbcont));
+    // Copy the orbiter (contour only), we will have to work on it
+    RawShape orbiter;
+    sl::getContour(orbiter) = orbcont;
 
     // Step 1: Make the orbiter reverse oriented
     for(auto &v : sl::getContour(orbiter)) v = -v;
@@ -274,44 +277,78 @@ static NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
     EdgeList A, B;
 
     // This is how an edge list is created from the polygons
-    auto fillEdgeList = [](EdgeList& L, const RawShape& poly) {
+    auto fillEdgeList = [](EdgeList& L, const RawShape& poly, int dir) {
         L.reserve(sl::contourVertexCount(poly));
 
         auto it = sl::cbegin(poly);
         auto nextit = std::next(it);
 
-        L.emplace_back(Edge(*it, *nextit), 0, false);
-        it++; nextit++;
+        double turn_angle = 0;
+        bool is_turn_point = false;
 
         while(nextit != sl::cend(poly)) {
-            Edge e(*it, *nextit);
-            auto& L_prev = L.back();
-            auto phi = L_prev.e.angleToXaxis();
-            auto phi_prev = e.angleToXaxis();
-            auto turn_angle = phi-phi_prev;
-            if(turn_angle > Pi) turn_angle -= 2*Pi;
-            L.emplace_back(e,
-                           turn_angle,
-                           signbit(turn_angle) != signbit(L_prev.turn_angle)
-                           );
+            L.emplace_back(Edge(*it, *nextit), turn_angle, is_turn_point);
             it++; nextit++;
         }
 
-        L.front().turn_angle = L.front().e.angleToXaxis() -
-                               L.back().e.angleToXaxis();
+        auto getTurnAngle = [](const Edge& e1, const Edge& e2) {
+            auto phi = e1.angleToXaxis();
+            auto phi_prev = e2.angleToXaxis();
+            auto TwoPi = 2.0*Pi;
+            if(phi > Pi) phi -= TwoPi;
+            if(phi_prev > Pi) phi_prev -= TwoPi;
+            auto turn_angle = phi-phi_prev;
+            if(turn_angle > Pi) turn_angle -= TwoPi;
+            return phi-phi_prev;
+        };
 
-        if(L.front().turn_angle > Pi) L.front().turn_angle -= 2*Pi;
+        if(dir > 0) {
+            auto eit = L.begin();
+            auto enext = std::next(eit);
+
+            eit->turn_angle = getTurnAngle(L.front().e, L.back().e);
+
+            while(enext != L.end()) {
+                enext->turn_angle = getTurnAngle( enext->e, eit->e);
+                enext->is_turning_point =
+                        signbit(enext->turn_angle) != signbit(eit->turn_angle);
+                ++eit; ++enext;
+            }
+
+            L.front().is_turning_point = signbit(L.front().turn_angle) !=
+                                         signbit(L.back().turn_angle);
+        } else {
+            std::cout << L.size() << std::endl;
+
+            auto eit = L.rbegin();
+            auto enext = std::next(eit);
+
+            eit->turn_angle = getTurnAngle(L.back().e, L.front().e);
+
+            while(enext != L.rend()) {
+                enext->turn_angle = getTurnAngle(enext->e, eit->e);
+                enext->is_turning_point =
+                        signbit(enext->turn_angle) != signbit(eit->turn_angle);
+                std::cout << enext->is_turning_point << " " << enext->turn_angle << std::endl;
+
+                ++eit; ++enext;
+            }
+
+            L.back().is_turning_point = signbit(L.back().turn_angle) !=
+                                        signbit(L.front().turn_angle);
+        }
     };
 
     // Step 2: Fill the edgelists
-    fillEdgeList(A, stationary);
-    fillEdgeList(B, orbiter);
+    fillEdgeList(A, stationary, 1);
+    fillEdgeList(B, orbiter, -1);
 
     // A reference to a marked edge that also knows its container
     struct MarkedEdgeRef {
         reference_wrapper<MarkedEdge> eref;
         reference_wrapper<vector<MarkedEdgeRef>> container;
-        Coord dir = 1;
+        Coord dir = 1;  // Direction modifier
+
         inline Radians angleX() const { return eref.get().e.angleToXaxis(); }
         inline const Edge& edge() const { return eref.get().e; }
         inline Edge& edge() { return eref.get().e; }
@@ -369,6 +406,7 @@ static NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
         EdgeRefList merged;
         EdgeRefList S, seq;
         merged.reserve((Q.last - Q.first) + (R.last - R.first));
+
         merged.insert(merged.end(), Q.first, Q.last);
         merged.insert(merged.end(), R.first, R.last);
         sort(merged.begin(), merged.end(), sortfn);

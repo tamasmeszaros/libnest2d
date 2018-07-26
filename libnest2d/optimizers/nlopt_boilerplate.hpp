@@ -4,12 +4,13 @@
 #include <nlopt.hpp>
 #include <libnest2d/optimizer.hpp>
 #include <cassert>
+#include "libnest2d/metaloop.hpp"
 
 #include <utility>
 
 namespace libnest2d { namespace opt {
 
-nlopt::algorithm method2nloptAlg(Method m) {
+inline nlopt::algorithm method2nloptAlg(Method m) {
 
     switch(m) {
     case Method::L_SIMPLEX: return nlopt::LN_NELDERMEAD;
@@ -87,7 +88,7 @@ protected:
 
     template<class Fn, class...Args>
     static double optfunc(const std::vector<double>& params,
-                          std::vector<double>& grad,
+                          std::vector<double>& /*grad*/,
                           void *data)
     {
         auto fnptr = static_cast<remove_ref_t<Fn>*>(data);

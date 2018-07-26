@@ -535,9 +535,9 @@ void arrangeRectangles() {
     proba[0].rotate(Pi/3);
     proba[1].rotate(Pi-Pi/3);
 
-    std::vector<Item> input;
-//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
-    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
+    std::vector<Item> input;//(10, Rectangle(100*SCALE, 20*SCALE));
+    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+//    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
 //    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
 //    input.insert(input.end(), rects.begin(), rects.end());
 //    input.insert(input.end(), proba.begin(), proba.end());

@@ -32,6 +32,7 @@ set(LIBNEST2D_SRCFILES
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/geometry_traits.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/common.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/optimizer.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/metaloop.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/placers/placer_boilerplate.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/placers/bottomleftplacer.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/placers/nfpplacer.hpp

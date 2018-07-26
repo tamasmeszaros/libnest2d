@@ -68,7 +68,7 @@ class _Box: PointPair<RawPoint> {
     using PointPair<RawPoint>::p2;
 public:
 
-    inline _Box() {}
+    inline _Box() = default;
     inline _Box(const RawPoint& p, const RawPoint& pp):
         PointPair<RawPoint>({p, pp}) {}
 
@@ -97,7 +97,7 @@ class _Segment: PointPair<RawPoint> {
     mutable Radians angletox_ = std::nan("");
 public:
 
-    inline _Segment() {}
+    inline _Segment() = default;
 
     inline _Segment(const RawPoint& p, const RawPoint& pp):
         PointPair<RawPoint>({p, pp}) {}
@@ -188,7 +188,7 @@ struct PointLike {
 
         if( (y < y1 && y < y2) || (y > y1 && y > y2) )
             return {0, false};
-        else if ((y == y1 && y == y2) && (x > x1 && x > x2))
+        if ((y == y1 && y == y2) && (x > x1 && x > x2))
             ret = std::min( x-x1, x -x2);
         else if( (y == y1 && y == y2) && (x < x1 && x < x2))
             ret = -std::min(x1 - x, x2 - x);
@@ -214,7 +214,7 @@ struct PointLike {
 
         if( (x < x1 && x < x2) || (x > x1 && x > x2) )
             return {0, false};
-        else if ((x == x1 && x == x2) && (y > y1 && y > y2))
+        if ((x == x1 && x == x2) && (y > y1 && y > y2))
             ret = std::min( y-y1, y -y2);
         else if( (x == x1 && x == x2) && (y < y1 && y < y2))
             ret = -std::min(y1 - y, y2 - y);
@@ -329,7 +329,7 @@ enum class Formats {
 };
 
 // This struct serves as a namespace. The only difference is that it can be
-// used in friend declarations.
+// used in friend declarations and can be aliased at class scope.
 struct ShapeLike {
 
     template<class RawShape>
@@ -359,6 +359,51 @@ struct ShapeLike {
     static RawShape create(TContour<RawShape>&& contour)
     {
         return create<RawShape>(contour, {});
+    }
+
+    template<class RawShape>
+    static THolesContainer<RawShape>& holes(RawShape& /*sh*/)
+    {
+        static THolesContainer<RawShape> empty;
+        return empty;
+    }
+
+    template<class RawShape>
+    static const THolesContainer<RawShape>& holes(const RawShape& /*sh*/)
+    {
+        static THolesContainer<RawShape> empty;
+        return empty;
+    }
+
+    template<class RawShape>
+    static TContour<RawShape>& getHole(RawShape& sh, unsigned long idx)
+    {
+        return holes(sh)[idx];
+    }
+
+    template<class RawShape>
+    static const TContour<RawShape>& getHole(const RawShape& sh,
+                                              unsigned long idx)
+    {
+        return holes(sh)[idx];
+    }
+
+    template<class RawShape>
+    static size_t holeCount(const RawShape& sh)
+    {
+        return holes(sh).size();
+    }
+
+    template<class RawShape>
+    static TContour<RawShape>& getContour(RawShape& sh)
+    {
+        return sh;
+    }
+
+    template<class RawShape>
+    static const TContour<RawShape>& getContour(const RawShape& sh)
+    {
+        return sh;
     }
 
     // Optional, does nothing by default
@@ -496,51 +541,6 @@ struct ShapeLike {
         static_assert(always_false<RawShape>::value,
                       "ShapeLike::convexHull(shapes) unimplemented!");
         return RawShape();
-    }
-
-    template<class RawShape>
-    static THolesContainer<RawShape>& holes(RawShape& /*sh*/)
-    {
-        static THolesContainer<RawShape> empty;
-        return empty;
-    }
-
-    template<class RawShape>
-    static const THolesContainer<RawShape>& holes(const RawShape& /*sh*/)
-    {
-        static THolesContainer<RawShape> empty;
-        return empty;
-    }
-
-    template<class RawShape>
-    static TContour<RawShape>& getHole(RawShape& sh, unsigned long idx)
-    {
-        return holes(sh)[idx];
-    }
-
-    template<class RawShape>
-    static const TContour<RawShape>& getHole(const RawShape& sh,
-                                              unsigned long idx)
-    {
-        return holes(sh)[idx];
-    }
-
-    template<class RawShape>
-    static size_t holeCount(const RawShape& sh)
-    {
-        return holes(sh).size();
-    }
-
-    template<class RawShape>
-    static TContour<RawShape>& getContour(RawShape& sh)
-    {
-        return sh;
-    }
-
-    template<class RawShape>
-    static const TContour<RawShape>& getContour(const RawShape& sh)
-    {
-        return sh;
     }
 
     template<class RawShape>

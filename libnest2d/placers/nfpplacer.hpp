@@ -424,9 +424,12 @@ public:
         penality_(1e6*norm_) {}
 
     _NofitPolyPlacer(const _NofitPolyPlacer&) = default;
-    _NofitPolyPlacer(_NofitPolyPlacer&&) noexcept = default;
     _NofitPolyPlacer& operator=(const _NofitPolyPlacer&) = default;
-    _NofitPolyPlacer& operator=(_NofitPolyPlacer&&) noexcept = default;
+
+#ifndef BP2D_COMPILER_MSVC12 // MSVC2013 does not support default move ctors
+    _NofitPolyPlacer(_NofitPolyPlacer&&) BP2D_NOEXCEPT = default;
+    _NofitPolyPlacer& operator=(_NofitPolyPlacer&&) BP2D_NOEXCEPT = default;
+#endif
 
     bool static inline wouldFit(const RawShape& chull, const RawShape& bin) {
         auto bbch = ShapeLike::boundingBox<RawShape>(chull);

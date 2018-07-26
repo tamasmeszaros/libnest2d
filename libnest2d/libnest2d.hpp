@@ -307,6 +307,7 @@ public:
         if(has_rotation_) sl::rotate(cpy, rotation_);
         if(has_translation_) sl::translate(cpy, translation_);
         tr_cache_ = cpy; tr_cache_valid_ = true;
+        rmt_valid_ = false; lmb_valid_ = false;
 
         return tr_cache_;
     }

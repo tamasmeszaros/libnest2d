@@ -546,7 +546,7 @@ void arrangeRectangles() {
 
     Box bin(250*SCALE, 210*SCALE);
 
-    auto min_obj_distance = static_cast<Coord>(6*SCALE);
+    auto min_obj_distance = static_cast<Coord>(0*SCALE);
 
     using Placer = NfpPlacer;
     using Packer = Arranger<Placer, FirstFitSelection>;
@@ -557,26 +557,33 @@ void arrangeRectangles() {
     pconf.alignment = Placer::Config::Alignment::CENTER;
     pconf.starting_point = Placer::Config::Alignment::BOTTOM_LEFT;
     pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/};
-    pconf.object_function = [&bin](Placer::Pile pile, const Item& item,
+
+    double norm_2 = std::nan("");
+    pconf.object_function = [&bin, &norm_2](Placer::Pile pile, const Item& item,
             double /*area*/, double norm, double penality) {
 
         using pl = PointLike;
 
         auto bb = ShapeLike::boundingBox(pile);
         auto ibb = item.boundingBox();
+        auto minc = ibb.minCorner();
+        auto maxc = ibb.maxCorner();
+
+        if(std::isnan(norm_2)) norm_2 = pow(norm, 2);
 
         // We get the distance of the reference point from the center of the
         // heat bed
         auto cc = bb.center();
+        auto top_left = PointImpl{getX(minc), getY(maxc)};
+        auto bottom_right = PointImpl{getX(maxc), getY(minc)};
+
         auto a = pl::distance(ibb.maxCorner(), cc);
         auto b = pl::distance(ibb.minCorner(), cc);
         auto c = pl::distance(ibb.center(), cc);
-        auto top_left = PointImpl{getX(ibb.minCorner()), getY(ibb.maxCorner())};
-        auto bottom_right = PointImpl{getX(ibb.maxCorner()), getY(ibb.minCorner())};
         auto d = pl::distance(top_left, cc);
         auto e = pl::distance(bottom_right, cc);
 
-        auto area = bb.width() * bb.height() / pow(norm, 2);
+        auto area = bb.width() * bb.height() / norm_2;
 
         auto min_dist = std::min({a, b, c, d, e}) / norm;
 

@@ -61,6 +61,8 @@ class _Item {
     mutable TVertexConstIterator<RawShape> rmt_;    // rightmost top vertex
     mutable TVertexConstIterator<RawShape> lmb_;    // leftmost bottom vertex
     mutable bool rmt_valid_ = false, lmb_valid_ = false;
+    mutable Box bb_cache_;
+    mutable bool bb_cache_valid_ = false;
 
 public:
 
@@ -240,9 +242,9 @@ public:
      * @param p
      * @return
      */
-    inline bool isPointInside(const Vertex& p)
+    inline bool isPointInside(const Vertex& p) const
     {
-        return sl::isInside(p, sh_);
+        return sl::isInside(p, transformedShape());
     }
 
     inline bool isInside(const _Item& sh) const
@@ -250,7 +252,7 @@ public:
         return sl::isInside(transformedShape(), sh.transformedShape());
     }
 
-    inline bool isInside(const _Box<TPoint<RawShape>>& box);
+    inline bool isInside(const _Box<TPoint<RawShape>>& box) const;
 
     inline void translate(const Vertex& d) BP2D_NOEXCEPT
     {
@@ -289,6 +291,7 @@ public:
         if(rotation_ != rot) {
             rotation_ = rot; has_rotation_ = true; tr_cache_valid_ = false;
             rmt_valid_ = false; lmb_valid_ = false;
+            bb_cache_valid_ = false;
         }
     }
 
@@ -296,6 +299,7 @@ public:
     {
         if(translation_ != tr) {
             translation_ = tr; has_translation_ = true; tr_cache_valid_ = false;
+            bb_cache_valid_ = false;
         }
     }
 
@@ -325,10 +329,15 @@ public:
     inline void resetTransformation() BP2D_NOEXCEPT
     {
         has_translation_ = false; has_rotation_ = false; has_offset_ = false;
+        invalidateCache();
     }
 
     inline Box boundingBox() const {
-        return sl::boundingBox(transformedShape());
+        if(!bb_cache_valid_) {
+            bb_cache_ = sl::boundingBox(transformedShape());
+            bb_cache_valid_ = true;
+        }
+        return bb_cache_;
     }
 
     inline Vertex referenceVertex() const {
@@ -387,6 +396,7 @@ private:
         lmb_valid_ = false; rmt_valid_ = false;
         area_cache_valid_ = false;
         offset_cache_valid_ = false;
+        bb_cache_valid_ = false;
         convexity_ = Convexity::UNCHECKED;
     }
 
@@ -451,7 +461,7 @@ public:
 };
 
 template<class RawShape>
-inline bool _Item<RawShape>::isInside(const _Box<TPoint<RawShape>>& box) {
+inline bool _Item<RawShape>::isInside(const _Box<TPoint<RawShape>>& box) const {
     _Rectangle<RawShape> rect(box.width(), box.height());
     return _Item<RawShape>::isInside(rect);
 }

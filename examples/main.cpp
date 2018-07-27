@@ -643,7 +643,7 @@ void arrangeRectangles() {
               << " %" << std::endl;
 
     std::cout << "Bin usage: (";
-    unsigned total = 0;
+    size_t total = 0;
     for(auto& r : result) { std::cout << r.size() << " "; total += r.size(); }
     std::cout << ") Total: " << total << std::endl;
 

@@ -7,7 +7,6 @@
 
 // We include the stock optimizers for local and global optimization
 #include <libnest2d/optimizers/simplex.hpp>     // Local simplex for NfpPlacer
-#include <libnest2d/optimizers/subplex.hpp>     // Local subplex for NfpPlacer
 #include <libnest2d/optimizers/genetic.hpp>     // Genetic for min. bounding box
 
 #include <libnest2d/libnest2d.hpp>

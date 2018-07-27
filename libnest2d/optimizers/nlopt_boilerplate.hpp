@@ -1,7 +1,16 @@
 #ifndef NLOPT_BOILERPLATE_HPP
 #define NLOPT_BOILERPLATE_HPP
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4244)
+#pragma warning(disable: 4267)
+#endif
 #include <nlopt.hpp>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 #include <libnest2d/optimizer.hpp>
 #include <cassert>
 #include "libnest2d/metaloop.hpp"

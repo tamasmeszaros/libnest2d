@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 2.8)
 
 project(Libnest2D)
 
-enable_testing()
-
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     # Update if necessary
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long ")
@@ -61,8 +59,7 @@ if(LIBNEST2D_GEOMETRIES_BACKEND STREQUAL "clipper")
     include_directories(BEFORE ${CLIPPER_INCLUDE_DIRS})
     include_directories(${Boost_INCLUDE_DIRS})
 
-    list(APPEND LIBNEST2D_SRCFILES ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/clipper_backend/clipper_backend.cpp
-                                   ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/clipper_backend/clipper_backend.hpp
+    list(APPEND LIBNEST2D_SRCFILES ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/clipper_backend/clipper_backend.hpp
                                    ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/boost_alg.hpp)
     list(APPEND LIBNEST2D_LIBRARIES ${CLIPPER_LIBRARIES})
     list(APPEND LIBNEST2D_HEADERS ${CLIPPER_INCLUDE_DIRS}
@@ -82,22 +79,12 @@ if(LIBNEST2D_OPTIMIZER_BACKEND STREQUAL "nlopt")
                                     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/optimizers/subplex.hpp
                                     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/optimizers/genetic.hpp
                                     ${CMAKE_CURRENT_SOURCE_DIR}/libnest2d/optimizers/nlopt_boilerplate.hpp)
-    list(APPEND LIBNEST2D_LIBRARIES ${NLopt_LIBS}
-#                                    Threads::Threads
-    )
+    list(APPEND LIBNEST2D_LIBRARIES ${NLopt_LIBS})
     list(APPEND LIBNEST2D_HEADERS ${NLopt_INCLUDE_DIR})
 endif()
 
-# Currently we are outsourcing the non-convex NFP implementation from
-# libnfporb and it needs libgmp to work
-#find_package(GMP)
-#if(GMP_FOUND)
-#    list(APPEND LIBNEST2D_LIBRARIES ${GMP_LIBRARIES})
-#    list(APPEND LIBNEST2D_HEADERS ${GMP_INCLUDE_DIR})
-#    add_definitions(-DLIBNFP_USE_RATIONAL)
-#endif()
-
 if(LIBNEST2D_UNITTESTS)
+    enable_testing()
     add_subdirectory(tests)
 endif()
 

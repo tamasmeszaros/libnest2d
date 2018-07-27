@@ -260,7 +260,7 @@ public:
     }
 
     /// The number of holes in the abstracted polygon
-    inline unsigned holeCount() const BP2D_NOEXCEPT { return holes_.size(); }
+    inline size_t holeCount() const BP2D_NOEXCEPT { return holes_.size(); }
 
 };
 
@@ -313,7 +313,7 @@ Nfp::Shapes<RawShape> nfp( const Container& polygons,
 
     Nfp::Shapes<RawShape> nfps;
 
-    int pi = 0;
+    //int pi = 0;
     for(Item& sh : polygons) {
         auto subnfp_r = Nfp::noFitPolygon<NfpLevel::CONVEX_ONLY>(
                             sh.transformedShape(), trsh.transformedShape());

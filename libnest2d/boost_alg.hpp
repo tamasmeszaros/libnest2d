@@ -8,8 +8,16 @@
 #ifdef __clang__
 #undef _MSC_EXTENSIONS
 #endif
-#include <boost/geometry.hpp>
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4244)
+#pragma warning(disable: 4267)
+#endif
+#include <boost/geometry.hpp>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 // this should be removed to not confuse the compiler
 // #include <libnest2d.h>
 

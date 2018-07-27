@@ -61,8 +61,10 @@ class _Item {
     mutable TVertexConstIterator<RawShape> rmt_;    // rightmost top vertex
     mutable TVertexConstIterator<RawShape> lmb_;    // leftmost bottom vertex
     mutable bool rmt_valid_ = false, lmb_valid_ = false;
-    mutable Box bb_cache_;
-    mutable bool bb_cache_valid_ = false;
+    mutable struct BBCache {
+        Box bb; bool valid; Vertex tr;
+        BBCache(): valid(false), tr(0, 0) {}
+    } bb_cache_;
 
 public:
 
@@ -291,7 +293,7 @@ public:
         if(rotation_ != rot) {
             rotation_ = rot; has_rotation_ = true; tr_cache_valid_ = false;
             rmt_valid_ = false; lmb_valid_ = false;
-            bb_cache_valid_ = false;
+            bb_cache_.valid = false;
         }
     }
 
@@ -299,7 +301,7 @@ public:
     {
         if(translation_ != tr) {
             translation_ = tr; has_translation_ = true; tr_cache_valid_ = false;
-            bb_cache_valid_ = false;
+            bb_cache_.valid = false;
         }
     }
 
@@ -333,11 +335,14 @@ public:
     }
 
     inline Box boundingBox() const {
-        if(!bb_cache_valid_) {
-            bb_cache_ = sl::boundingBox(transformedShape());
-            bb_cache_valid_ = true;
+        if(!bb_cache_.valid) {
+            bb_cache_.bb = sl::boundingBox(transformedShape());
+            bb_cache_.tr = {0, 0};
+            bb_cache_.valid = true;
         }
-        return bb_cache_;
+
+        auto &bb = bb_cache_.bb; auto &tr = bb_cache_.tr;
+        return {bb.minCorner() + tr, bb.maxCorner() + tr};
     }
 
     inline Vertex referenceVertex() const {
@@ -396,7 +401,7 @@ private:
         lmb_valid_ = false; rmt_valid_ = false;
         area_cache_valid_ = false;
         offset_cache_valid_ = false;
-        bb_cache_valid_ = false;
+        bb_cache_.valid = false;
         convexity_ = Convexity::UNCHECKED;
     }
 

@@ -535,18 +535,18 @@ void arrangeRectangles() {
     proba[0].rotate(Pi/3);
     proba[1].rotate(Pi-Pi/3);
 
-//    std::vector<Item> input(20, Rectangle(70*SCALE, 10*SCALE));
+//    std::vector<Item> input(25, Rectangle(70*SCALE, 10*SCALE));
     std::vector<Item> input;
-//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
 //    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
 //    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
 //    input.insert(input.end(), rects.begin(), rects.end());
 //    input.insert(input.end(), proba.begin(), proba.end());
-    input.insert(input.end(), crasher.begin(), crasher.end());
+//    input.insert(input.end(), crasher.begin(), crasher.end());
 
     Box bin(250*SCALE, 210*SCALE);
 
-    auto min_obj_distance = static_cast<Coord>(0*SCALE);
+    auto min_obj_distance = static_cast<Coord>(6*SCALE);
 
     using Placer = NfpPlacer;
     using Packer = Arranger<Placer, FirstFitSelection>;
@@ -555,7 +555,7 @@ void arrangeRectangles() {
 
     Packer::PlacementConfig pconf;
     pconf.alignment = Placer::Config::Alignment::CENTER;
-    pconf.starting_point = Placer::Config::Alignment::CENTER;
+    pconf.starting_point = Placer::Config::Alignment::BOTTOM_LEFT;
     pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/};
     pconf.object_function = [&bin](Placer::Pile pile, const Item& item,
             double /*area*/, double norm, double penality) {
@@ -567,17 +567,22 @@ void arrangeRectangles() {
 
         // We get the distance of the reference point from the center of the
         // heat bed
-        auto cc = bin.center();
+        auto cc = bb.center();
         auto a = pl::distance(ibb.maxCorner(), cc);
         auto b = pl::distance(ibb.minCorner(), cc);
         auto c = pl::distance(ibb.center(), cc);
+        auto top_left = PointImpl{getX(ibb.minCorner()), getY(ibb.maxCorner())};
+        auto bottom_right = PointImpl{getX(ibb.maxCorner()), getY(ibb.minCorner())};
+        auto d = pl::distance(top_left, cc);
+        auto e = pl::distance(bottom_right, cc);
+
         auto area = bb.width() * bb.height() / pow(norm, 2);
 
-        auto d = std::min({a, b, c}) / norm;
+        auto min_dist = std::min({a, b, c, d, e}) / norm;
 
         // The score will be the normalized distance which will be minimized,
         // effectively creating a circle shaped pile of items
-        double score = 0.4*d  + 0.6*area;
+        double score = 0.8*min_dist  + 0.2*area;
 
         // If it does not fit into the print bed we will beat it
         // with a large penality. If we would not do this, there would be only

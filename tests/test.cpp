@@ -99,6 +99,48 @@ TEST(BasicFunctionality, creationAndDestruction)
 
 }
 
+TEST(GeometryAlgorithms, boundingCircle) {
+    using namespace libnest2d;
+    using strategies::boundingCircle;
+
+    PolygonImpl p = {{{0, 1}, {1, 0}, {0, -1}, {0, 1}}, {}};
+    _Circle<PointImpl> c = boundingCircle<PolygonImpl>(p);
+
+    ASSERT_EQ(c.center().X, 0);
+    ASSERT_EQ(c.center().Y, 0);
+    ASSERT_DOUBLE_EQ(c.radius(), 1);
+
+    ShapeLike::translate(p, PointImpl{1, 1});
+    c = boundingCircle<PolygonImpl>(p);
+
+    ASSERT_EQ(c.center().X, 1);
+    ASSERT_EQ(c.center().Y, 1);
+    ASSERT_DOUBLE_EQ(c.radius(), 1);
+
+    auto parts = prusaParts();
+
+    int i = 0;
+    for(auto& part : parts) {
+        c = boundingCircle(part.transformedShape());
+        for(auto v : ShapeLike::getContour(part.transformedShape()) ) {
+            auto d = PointLike::distance(v, c.center());
+            if(d > c.radius()) {
+                auto e = std::abs(d - c.radius());
+                std::cout << "failed at polygon " << i << " error: " << e << std::endl;
+
+                if(e > 1e6) {
+                    auto cc = boundingCircle(part.transformedShape());
+                    std::cout << "repeat" << cc.radius() << std::endl;
+                }
+
+//                ASSERT_LE(e, 2e6);
+            }
+        }
+        i++;
+    }
+
+}
+
 TEST(GeometryAlgorithms, Distance) {
     using namespace libnest2d;
 

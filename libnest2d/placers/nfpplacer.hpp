@@ -1,15 +1,18 @@
 #ifndef NOFITPOLY_HPP
 #define NOFITPOLY_HPP
 
+#include <cassert>
+#include <random>
+
 #ifndef NDEBUG
 #include <iostream>
 #endif
 #include "placer_boilerplate.hpp"
 #include "../geometry_traits_nfp.hpp"
 #include "libnest2d/optimizer.hpp"
-#include <cassert>
 
 #include "tools/svgtools.hpp"
+
 
 namespace libnest2d { namespace strategies {
 
@@ -161,12 +164,11 @@ template<class RawShape> class EdgeCache {
     }
 
     size_t stride(const size_t N) const {
-        using std::ceil;
         using std::round;
         using std::pow;
 
         return static_cast<Coord>(
-                    round( N/(ceil(pow(accuracy_, 2)*(N-1)) + 1) )
+                    round(N/pow(N, pow(accuracy_, 1.0/3.0)))
                 );
     }
 
@@ -177,6 +179,7 @@ template<class RawShape> class EdgeCache {
         const auto S = stride(N);
 
         contour_.corners.reserve(N / S + 1);
+        contour_.corners.emplace_back(0.0);
         auto N_1 = N-1;
         for(size_t i = 0; i < N_1; i += S) {
             contour_.corners.emplace_back(
@@ -189,9 +192,11 @@ template<class RawShape> class EdgeCache {
         if(!hc.corners.empty()) return;
 
         const auto N = hc.distances.size();
-        const auto S = stride(N);
         auto N_1 = N-1;
+        const auto S = stride(N);
         hc.corners.reserve(N / S + 1);
+        hc.corners.emplace_back(0.0);
+
         for(size_t i = 0; i < N_1; i += S) {
             hc.corners.emplace_back(
                     hc.distances.at(i) / hc.full_distance);
@@ -337,7 +342,7 @@ Nfp::Shapes<RawShape> nfp( const Container& polygons,
 
     Nfp::Shapes<RawShape> nfps;
 
-    //int pi = 0;
+//    int pi = 0;
     for(Item& sh : polygons) {
         auto subnfp_r = Nfp::noFitPolygon<NfpLevel::CONVEX_ONLY>(
                             sh.transformedShape(), trsh.transformedShape());
@@ -439,6 +444,112 @@ Nfp::Shapes<RawShape> nfp( const Container& polygons,
 //    return nfps;
 }
 
+template<class RawShape>
+_Circle<TPoint<RawShape>> circle(std::array<TPoint<RawShape>, 3> P) {
+    using Point = TPoint<RawShape>;
+    using Coord = TCoord<Point>;
+
+    auto x1 = getX(P[0]), y1 = getY(P[0]);
+    auto x2 = getX(P[1]), y2 = getY(P[1]);
+    auto x3 = getX(P[2]), y3 = getY(P[2]);
+
+    using std::pow;
+
+    auto A_div = (x2 - x1);
+    auto B_div = (x3 - x2);
+    if(A_div == 0 || B_div == 0) { return {{0,0}, 0}; }
+
+    auto A = (y2 - y1)/A_div;
+    auto B = (y2 - y3)/B_div;
+    auto C = (-pow(x1, 2) - pow(y1, 2) + pow(x2, 2) + pow(y2, 2))/(2*(x2 - x1));
+    auto D = (pow(x2, 2) + pow(y1, 2) - pow(x3, 2) - pow(y3, 2))/(2*(x3 - x2));
+
+    auto cy = (C + D)/(A + B);
+    auto cx = B*cy - D;
+
+    Point cc = {Coord(cx), Coord(cy)};
+    auto d = PointLike::distance(cc, P[0]);
+    auto d2 = PointLike::distance(cc, P[1]);
+    auto d3 = PointLike::distance(cc, P[2]);
+
+    auto e1 = std::abs(d - d2);
+    auto e2 = std::abs(d - d3);
+    if(e1 > 1e6 || e2 > 1e6) return {{0,0}, 0};
+
+    return { cc, d };
+}
+
+template<class RawShape>
+_Circle<TPoint<RawShape>> welzl(TContour<RawShape> P,
+                                TContour<RawShape> R)
+{
+    using Point = TPoint<RawShape>;
+    using Circle = _Circle<Point>;
+    using Segment = _Segment<Point>;
+    using Coord = TCoord<Point>;
+    using Contour = TContour<RawShape>;
+
+    auto rs = R.size();
+    if( P.empty() || rs >= 3) {
+        switch(rs) {
+        case 0: {
+            return Circle({0,0}, 0);
+        }
+        case 1: {
+            return Circle(R[0], 0);
+        }
+        case 2: {
+            auto p1 = R[0];
+            auto p2 = R[1];
+
+            Segment seg(p1, p2);
+            auto dist = seg.length();
+            auto r = 0.5*dist;
+            auto dx = r*std::cos(seg.angleToXaxis());
+            auto dy = r*std::sin(seg.angleToXaxis());
+            Point mid = p1 + Point{Coord(std::round(dx)),
+                                   Coord(std::round(dy))};
+
+            return Circle(mid, r);
+        }
+        default: {
+            return circle<RawShape>({R[0], R[1], R[2]});
+        }
+        }
+    }
+
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(1, static_cast<int>(P.size()));
+    auto idx = dis(gen) - 1;
+    auto it = P.begin() + idx;
+    auto p = *it;
+    P.erase(it);
+    auto D = welzl<RawShape>(P, R);
+
+    if(D.radius() > 0 &&
+            PointLike::distance(p, D.center()) <= D.radius()) return D;
+
+    R.emplace_back(p);
+    return welzl<RawShape>(P, R);
+
+}
+
+template<class RawShape>
+_Circle<TPoint<RawShape>> boundingCircle(const RawShape& sh) {
+
+    using Contour = TContour<RawShape>;
+
+    auto P = ShapeLike::getContour(sh);
+    if(P.size() < 4) return {{0, 0}, 0};
+
+    Contour R;
+
+    P.pop_back();
+
+    return welzl<RawShape>(P, R);
+}
+
 template<class RawShape, class TBin = _Box<TPoint<RawShape>>>
 class _NofitPolyPlacer: public PlacerBoilerplate<_NofitPolyPlacer<RawShape, TBin>,
         RawShape, TBin, NfpPConfig<RawShape>> {
@@ -509,7 +620,23 @@ public:
     bool static inline wouldFit(const RawShape& chull,
                                 const _Circle<Vertex>& bin)
     {
-        return sl::isInside<RawShape>(chull, bin);
+        // TODO: try centroid
+//        for(auto v : ShapeLike::getContour(chull)) {
+//            auto d = PointLike::distance(v, bin.center());
+//            if(d > bin.radius()) return false;
+//        }
+//        return true;
+
+        auto C = boundingCircle(chull);
+
+        bool valid = true;
+        for(auto v : ShapeLike::getContour(chull)) {
+            auto d = PointLike::distance(v, C.center());
+            auto e = d - C.radius();
+            if( e > 1e6) valid = false;
+        }
+
+        return valid && C.radius() > 0 && C.radius() < bin.radius();
     }
 
     PackResult trypack(Item& item) {
@@ -567,8 +694,9 @@ public:
 
                 auto getNfpPoint = [&ecache](const Optimum& opt)
                 {
-                    return opt.hidx < 0? ecache[opt.nfpidx].coords(opt.relpos) :
+                    auto ret = opt.hidx < 0? ecache[opt.nfpidx].coords(opt.relpos) :
                             ecache[opt.nfpidx].coords(opt.hidx, opt.relpos);
+                    return ret;
                 };
 
                 Nfp::Shapes<RawShape> pile;
@@ -579,17 +707,21 @@ public:
                     pile_area += mitem.area();
                 }
 
+                auto merged_pile = Nfp::merge(pile);
+
                 // This is the kernel part of the object function that is
                 // customizable by the library client
                 auto _objfunc = config_.object_function?
                             config_.object_function :
-                [this](Nfp::Shapes<RawShape>& pile, const Item& item,
-                            double occupied_area, double /*norm*/,
-                            double penality)
+                [this, &merged_pile](
+                            Nfp::Shapes<RawShape>& /*pile*/,
+                            const Item& item,
+                            double occupied_area, double norm,
+                            double /*penality*/)
                 {
-                    pile.emplace_back(item.transformedShape());
-                    auto ch = sl::convexHull(pile);
-                    pile.pop_back();
+                    merged_pile.emplace_back(item.transformedShape());
+                    auto ch = sl::convexHull(merged_pile);
+                    merged_pile.pop_back();
 
                     // The pack ratio -- how much is the convex hull occupied
                     double pack_rate = occupied_area/sl::area(ch);
@@ -602,7 +734,7 @@ public:
                     // (larger) values.
                     auto score = std::sqrt(waste);
 
-                    if(!wouldFit(ch, bin_)) score = 2*penality - score;
+                    if(!wouldFit(ch, bin_)) score += norm;
 
                     return score;
                 };
@@ -622,9 +754,22 @@ public:
                     return score;
                 };
 
+                auto boundaryCheck = [&](const Optimum& o) {
+                    auto v = getNfpPoint(o);
+                    auto d = v - iv;
+                    d += startpos;
+                    item.translation(d);
+
+                    merged_pile.emplace_back(item.transformedShape());
+                    auto chull = sl::convexHull(merged_pile);
+                    merged_pile.pop_back();
+
+                    return wouldFit(chull, bin_);
+                };
+
                 opt::StopCriteria stopcr;
-                stopcr.max_iterations = 1000;
-                stopcr.absolute_score_difference = 1e-20*norm_;
+                stopcr.max_iterations = 100;
+                stopcr.relative_score_difference = 1e-6;
                 opt::TOptimizer<opt::Method::L_SUBPLEX> solver(stopcr);
 
                 Optimum optimum(0, 0);
@@ -644,7 +789,7 @@ public:
                     std::for_each(cache.corners().begin(),
                                   cache.corners().end(),
                                   [ch, &contour_ofn, &solver, &best_score,
-                                  &optimum] (double pos)
+                                  &optimum, &boundaryCheck] (double pos)
                     {
                         try {
                             auto result = solver.optimize_min(contour_ofn,
@@ -653,22 +798,15 @@ public:
                                             );
 
                             if(result.score < best_score) {
-                                best_score = result.score;
-                                optimum.relpos = std::get<0>(result.optimum);
-                                optimum.nfpidx = ch;
-                                optimum.hidx = -1;
+                                Optimum o(std::get<0>(result.optimum), ch, -1);
+                                if(boundaryCheck(o)) {
+                                    best_score = result.score;
+                                    optimum = o;
+                                }
                             }
                         } catch(std::exception& e) {
                             derr() << "ERROR: " << e.what() << "\n";
                         }
-
-//                        auto sc = contour_ofn(pos);
-//                        if(sc < best_score) {
-//                            best_score = sc;
-//                            optimum.relpos = pos;
-//                            optimum.nfpidx = ch;
-//                            optimum.hidx = -1;
-//                        }
                     });
 
                     for(unsigned hidx = 0; hidx < cache.holeCount(); ++hidx) {
@@ -683,7 +821,7 @@ public:
                         std::for_each(cache.corners(hidx).begin(),
                                       cache.corners(hidx).end(),
                                       [&hole_ofn, &solver, &best_score,
-                                       &optimum, ch, hidx]
+                                       &optimum, ch, hidx, &boundaryCheck]
                                       (double pos)
                         {
                             try {
@@ -693,21 +831,16 @@ public:
                                                 );
 
                                 if(result.score < best_score) {
-                                    best_score = result.score;
                                     Optimum o(std::get<0>(result.optimum),
                                               ch, hidx);
-                                    optimum = o;
+                                    if(boundaryCheck(o)) {
+                                        best_score = result.score;
+                                        optimum = o;
+                                    }
                                 }
                             } catch(std::exception& e) {
                                 derr() << "ERROR: " << e.what() << "\n";
                             }
-//                            auto sc = hole_ofn(pos);
-//                            if(sc < best_score) {
-//                                best_score = sc;
-//                                optimum.relpos = pos;
-//                                optimum.nfpidx = ch;
-//                                optimum.hidx = hidx;
-//                            }
                         });
                     }
                 }

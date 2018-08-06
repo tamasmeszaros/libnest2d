@@ -565,9 +565,7 @@ public:
     bool static inline wouldFit(const RawShape& chull,
                                 const _Circle<Vertex>& bin)
     {
-        auto c = boundingCircle(chull);
-        if(std::isnan(c.radius())) std::cout << "error" << std::endl;
-        return !std::isnan(c.radius()) && c.radius() < bin.radius();
+        return boundingCircle(chull).radius() < bin.radius();
     }
 
     PackResult trypack(Item& item) {

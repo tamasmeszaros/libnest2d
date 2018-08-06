@@ -828,6 +828,8 @@ private:
         for(Item& item : items_) m.emplace_back(item.transformedShape());
         auto&& bb = sl::boundingBox<RawShape>(m);
 
+        Vertex ci, cb;
+
         switch(config_.alignment) {
         case Config::Alignment::CENTER: {
             ci = bb.center();

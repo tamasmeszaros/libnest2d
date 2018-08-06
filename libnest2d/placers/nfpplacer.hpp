@@ -445,109 +445,53 @@ Nfp::Shapes<RawShape> nfp( const Container& polygons,
 }
 
 template<class RawShape>
-_Circle<TPoint<RawShape>> circle(std::array<TPoint<RawShape>, 3> P) {
+_Circle<TPoint<RawShape>> minimizeCircle(const RawShape& sh) {
+    using sl = ShapeLike; using pl = PointLike;
     using Point = TPoint<RawShape>;
     using Coord = TCoord<Point>;
 
-    auto x1 = getX(P[0]), y1 = getY(P[0]);
-    auto x2 = getX(P[1]), y2 = getY(P[1]);
-    auto x3 = getX(P[2]), y3 = getY(P[2]);
+    auto bb = sl::boundingBox(sh);
+    auto capprx = bb.center();
+    auto rapprx = pl::distance(bb.minCorner(), bb.maxCorner());
 
-    using std::pow;
+    auto& ctr = sl::getContour(sh);
 
-    auto A_div = (x2 - x1);
-    auto B_div = (x3 - x2);
-    if(A_div == 0 || B_div == 0) { return {{0,0}, 0}; }
+    opt::StopCriteria stopcr;
+    stopcr.max_iterations = 100;
+    stopcr.relative_score_difference = 1e-3;
+    opt::TOptimizer<opt::Method::L_SUBPLEX> solver(stopcr);
 
-    auto A = (y2 - y1)/A_div;
-    auto B = (y2 - y3)/B_div;
-    auto C = (-pow(x1, 2) - pow(y1, 2) + pow(x2, 2) + pow(y2, 2))/(2*(x2 - x1));
-    auto D = (pow(x2, 2) + pow(y1, 2) - pow(x3, 2) - pow(y3, 2))/(2*(x3 - x2));
+    auto result = solver.optimize_min(
+        [capprx, rapprx, &ctr](double xf, double yf) {
+            std::vector<double> dists;
+            dists.reserve(ctr.size());
+            auto xt = Coord( std::round(getX(capprx) + rapprx*xf) );
+            auto yt = Coord( std::round(getY(capprx) + rapprx*yf) );
 
-    auto cy = (C + D)/(A + B);
-    auto cx = B*cy - D;
+            Point centr(xt, yt);
+            for(auto v : ctr)
+                dists.emplace_back(pl::distance(v, centr));
 
-    Point cc = {Coord(cx), Coord(cy)};
-    auto d = PointLike::distance(cc, P[0]);
-    auto d2 = PointLike::distance(cc, P[1]);
-    auto d3 = PointLike::distance(cc, P[2]);
+            return *std::max_element(dists.begin(), dists.end());
+        },
+        opt::initvals(0.0, 0.0),
+        opt::bound(-1.0, 1.0), opt::bound(-1.0, 1.0)
+    );
 
-    auto e1 = std::abs(d - d2);
-    auto e2 = std::abs(d - d3);
-    if(e1 > 1e6 || e2 > 1e6) return {{0,0}, 0};
+    double oxf = std::get<0>(result.optimum);
+    double oyf = std::get<1>(result.optimum);
+    auto xt = Coord( std::round(getX(capprx) + rapprx*oxf) );
+    auto yt = Coord( std::round(getY(capprx) + rapprx*oyf) );
 
-    return { cc, d };
-}
+    Point cc(xt, yt);
+    auto r = result.score;
 
-template<class RawShape>
-_Circle<TPoint<RawShape>> welzl(TContour<RawShape> P,
-                                TContour<RawShape> R)
-{
-    using Point = TPoint<RawShape>;
-    using Circle = _Circle<Point>;
-    using Segment = _Segment<Point>;
-    using Coord = TCoord<Point>;
-    using Contour = TContour<RawShape>;
-
-    auto rs = R.size();
-    if( P.empty() || rs >= 3) {
-        switch(rs) {
-        case 0: {
-            return Circle({0,0}, 0);
-        }
-        case 1: {
-            return Circle(R[0], 0);
-        }
-        case 2: {
-            auto p1 = R[0];
-            auto p2 = R[1];
-
-            Segment seg(p1, p2);
-            auto dist = seg.length();
-            auto r = 0.5*dist;
-            auto dx = r*std::cos(seg.angleToXaxis());
-            auto dy = r*std::sin(seg.angleToXaxis());
-            Point mid = p1 + Point{Coord(std::round(dx)),
-                                   Coord(std::round(dy))};
-
-            return Circle(mid, r);
-        }
-        default: {
-            return circle<RawShape>({R[0], R[1], R[2]});
-        }
-        }
-    }
-
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(1, static_cast<int>(P.size()));
-    auto idx = dis(gen) - 1;
-    auto it = P.begin() + idx;
-    auto p = *it;
-    P.erase(it);
-    auto D = welzl<RawShape>(P, R);
-
-    if(D.radius() > 0 &&
-            PointLike::distance(p, D.center()) <= D.radius()) return D;
-
-    R.emplace_back(p);
-    return welzl<RawShape>(P, R);
-
+    return {cc, r};
 }
 
 template<class RawShape>
 _Circle<TPoint<RawShape>> boundingCircle(const RawShape& sh) {
-
-    using Contour = TContour<RawShape>;
-
-    auto P = ShapeLike::getContour(sh);
-    if(P.size() < 4) return {{0, 0}, 0};
-
-    Contour R;
-
-    P.pop_back();
-
-    return welzl<RawShape>(P, R);
+    return minimizeCircle(sh);
 }
 
 template<class RawShape, class TBin = _Box<TPoint<RawShape>>>
@@ -621,11 +565,9 @@ public:
     bool static inline wouldFit(const RawShape& chull,
                                 const _Circle<Vertex>& bin)
     {
-        auto bb = sl::boundingBox(chull);
-        auto d = bin.center() - bb.center();
-        auto chullcpy = chull;
-        sl::translate(chullcpy, d);
-        return sl::isInside<RawShape>(chullcpy, bin);
+        auto c = boundingCircle(chull);
+        if(std::isnan(c.radius())) std::cout << "error" << std::endl;
+        return !std::isnan(c.radius()) && c.radius() < bin.radius();
     }
 
     PackResult trypack(Item& item) {

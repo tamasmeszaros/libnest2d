@@ -801,14 +801,32 @@ public:
     }
 
     inline void clearItems() {
+        finalAlign(bin_);
+        Base::clearItems();
+    }
+
+private:
+
+    inline void finalAlign(const RawShape& pbin) {
+        auto bbin = sl::boundingBox(pbin);
+        finalAlign(bbin);
+    }
+
+    inline void finalAlign(_Circle<TPoint<RawShape>> cbin) {
         Nfp::Shapes<RawShape> m;
         m.reserve(items_.size());
+        for(Item& item : items_) m.emplace_back(item.transformedShape());
 
+        auto c = boundingCircle(sl::convexHull(m));
+        auto d = cbin.center() - c.center();
+        for(Item& item : items_) item.translate(d);
+    }
+
+    inline void finalAlign(Box bbin) {
+        Nfp::Shapes<RawShape> m;
+        m.reserve(items_.size());
         for(Item& item : items_) m.emplace_back(item.transformedShape());
         auto&& bb = sl::boundingBox<RawShape>(m);
-
-        Vertex ci, cb;
-        auto bbin = sl::boundingBox<RawShape>(bin_);
 
         switch(config_.alignment) {
         case Config::Alignment::CENTER: {
@@ -840,11 +858,7 @@ public:
 
         auto d = cb - ci;
         for(Item& item : items_) item.translate(d);
-
-        Base::clearItems();
     }
-
-private:
 
     void setInitialPosition(Item& item) {
         Box&& bb = item.boundingBox();

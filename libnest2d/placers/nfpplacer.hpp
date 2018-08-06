@@ -461,18 +461,25 @@ _Circle<TPoint<RawShape>> minimizeCircle(const RawShape& sh) {
     stopcr.relative_score_difference = 1e-3;
     opt::TOptimizer<opt::Method::L_SUBPLEX> solver(stopcr);
 
+    std::vector<double> dists(ctr.size(), 0);
+
     auto result = solver.optimize_min(
-        [capprx, rapprx, &ctr](double xf, double yf) {
-            std::vector<double> dists;
-            dists.reserve(ctr.size());
+        [capprx, rapprx, &ctr, &dists](double xf, double yf) {
             auto xt = Coord( std::round(getX(capprx) + rapprx*xf) );
             auto yt = Coord( std::round(getY(capprx) + rapprx*yf) );
 
             Point centr(xt, yt);
-            for(auto v : ctr)
-                dists.emplace_back(pl::distance(v, centr));
 
-            return *std::max_element(dists.begin(), dists.end());
+            unsigned i = 0;
+            for(auto v : ctr) {
+                dists[i++] = pl::distance(v, centr);
+            }
+
+            auto mit = std::max_element(dists.begin(), dists.end());
+
+            assert(mit != dists.end());
+
+            return *mit;
         },
         opt::initvals(0.0, 0.0),
         opt::bound(-1.0, 1.0), opt::bound(-1.0, 1.0)
@@ -813,11 +820,14 @@ private:
     }
 
     inline void finalAlign(_Circle<TPoint<RawShape>> cbin) {
+        if(items_.empty()) return;
+
         Nfp::Shapes<RawShape> m;
         m.reserve(items_.size());
         for(Item& item : items_) m.emplace_back(item.transformedShape());
 
         auto c = boundingCircle(sl::convexHull(m));
+
         auto d = cbin.center() - c.center();
         for(Item& item : items_) item.translate(d);
     }

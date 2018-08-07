@@ -40,6 +40,7 @@ public:
         packed_bins_.clear();
 
         std::vector<Placer> placers;
+        placers.reserve(last-first);
 
         std::copy(first, last, std::back_inserter(store_));
 

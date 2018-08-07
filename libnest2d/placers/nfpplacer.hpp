@@ -582,7 +582,7 @@ public:
                        typename Container::iterator from,
                        unsigned /*count*/ = 1)
     {
-        return trypack(*from, {from, items.end()});
+        return trypack(*from, {std::next(from), items.end()});
     }
 
     PackResult trypack(Item& item, ItemGroup remaining) {
@@ -714,8 +714,8 @@ public:
                 };
 
                 opt::StopCriteria stopcr;
-                stopcr.max_iterations = 100;
-                stopcr.relative_score_difference = 1e-12;
+                stopcr.max_iterations = 200;
+                stopcr.relative_score_difference = 1e-20;
                 opt::TOptimizer<opt::Method::L_SUBPLEX> solver(stopcr);
 
                 Optimum optimum(0, 0);

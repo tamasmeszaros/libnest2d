@@ -9,6 +9,8 @@
 #include "tests/printer_parts.h"
 #include "tools/benchmark.h"
 #include "tools/svgtools.hpp"
+#include "libnest2d/rotfinder.hpp"
+
 //#include "tools/libnfpglue.hpp"
 
 using namespace libnest2d;
@@ -85,7 +87,7 @@ void arrangeRectangles() {
     auto min_obj_distance = static_cast<Coord>(0*SCALE);
 
     using Placer = strategies::_NofitPolyPlacer<PolygonImpl, decltype(bin)>;
-    using Packer = Arranger<Placer, FirstFitSelection>;
+    using Packer = Nester<Placer, FirstFitSelection>;
 
     Packer arrange(bin, min_obj_distance);
 
@@ -112,7 +114,9 @@ void arrangeRectangles() {
 //        svgw.writePackGroup(arrange.lastResult());
 //        svgw.save("debout");
         std::cout << "Remaining items: " << r << std::endl;
-    })/*.useMinimumBoundigBoxRotation()*/;
+    });
+
+    findMinimumBoundingBoxRotations(input.begin(), input.end());
 
     Benchmark bench;
 
@@ -120,7 +124,7 @@ void arrangeRectangles() {
     Packer::ResultType result;
 
     try {
-        result = arrange.arrange(input.begin(), input.end());
+        result = arrange.execute(input.begin(), input.end());
     } catch(GeometryException& ge) {
         std::cerr << "Geometry error: " << ge.what() << std::endl;
         return ;
@@ -134,7 +138,7 @@ void arrangeRectangles() {
     std::vector<double> eff;
     eff.reserve(result.size());
 
-    auto bin_area = ShapeLike::area<PolygonImpl>(bin);
+    auto bin_area = sl::area(bin);
     for(auto& r : result) {
         double a = 0;
         std::for_each(r.begin(), r.end(), [&a] (Item& e ){ a += e.area(); });
@@ -156,7 +160,7 @@ void arrangeRectangles() {
     std::cout << ") Total: " << total << std::endl;
 
     for(auto& it : input) {
-        auto ret = ShapeLike::isValid(it.transformedShape());
+        auto ret = sl::isValid(it.transformedShape());
         std::cout << ret.second << std::endl;
     }
 
@@ -177,7 +181,7 @@ void arrangeRectangles() {
 
 int main(void /*int argc, char **argv*/) {
     arrangeRectangles();
-//    findDegenerateCase();
+////    findDegenerateCase();
 
     return EXIT_SUCCESS;
 }

@@ -66,7 +66,7 @@ void arrangeRectangles() {
 //    input.insert(input.end(), proba.begin(), proba.end());
 //    input.insert(input.end(), crasher.begin(), crasher.end());
 
-//    Box bin(250*SCALE, 210*SCALE);
+    Box bin(250*SCALE, 210*SCALE);
 //    PolygonImpl bin = {
 //        {
 //            {25*SCALE, 0},
@@ -82,7 +82,7 @@ void arrangeRectangles() {
 //        {}
 //    };
 
-    _Circle<PointImpl> bin({0, 0}, 125*SCALE);
+//    _Circle<PointImpl> bin({0, 0}, 125*SCALE);
 
     auto min_obj_distance = static_cast<Coord>(0*SCALE);
 
@@ -116,7 +116,7 @@ void arrangeRectangles() {
         std::cout << "Remaining items: " << r << std::endl;
     });
 
-    findMinimumBoundingBoxRotations(input.begin(), input.end());
+//    findMinimumBoundingBoxRotations(input.begin(), input.end());
 
     Benchmark bench;
 

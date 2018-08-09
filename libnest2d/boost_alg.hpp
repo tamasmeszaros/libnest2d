@@ -311,84 +311,78 @@ struct range_value<bp2d::Shapes> {
 
 namespace libnest2d { // Now the algorithms that boost can provide...
 
+namespace pointlike {
 template<>
-inline double pointlike::distance(const PointImpl& p1,
-                                  const PointImpl& p2 )
+inline double distance(const PointImpl& p1, const PointImpl& p2 )
 {
     return boost::geometry::distance(p1, p2);
 }
 
 template<>
-inline double pointlike::distance(const PointImpl& p,
-                                  const bp2d::Segment& seg )
+inline double distance(const PointImpl& p, const bp2d::Segment& seg )
 {
     return boost::geometry::distance(p, seg);
 }
+}
 
+namespace shapelike {
 // Tell libnest2d how to make string out of a ClipperPolygon object
 template<>
-inline bool shapelike::intersects(const PathImpl& sh1,
-                                  const PathImpl& sh2)
+inline bool intersects(const PathImpl& sh1, const PathImpl& sh2)
 {
     return boost::geometry::intersects(sh1, sh2);
 }
 
 // Tell libnest2d how to make string out of a ClipperPolygon object
 template<>
-inline bool shapelike::intersects(const PolygonImpl& sh1,
-                                  const PolygonImpl& sh2)
+inline bool intersects(const PolygonImpl& sh1, const PolygonImpl& sh2)
 {
     return boost::geometry::intersects(sh1, sh2);
 }
 
 // Tell libnest2d how to make string out of a ClipperPolygon object
 template<>
-inline bool shapelike::intersects(const bp2d::Segment& s1,
-                                  const bp2d::Segment& s2)
+inline bool intersects(const bp2d::Segment& s1, const bp2d::Segment& s2)
 {
     return boost::geometry::intersects(s1, s2);
 }
 
 #ifndef DISABLE_BOOST_AREA
 template<>
-inline double shapelike::area(const PolygonImpl& shape, const PolygonTag&)
+inline double area(const PolygonImpl& shape, const PolygonTag&)
 {
     return boost::geometry::area(shape);
 }
 #endif
 
 template<>
-inline bool shapelike::isInside<PolygonImpl>(const PointImpl& point,
-                                const PolygonImpl& shape)
+inline bool isInside<PolygonImpl>(const PointImpl& point,
+                                  const PolygonImpl& shape)
 {
     return boost::geometry::within(point, shape);
 }
 
 template<>
-inline bool shapelike::isInside(const PolygonImpl& sh1,
-                                const PolygonImpl& sh2)
+inline bool isInside(const PolygonImpl& sh1, const PolygonImpl& sh2)
 {
     return boost::geometry::within(sh1, sh2);
 }
 
 template<>
-inline bool shapelike::touches( const PolygonImpl& sh1,
-                                const PolygonImpl& sh2)
+inline bool touches(const PolygonImpl& sh1, const PolygonImpl& sh2)
 {
     return boost::geometry::touches(sh1, sh2);
 }
 
 template<>
-inline bool shapelike::touches( const PointImpl& point,
-                                const PolygonImpl& shape)
+inline bool touches( const PointImpl& point, const PolygonImpl& shape)
 {
     return boost::geometry::touches(point, shape);
 }
 
 #ifndef DISABLE_BOOST_BOUNDING_BOX
 template<>
-inline bp2d::Box shapelike::boundingBox(const PolygonImpl& sh,
-                                        const PolygonTag&)
+inline bp2d::Box boundingBox(const PolygonImpl& sh, const PolygonTag&)
 {
     bp2d::Box b;
     boost::geometry::envelope(sh, b);
@@ -396,7 +390,7 @@ inline bp2d::Box shapelike::boundingBox(const PolygonImpl& sh,
 }
 
 template<>
-inline bp2d::Box shapelike::boundingBox<PolygonImpl>(const bp2d::Shapes& shapes)
+inline bp2d::Box boundingBox<PolygonImpl>(const bp2d::Shapes& shapes)
 {
     bp2d::Box b;
     boost::geometry::envelope(shapes, b);
@@ -406,7 +400,7 @@ inline bp2d::Box shapelike::boundingBox<PolygonImpl>(const bp2d::Shapes& shapes)
 
 #ifndef DISABLE_BOOST_CONVEX_HULL
 template<>
-inline PolygonImpl shapelike::convexHull(const PolygonImpl& sh)
+inline PolygonImpl convexHull(const PolygonImpl& sh)
 {
     PolygonImpl ret;
     boost::geometry::convex_hull(sh, ret);
@@ -414,7 +408,7 @@ inline PolygonImpl shapelike::convexHull(const PolygonImpl& sh)
 }
 
 template<>
-inline PolygonImpl shapelike::convexHull(const bp2d::Shapes& shapes)
+inline PolygonImpl convexHull(const bp2d::Shapes& shapes)
 {
     PolygonImpl ret;
     boost::geometry::convex_hull(shapes, ret);
@@ -424,7 +418,7 @@ inline PolygonImpl shapelike::convexHull(const bp2d::Shapes& shapes)
 
 #ifndef DISABLE_BOOST_ROTATE
 template<>
-inline void shapelike::rotate(PolygonImpl& sh, const Radians& rads)
+inline void rotate(PolygonImpl& sh, const Radians& rads)
 {
     namespace trans = boost::geometry::strategy::transform;
 
@@ -438,7 +432,7 @@ inline void shapelike::rotate(PolygonImpl& sh, const Radians& rads)
 
 #ifndef DISABLE_BOOST_TRANSLATE
 template<>
-inline void shapelike::translate(PolygonImpl& sh, const PointImpl& offs)
+inline void translate(PolygonImpl& sh, const PointImpl& offs)
 {
     namespace trans = boost::geometry::strategy::transform;
 
@@ -452,26 +446,15 @@ inline void shapelike::translate(PolygonImpl& sh, const PointImpl& offs)
 
 #ifndef DISABLE_BOOST_OFFSET
 template<>
-inline void shapelike::offset(PolygonImpl& sh, bp2d::Coord distance)
+inline void offset(PolygonImpl& sh, bp2d::Coord distance)
 {
     PolygonImpl cpy = sh;
     boost::geometry::buffer(cpy, sh, distance);
 }
 #endif
 
-#ifndef DISABLE_BOOST_NFP_MERGE
-template<>
-inline bp2d::Shapes Nfp::merge(const bp2d::Shapes& shapes,
-                               const PolygonImpl& sh)
-{
-    bp2d::Shapes retv;
-    boost::geometry::union_(shapes, sh, retv);
-    return retv;
-}
-#endif
-
 #ifndef DISABLE_BOOST_SERIALIZE
-template<> inline std::string shapelike::serialize<libnest2d::Formats::SVG>(
+template<> inline std::string serialize<libnest2d::Formats::SVG>(
         const PolygonImpl& sh, double scale)
 {
     std::stringstream ss;
@@ -513,21 +496,37 @@ template<> inline std::string shapelike::serialize<libnest2d::Formats::SVG>(
 
 #ifndef DISABLE_BOOST_UNSERIALIZE
 template<>
-inline void shapelike::unserialize<libnest2d::Formats::SVG>(
+inline void unserialize<libnest2d::Formats::SVG>(
         PolygonImpl& sh,
         const std::string& str)
 {
 }
 #endif
 
-template<> inline std::pair<bool, std::string>
-shapelike::isValid(const PolygonImpl& sh)
+template<> inline std::pair<bool, std::string> isValid(const PolygonImpl& sh)
 {
     std::string message;
     bool ret = boost::geometry::is_valid(sh, message);
 
     return {ret, message};
 }
+}
+
+namespace nfp {
+
+#ifndef DISABLE_BOOST_NFP_MERGE
+template<>
+inline bp2d::Shapes Nfp::merge(const bp2d::Shapes& shapes,
+                               const PolygonImpl& sh)
+{
+    bp2d::Shapes retv;
+    boost::geometry::union_(shapes, sh, retv);
+    return retv;
+}
+#endif
+
+}
+
 
 }
 

@@ -60,6 +60,10 @@ struct PointPair {
     RawPoint p2;
 };
 
+struct PolygonTag {};
+struct BoxTag {};
+struct CircleTag {};
+
 /**
  * \brief An abstraction of a box;
  */
@@ -68,6 +72,9 @@ class _Box: PointPair<RawPoint> {
     using PointPair<RawPoint>::p1;
     using PointPair<RawPoint>::p2;
 public:
+
+    using Tag = BoxTag;
+    using PointType = RawPoint;
 
     inline _Box() = default;
     inline _Box(const RawPoint& p, const RawPoint& pp):
@@ -98,6 +105,9 @@ class _Circle {
     double radius_ = 0;
 public:
 
+    using Tag = CircleTag;
+    using PointType = RawPoint;
+
     _Circle() = default;
 
     _Circle(const RawPoint& center, double r): center_(center), radius_(r) {}
@@ -122,6 +132,8 @@ class _Segment: PointPair<RawPoint> {
     using PointPair<RawPoint>::p2;
     mutable Radians angletox_ = std::nan("");
 public:
+
+    using PointType = RawPoint;
 
     inline _Segment() = default;
 
@@ -156,9 +168,9 @@ public:
     inline double length();
 };
 
-// This struct serves as a namespace. The only difference is that is can be
+// This struct serves almost as a namespace. The only difference is that is can
 // used in friend declarations.
-struct PointLike {
+namespace pointlike {
 
     template<class RawPoint>
     static TCoord<RawPoint> x(const RawPoint& p)
@@ -206,9 +218,9 @@ struct PointLike {
             const RawPoint& p, const _Segment<RawPoint>& s)
     {
         using Unit = TCoord<RawPoint>;
-        auto x = PointLike::x(p), y = PointLike::y(p);
-        auto x1 = PointLike::x(s.first()), y1 = PointLike::y(s.first());
-        auto x2 = PointLike::x(s.second()), y2 = PointLike::y(s.second());
+        auto x = pointlike::x(p), y = pointlike::y(p);
+        auto x1 = pointlike::x(s.first()), y1 = pointlike::y(s.first());
+        auto x2 = pointlike::x(s.second()), y2 = pointlike::y(s.second());
 
         TCoord<RawPoint> ret;
 
@@ -232,9 +244,9 @@ struct PointLike {
             const RawPoint& p, const _Segment<RawPoint>& s)
     {
         using Unit = TCoord<RawPoint>;
-        auto x = PointLike::x(p), y = PointLike::y(p);
-        auto x1 = PointLike::x(s.first()), y1 = PointLike::y(s.first());
-        auto x2 = PointLike::x(s.second()), y2 = PointLike::y(s.second());
+        auto x = pointlike::x(p), y = pointlike::y(p);
+        auto x1 = pointlike::x(s.first()), y1 = pointlike::y(s.first());
+        auto x2 = pointlike::x(s.second()), y2 = pointlike::y(s.second());
 
         TCoord<RawPoint> ret;
 
@@ -252,36 +264,36 @@ struct PointLike {
 
         return {ret, true};
     }
-};
+}
 
 template<class RawPoint>
 TCoord<RawPoint> _Box<RawPoint>::width() const BP2D_NOEXCEPT
 {
-    return PointLike::x(maxCorner()) - PointLike::x(minCorner());
+    return pointlike::x(maxCorner()) - pointlike::x(minCorner());
 }
 
 template<class RawPoint>
 TCoord<RawPoint> _Box<RawPoint>::height() const BP2D_NOEXCEPT
 {
-    return PointLike::y(maxCorner()) - PointLike::y(minCorner());
+    return pointlike::y(maxCorner()) - pointlike::y(minCorner());
 }
 
 template<class RawPoint>
-TCoord<RawPoint> getX(const RawPoint& p) { return PointLike::x<RawPoint>(p); }
+TCoord<RawPoint> getX(const RawPoint& p) { return pointlike::x<RawPoint>(p); }
 
 template<class RawPoint>
-TCoord<RawPoint> getY(const RawPoint& p) { return PointLike::y<RawPoint>(p); }
+TCoord<RawPoint> getY(const RawPoint& p) { return pointlike::y<RawPoint>(p); }
 
 template<class RawPoint>
 void setX(RawPoint& p, const TCoord<RawPoint>& val)
 {
-    PointLike::x<RawPoint>(p) = val;
+    pointlike::x<RawPoint>(p) = val;
 }
 
 template<class RawPoint>
 void setY(RawPoint& p, const TCoord<RawPoint>& val)
 {
-    PointLike::y<RawPoint>(p) = val;
+    pointlike::y<RawPoint>(p) = val;
 }
 
 template<class RawPoint>
@@ -303,7 +315,7 @@ inline Radians _Segment<RawPoint>::angleToXaxis() const
 template<class RawPoint>
 inline double _Segment<RawPoint>::length()
 {
-    return PointLike::distance(first(), second());
+    return pointlike::distance(first(), second());
 }
 
 template<class RawPoint>
@@ -356,7 +368,7 @@ enum class Formats {
 
 // This struct serves as a namespace. The only difference is that it can be
 // used in friend declarations and can be aliased at class scope.
-struct ShapeLike {
+namespace shapelike {
 
     template<class RawShape>
     using Shapes = std::vector<RawShape>;
@@ -488,7 +500,7 @@ struct ShapeLike {
     }
 
     template<class RawShape>
-    static double area(const RawShape& /*sh*/)
+    static double area(const RawShape& /*sh*/, const PolygonTag&)
     {
         static_assert(always_false<RawShape>::value,
                       "ShapeLike::area() unimplemented!");
@@ -540,7 +552,8 @@ struct ShapeLike {
     }
 
     template<class RawShape>
-    static _Box<TPoint<RawShape>> boundingBox(const RawShape& /*sh*/)
+    static _Box<TPoint<RawShape>> boundingBox(const RawShape& /*sh*/,
+                                              const PolygonTag&)
     {
         static_assert(always_false<RawShape>::value,
                       "ShapeLike::boundingBox(shape) unimplemented!");
@@ -633,39 +646,51 @@ struct ShapeLike {
     // No need to implement these
     // *************************************************************************
 
-    template<class RawShape>
-    static inline _Box<TPoint<RawShape>> boundingBox(
-            const _Box<TPoint<RawShape>>& box)
+    template<class Box>
+    static inline Box boundingBox(const Box& box, const BoxTag& )
     {
         return box;
     }
 
-    template<class RawShape>
-    static inline _Box<TPoint<RawShape>> boundingBox(
-            const _Circle<TPoint<RawShape>>& circ)
+    template<class Circle>
+    static inline _Box<typename Circle::PointType> boundingBox(
+            const Circle& circ, const CircleTag&)
     {
-        using Coord = TCoord<TPoint<RawShape>>;
-        TPoint<RawShape> pmin = {
+        using Point = typename Circle::PointType;
+        using Coord = TCoord<Point>;
+        Point pmin = {
             static_cast<Coord>(getX(circ.center()) - circ.radius()),
             static_cast<Coord>(getY(circ.center()) - circ.radius()) };
 
-        TPoint<RawShape> pmax = {
+        Point pmax = {
             static_cast<Coord>(getX(circ.center()) + circ.radius()),
             static_cast<Coord>(getY(circ.center()) + circ.radius()) };
 
         return {pmin, pmax};
     }
 
-    template<class RawShape>
-    static inline double area(const _Box<TPoint<RawShape>>& box)
+    template<class S> // Dispatch function
+    static inline _Box<typename S::PointType> boundingBox(const S& sh)
     {
-        return static_cast<double>(box.width() * box.height());
+        return boundingBox(sh, typename S::Tag());
     }
 
-    template<class RawShape>
-    static inline double area(const _Circle<TPoint<RawShape>>& circ)
+    template<class Box>
+    static inline double area(const Box& box, const BoxTag& )
+    {
+        return box.area();
+    }
+
+    template<class Circle>
+    static inline double area(const Circle& circ, const CircleTag& )
     {
         return circ.area();
+    }
+
+    template<class RawShape> // Dispatching function
+    static inline double area(const RawShape& sh)
+    {
+        return area(sh, typename RawShape::Tag());
     }
 
     template<class RawShape>
@@ -681,7 +706,7 @@ struct ShapeLike {
     static bool isInside(const TPoint<RawShape>& point,
                          const _Circle<TPoint<RawShape>>& circ)
     {
-        return PointLike::distance(point, circ.center()) < circ.radius();
+        return pointlike::distance(point, circ.center()) < circ.radius();
     }
 
     template<class RawShape>
@@ -789,8 +814,7 @@ struct ShapeLike {
         foreachContourVertex(sh, fn);
         foreachHoleVertex(sh, fn);
     }
-
-};
+}
 
 }
 

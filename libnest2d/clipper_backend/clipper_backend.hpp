@@ -21,6 +21,9 @@ struct PolygonImpl {
     PathImpl Contour;
     HoleStore Holes;
 
+    using Tag = libnest2d::PolygonTag;
+    using PointType = PointImpl;
+
     inline PolygonImpl() = default;
 
     inline explicit PolygonImpl(const PathImpl& cont): Contour(cont) {}
@@ -114,32 +117,32 @@ template<> struct CountourType<PolygonImpl> {
 };
 
 // Tell binpack2d how to extract the X coord from a ClipperPoint object
-template<> inline TCoord<PointImpl> PointLike::x(const PointImpl& p)
+template<> inline TCoord<PointImpl> pointlike::x(const PointImpl& p)
 {
     return p.X;
 }
 
 // Tell binpack2d how to extract the Y coord from a ClipperPoint object
-template<> inline TCoord<PointImpl> PointLike::y(const PointImpl& p)
+template<> inline TCoord<PointImpl> pointlike::y(const PointImpl& p)
 {
     return p.Y;
 }
 
 // Tell binpack2d how to extract the X coord from a ClipperPoint object
-template<> inline TCoord<PointImpl>& PointLike::x(PointImpl& p)
+template<> inline TCoord<PointImpl>& pointlike::x(PointImpl& p)
 {
     return p.X;
 }
 
 // Tell binpack2d how to extract the Y coord from a ClipperPoint object
 template<>
-inline TCoord<PointImpl>& PointLike::y(PointImpl& p)
+inline TCoord<PointImpl>& pointlike::y(PointImpl& p)
 {
     return p.Y;
 }
 
 template<>
-inline void ShapeLike::reserve(PolygonImpl& sh, size_t vertex_capacity)
+inline void shapelike::reserve(PolygonImpl& sh, size_t vertex_capacity)
 {
     return sh.Contour.reserve(vertex_capacity);
 }
@@ -179,12 +182,12 @@ inline double area<Orientation::COUNTER_CLOCKWISE>(const PolygonImpl& sh) {
 
 // Tell binpack2d how to make string out of a ClipperPolygon object
 template<>
-inline double ShapeLike::area(const PolygonImpl& sh) {
+inline double shapelike::area(const PolygonImpl& sh, const PolygonTag&) {
     return _smartarea::area<OrientationType<PolygonImpl>::Value>(sh);
 }
 
 template<>
-inline void ShapeLike::offset(PolygonImpl& sh, TCoord<PointImpl> distance) {
+inline void shapelike::offset(PolygonImpl& sh, TCoord<PointImpl> distance) {
     #define DISABLE_BOOST_OFFSET
 
     using ClipperLib::ClipperOffset;
@@ -234,7 +237,7 @@ inline void ShapeLike::offset(PolygonImpl& sh, TCoord<PointImpl> distance) {
 }
 
 // Tell libnest2d how to make string out of a ClipperPolygon object
-template<> inline std::string ShapeLike::toString(const PolygonImpl& sh) {
+template<> inline std::string shapelike::toString(const PolygonImpl& sh) {
     std::stringstream ss;
 
     ss << "Contour {\n";
@@ -257,26 +260,26 @@ template<> inline std::string ShapeLike::toString(const PolygonImpl& sh) {
 }
 
 template<>
-inline TVertexIterator<PolygonImpl> ShapeLike::begin(PolygonImpl& sh)
+inline TVertexIterator<PolygonImpl> shapelike::begin(PolygonImpl& sh)
 {
     return sh.Contour.begin();
 }
 
 template<>
-inline TVertexIterator<PolygonImpl> ShapeLike::end(PolygonImpl& sh)
+inline TVertexIterator<PolygonImpl> shapelike::end(PolygonImpl& sh)
 {
     return sh.Contour.end();
 }
 
 template<>
-inline TVertexConstIterator<PolygonImpl> ShapeLike::cbegin(
+inline TVertexConstIterator<PolygonImpl> shapelike::cbegin(
         const PolygonImpl& sh)
 {
     return sh.Contour.cbegin();
 }
 
 template<>
-inline TVertexConstIterator<PolygonImpl> ShapeLike::cend(
+inline TVertexConstIterator<PolygonImpl> shapelike::cend(
         const PolygonImpl& sh)
 {
     return sh.Contour.cend();
@@ -286,7 +289,7 @@ template<> struct HolesContainer<PolygonImpl> {
     using Type = ClipperLib::Paths;
 };
 
-template<> inline PolygonImpl ShapeLike::create(const PathImpl& path,
+template<> inline PolygonImpl shapelike::create(const PathImpl& path,
                                                 const HoleStore& holes) {
     PolygonImpl p;
     p.Contour = path;
@@ -308,7 +311,7 @@ template<> inline PolygonImpl ShapeLike::create(const PathImpl& path,
     return p;
 }
 
-template<> inline PolygonImpl ShapeLike::create( PathImpl&& path,
+template<> inline PolygonImpl shapelike::create( PathImpl&& path,
                                                  HoleStore&& holes) {
     PolygonImpl p;
     p.Contour.swap(path);
@@ -332,48 +335,48 @@ template<> inline PolygonImpl ShapeLike::create( PathImpl&& path,
 }
 
 template<> inline const THolesContainer<PolygonImpl>&
-ShapeLike::holes(const PolygonImpl& sh)
+shapelike::holes(const PolygonImpl& sh)
 {
     return sh.Holes;
 }
 
 template<> inline THolesContainer<PolygonImpl>&
-ShapeLike::holes(PolygonImpl& sh)
+shapelike::holes(PolygonImpl& sh)
 {
     return sh.Holes;
 }
 
 template<> inline TContour<PolygonImpl>&
-ShapeLike::getHole(PolygonImpl& sh, unsigned long idx)
+shapelike::getHole(PolygonImpl& sh, unsigned long idx)
 {
     return sh.Holes[idx];
 }
 
 template<> inline const TContour<PolygonImpl>&
-ShapeLike::getHole(const PolygonImpl& sh, unsigned long idx)
+shapelike::getHole(const PolygonImpl& sh, unsigned long idx)
 {
     return sh.Holes[idx];
 }
 
-template<> inline size_t ShapeLike::holeCount(const PolygonImpl& sh)
+template<> inline size_t shapelike::holeCount(const PolygonImpl& sh)
 {
     return sh.Holes.size();
 }
 
-template<> inline PathImpl& ShapeLike::getContour(PolygonImpl& sh)
+template<> inline PathImpl& shapelike::getContour(PolygonImpl& sh)
 {
     return sh.Contour;
 }
 
 template<>
-inline const PathImpl& ShapeLike::getContour(const PolygonImpl& sh)
+inline const PathImpl& shapelike::getContour(const PolygonImpl& sh)
 {
     return sh.Contour;
 }
 
 #define DISABLE_BOOST_TRANSLATE
 template<>
-inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs)
+inline void shapelike::translate(PolygonImpl& sh, const PointImpl& offs)
 {
     for(auto& p : sh.Contour) { p += offs; }
     for(auto& hole : sh.Holes) for(auto& p : hole) { p += offs; }
@@ -381,7 +384,7 @@ inline void ShapeLike::translate(PolygonImpl& sh, const PointImpl& offs)
 
 #define DISABLE_BOOST_ROTATE
 template<>
-inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads)
+inline void shapelike::rotate(PolygonImpl& sh, const Radians& rads)
 {
     using Coord = TCoord<PointImpl>;
 
@@ -403,8 +406,8 @@ inline void ShapeLike::rotate(PolygonImpl& sh, const Radians& rads)
 }
 
 #define DISABLE_BOOST_NFP_MERGE
-inline Nfp::Shapes<PolygonImpl> _merge(ClipperLib::Clipper& clipper) {
-    Nfp::Shapes<PolygonImpl> retv;
+inline nfp::Shapes<PolygonImpl> _merge(ClipperLib::Clipper& clipper) {
+    nfp::Shapes<PolygonImpl> retv;
 
     ClipperLib::PolyTree result;
     clipper.Execute(ClipperLib::ctUnion, result, ClipperLib::pftNegative);
@@ -438,8 +441,8 @@ inline Nfp::Shapes<PolygonImpl> _merge(ClipperLib::Clipper& clipper) {
     return retv;
 }
 
-template<> inline Nfp::Shapes<PolygonImpl>
-Nfp::merge(const Nfp::Shapes<PolygonImpl>& shapes)
+template<> inline nfp::Shapes<PolygonImpl>
+nfp::merge(const nfp::Shapes<PolygonImpl>& shapes)
 {
     ClipperLib::Clipper clipper(ClipperLib::ioReverseSolution);
 

@@ -27,8 +27,8 @@ inline bool _vsort(const TPoint<RawShape>& v1, const TPoint<RawShape>& v2)
 /// A collection of static methods for handling the no fit polygon creation.
 namespace nfp {
 
-namespace sl = shapelike;
-namespace pl = pointlike;
+//namespace sl = shapelike;
+//namespace pl = pointlike;
 
 /// The complexity level of a polygon that an NFP implementation can handle.
 enum class NfpLevel: unsigned {

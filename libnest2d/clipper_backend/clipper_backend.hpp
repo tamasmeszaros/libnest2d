@@ -21,9 +21,6 @@ struct PolygonImpl {
     PathImpl Contour;
     HoleStore Holes;
 
-    using Tag = libnest2d::PolygonTag;
-    using PointType = PointImpl;
-
     inline PolygonImpl() = default;
 
     inline explicit PolygonImpl(const PathImpl& cont): Contour(cont) {}
@@ -115,6 +112,8 @@ template<> struct VertexConstIteratorType<PolygonImpl> {
 template<> struct CountourType<PolygonImpl> {
     using Type = PathImpl;
 };
+
+template<> struct ShapeTag<PolygonImpl> { using Type = PolygonTag; };
 
 namespace pointlike {
 

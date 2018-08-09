@@ -67,19 +67,6 @@ static Shapes<RawShape> merge(const Shapes<RawShape>& shc,
 }
 
 /**
- * A method to get a vertex from a polygon that always maintains a relative
- * position to the coordinate system: It is always the rightmost top vertex.
- *
- * This way it does not matter in what order the vertices are stored, the
- * reference will be always the same for the same polygon.
- */
-template<class RawShape>
-inline static TPoint<RawShape> referenceVertex(const RawShape& sh)
-{
-    return rightmostUpVertex(sh);
-}
-
-/**
  * Get the vertex of the polygon that is at the lowest values (bottom) in the Y
  * axis and if there are more than one vertices on the same Y coordinate than
  * the result will be the leftmost (with the highest X coordinate).
@@ -111,6 +98,19 @@ static TPoint<RawShape> rightmostUpVertex(const RawShape& sh)
     return *it;
 }
 
+/**
+ * A method to get a vertex from a polygon that always maintains a relative
+ * position to the coordinate system: It is always the rightmost top vertex.
+ *
+ * This way it does not matter in what order the vertices are stored, the
+ * reference will be always the same for the same polygon.
+ */
+template<class RawShape>
+inline static TPoint<RawShape> referenceVertex(const RawShape& sh)
+{
+    return rightmostUpVertex(sh);
+}
+
 template<class RawShape>
 using NfpResult = std::pair<RawShape, TPoint<RawShape>>;
 
@@ -119,8 +119,8 @@ template<NfpLevel nfptype, class RawShape>
 static NfpResult<RawShape> noFitPolygon(const RawShape& sh,
                                         const RawShape& other)
 {
-    NfpImpl<RawShape, nfptype> nfp;
-    return nfp(sh, other);
+    NfpImpl<RawShape, nfptype> nfps;
+    return nfps(sh, other);
 }
 
 /**

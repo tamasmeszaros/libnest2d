@@ -245,7 +245,7 @@ public:
      * @param p
      * @return
      */
-    inline bool isPointInside(const Vertex& p) const
+    inline bool isInside(const Vertex& p) const
     {
         return sl::isInside(p, transformedShape());
     }

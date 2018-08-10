@@ -22,7 +22,7 @@ template<class GeomType>
 using TCoord = typename CoordType<remove_cvref_t<GeomType>>::Type;
 
 /// Getting the type of point structure used by a shape.
-template<class Shape> struct PointType { /*using Type = void;*/ };
+template<class Sh> struct PointType { using Type = typename Sh::PointType; };
 
 /// TPoint<ShapeClass> as shorthand for `typename PointType<ShapeClass>::Type`.
 template<class Shape>
@@ -63,6 +63,10 @@ struct PointPair {
 struct PolygonTag {};
 struct BoxTag {};
 struct CircleTag {};
+
+template<class Shape> struct ShapeTag { using Type = typename Shape::Tag; };
+
+template<class S> using Tag = typename ShapeTag<S>::Type;
 
 /**
  * \brief An abstraction of a box;
@@ -670,9 +674,9 @@ namespace shapelike {
     }
 
     template<class S> // Dispatch function
-    inline _Box<typename S::PointType> boundingBox(const S& sh)
+    inline _Box<TPoint<S>> boundingBox(const S& sh)
     {
-        return boundingBox(sh, typename S::Tag());
+        return boundingBox(sh, Tag<S>() );
     }
 
     template<class Box>
@@ -690,7 +694,7 @@ namespace shapelike {
     template<class RawShape> // Dispatching function
     inline double area(const RawShape& sh)
     {
-        return area(sh, typename RawShape::Tag());
+        return area(sh, Tag<RawShape>());
     }
 
     template<class RawShape>

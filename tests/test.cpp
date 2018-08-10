@@ -219,21 +219,21 @@ TEST(GeometryAlgorithms, IsPointInsidePolygon) {
 
     Point p = {1, 1};
 
-    ASSERT_TRUE(rect.isPointInside(p));
+    ASSERT_TRUE(rect.isInside(p));
 
     p = {11, 11};
 
-    ASSERT_FALSE(rect.isPointInside(p));
+    ASSERT_FALSE(rect.isInside(p));
 
 
     p = {11, 12};
 
-    ASSERT_FALSE(rect.isPointInside(p));
+    ASSERT_FALSE(rect.isInside(p));
 
 
     p = {3, 3};
 
-    ASSERT_TRUE(rect.isPointInside(p));
+    ASSERT_TRUE(rect.isInside(p));
 
 }
 

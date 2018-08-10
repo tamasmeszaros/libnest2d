@@ -706,6 +706,7 @@ public:
                         return rawobjfunc(getNfpPoint(Optimum(relpos, ch)));
                     };
 
+                    // TODO : use parallel for
                     std::for_each(cache.corners().begin(),
                                   cache.corners().end(),
                                   [ch, &contour_ofn, &solver, &best_score,
@@ -738,6 +739,7 @@ public:
                             return rawobjfunc(getNfpPoint(opt));
                         };
 
+                        // TODO : use parallel for
                         std::for_each(cache.corners(hidx).begin(),
                                       cache.corners(hidx).end(),
                                       [&hole_ofn, &solver, &best_score,

@@ -21,9 +21,6 @@ struct PolygonImpl {
     PathImpl Contour;
     HoleStore Holes;
 
-    using Tag = libnest2d::PolygonTag;
-    using PointType = PointImpl;
-
     inline PolygonImpl() = default;
 
     inline explicit PolygonImpl(const PathImpl& cont): Contour(cont) {}
@@ -102,6 +99,10 @@ template<> struct PointType<PolygonImpl> {
     using Type = PointImpl;
 };
 
+template<> struct PointType<PointImpl> {
+    using Type = PointImpl;
+};
+
 // Type of vertex iterator used by Clipper
 template<> struct VertexIteratorType<PolygonImpl> {
     using Type = ClipperLib::Path::iterator;
@@ -116,27 +117,29 @@ template<> struct CountourType<PolygonImpl> {
     using Type = PathImpl;
 };
 
+template<> struct ShapeTag<PolygonImpl> { using Type = PolygonTag; };
+
 namespace pointlike {
 
-// Tell binpack2d how to extract the X coord from a ClipperPoint object
+// Tell libnest2d how to extract the X coord from a ClipperPoint object
 template<> inline TCoord<PointImpl> x(const PointImpl& p)
 {
     return p.X;
 }
 
-// Tell binpack2d how to extract the Y coord from a ClipperPoint object
+// Tell libnest2d how to extract the Y coord from a ClipperPoint object
 template<> inline TCoord<PointImpl> y(const PointImpl& p)
 {
     return p.Y;
 }
 
-// Tell binpack2d how to extract the X coord from a ClipperPoint object
+// Tell libnest2d how to extract the X coord from a ClipperPoint object
 template<> inline TCoord<PointImpl>& x(PointImpl& p)
 {
     return p.X;
 }
 
-// Tell binpack2d how to extract the Y coord from a ClipperPoint object
+// Tell libnest2d how to extract the Y coord from a ClipperPoint object
 template<> inline TCoord<PointImpl>& y(PointImpl& p)
 {
     return p.Y;
@@ -189,7 +192,7 @@ template<> inline void reserve(PolygonImpl& sh, size_t vertex_capacity)
     return sh.Contour.reserve(vertex_capacity);
 }
 
-// Tell binpack2d how to make string out of a ClipperPolygon object
+// Tell libnest2d how to make string out of a ClipperPolygon object
 template<> inline double area(const PolygonImpl& sh, const PolygonTag&)
 {
     return _smartarea::area<OrientationType<PolygonImpl>::Value>(sh);

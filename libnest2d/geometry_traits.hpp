@@ -820,6 +820,15 @@ namespace shapelike {
     }
 }
 
+#define DECLARE_MAIN_TYPES(T)        \
+    using Polygon = T;               \
+    using Point   = TPoint<T>;       \
+    using Coord   = TCoord<Point>;   \
+    using Path    = TContour<T>;     \
+    using Box     = _Box<Point>;     \
+    using Circle  = _Circle<Point>;  \
+    using Segment = _Segment<Point>
+
 }
 
 #endif // GEOMETRY_TRAITS_HPP

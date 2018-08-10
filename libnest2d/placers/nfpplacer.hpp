@@ -4,6 +4,12 @@
 #include <cassert>
 #include <random>
 
+// For parallel for
+#include <functional>
+#include <iterator>
+#include <future>
+#include <atomic>
+
 #ifndef NDEBUG
 #include <iostream>
 #endif
@@ -14,7 +20,34 @@
 #include "tools/svgtools.hpp"
 
 
-namespace libnest2d { namespace strategies {
+namespace libnest2d {
+
+namespace __parallel {
+
+using std::function;
+using std::iterator_traits;
+template<class It>
+using TIteratorValueType = typename iterator_traits<It>::value_type;
+
+template<class Iterator>
+inline void for_each(Iterator from, Iterator to,
+                     function<void(TIteratorValueType<Iterator>)> fn)
+{
+//    auto N = to-from;
+//    std::vector<std::future<void>> rets(N);
+
+//    auto it = from;
+//    for(unsigned b = 0; b < N; b++) {
+//        rets[b] = std::async(std::launch::deferred, fn, *it++);
+//    }
+
+//    for(unsigned fi = 0; fi < rets.size(); ++fi) rets[fi].wait();
+    std::for_each(from, to, fn);
+}
+
+}
+
+namespace strategies {
 
 template<class RawShape>
 struct NfpPConfig {
@@ -373,7 +406,7 @@ template<class RawShape, class Container, class Level>
 nfp::Shapes<RawShape> calcnfp( const Container& polygons,
                            const _Item<RawShape>& trsh,
                            Level)
-{
+{ // Function for arbitrary level of nfp implementation
     using namespace nfp;
     using Item = _Item<RawShape>;
 
@@ -399,43 +432,6 @@ nfp::Shapes<RawShape> calcnfp( const Container& polygons,
     }
 
     return nfps;
-
-
-//    using Item = _Item<RawShape>;
-//    using sl = ShapeLike;
-
-//    Nfp::Shapes<RawShape> nfps, stationary;
-
-//    for(Item& sh : polygons) {
-//        stationary = Nfp::merge(stationary, sh.transformedShape());
-//    }
-
-//    for(RawShape& sh : stationary) {
-
-////        auto vv = sl::isValid(sh);
-////        std::cout << vv.second << std::endl;
-
-
-//        Nfp::NfpResult<RawShape> subnfp;
-//        bool shconvex = sl::isConvex<RawShape>(sl::getContour(sh));
-//        if(shconvex && trsh.isContourConvex()) {
-//            subnfp = Nfp::noFitPolygon<NfpLevel::CONVEX_ONLY>(
-//                        sh, trsh.transformedShape());
-//        } else if(trsh.isContourConvex()) {
-//            subnfp = Nfp::noFitPolygon<NfpLevel::ONE_CONVEX>(
-//                        sh, trsh.transformedShape());
-//        }
-//        else {
-//            subnfp = Nfp::noFitPolygon<Level::value>( sh,
-//                                                      trsh.transformedShape());
-//        }
-
-//        correctNfpPosition(subnfp, sh, trsh);
-
-//        nfps = Nfp::merge(nfps, subnfp.first);
-//    }
-
-//    return nfps;
 }
 
 template<class RawShape>
@@ -589,7 +585,7 @@ public:
                 item.rotation(initial_rot + rot);
 
                 // place the new item outside of the print bed to make sure
-                // it is disjuct from the current merged pile
+                // it is disjunct from the current merged pile
                 placeOutsideOfBin(item);
 
                 auto trsh = item.transformedShape();
@@ -632,12 +628,14 @@ public:
                 }
 
                 auto merged_pile = nfp::merge(pile);
+                auto norm = norm_;
+                auto& bin = bin_;
 
                 // This is the kernel part of the object function that is
                 // customizable by the library client
                 auto _objfunc = config_.object_function?
                             config_.object_function :
-                [this, &merged_pile, &pile_area](
+                [norm, pile_area, &bin, &merged_pile](
                             nfp::Shapes<RawShape>& /*pile*/,
                             const Item& item,
                             const ItemGroup& /*remaining*/)
@@ -653,17 +651,19 @@ public:
                     double waste = 1.0 - pack_rate;
 
                     // Score is the square root of waste. This will extend the
-                    // range of good (lower) values and shring the range of bad
+                    // range of good (lower) values and shrink the range of bad
                     // (larger) values.
                     auto score = std::sqrt(waste);
 
-                    if(!wouldFit(ch, bin_)) score += norm_;
+                    if(!wouldFit(ch, bin)) score += norm;
 
                     return score;
                 };
 
                 // Our object function for placement
-                auto rawobjfunc = [&] (Vertex v)
+                auto rawobjfunc =
+                        [&item, &_objfunc, &iv,
+                         &startpos, &remlist, &pile] (Vertex v)
                 {
                     auto d = v - iv;
                     d += startpos;
@@ -674,7 +674,10 @@ public:
                     return score;
                 };
 
-                auto boundaryCheck = [&](const Optimum& o) {
+                auto boundaryCheck =
+                        [&merged_pile, &item, &bin, &iv,
+                         &getNfpPoint, &startpos] (const Optimum& o)
+                {
                     auto v = getNfpPoint(o);
                     auto d = v - iv;
                     d += startpos;
@@ -684,7 +687,7 @@ public:
                     auto chull = sl::convexHull(merged_pile);
                     merged_pile.pop_back();
 
-                    return wouldFit(chull, bin_);
+                    return wouldFit(chull, bin);
                 };
 
                 opt::StopCriteria stopcr;
@@ -707,7 +710,7 @@ public:
                     };
 
                     // TODO : use parallel for
-                    std::for_each(cache.corners().begin(),
+                    __parallel::for_each(cache.corners().begin(),
                                   cache.corners().end(),
                                   [ch, &contour_ofn, &solver, &best_score,
                                   &optimum, &boundaryCheck] (double pos)
@@ -740,7 +743,7 @@ public:
                         };
 
                         // TODO : use parallel for
-                        std::for_each(cache.corners(hidx).begin(),
+                        __parallel::for_each(cache.corners(hidx).begin(),
                                       cache.corners(hidx).end(),
                                       [&hole_ofn, &solver, &best_score,
                                        &optimum, ch, hidx, &boundaryCheck]

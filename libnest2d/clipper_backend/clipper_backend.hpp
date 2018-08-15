@@ -118,6 +118,13 @@ template<> struct CountourType<PolygonImpl> {
 };
 
 template<> struct ShapeTag<PolygonImpl> { using Type = PolygonTag; };
+template<> struct ShapeTag<TMultiShape<PolygonImpl>> {
+    using Type = MultiPolygonTag;
+};
+
+template<> struct PointType<TMultiShape<PolygonImpl>> {
+    using Type = PointImpl;
+};
 
 namespace pointlike {
 
@@ -413,8 +420,8 @@ inline void rotate(PolygonImpl& sh, const Radians& rads)
 } // namespace shapelike
 
 #define DISABLE_BOOST_NFP_MERGE
-inline nfp::Shapes<PolygonImpl> _merge(ClipperLib::Clipper& clipper) {
-    nfp::Shapes<PolygonImpl> retv;
+inline std::vector<PolygonImpl> _merge(ClipperLib::Clipper& clipper) {
+    shapelike::Shapes<PolygonImpl> retv;
 
     ClipperLib::PolyTree result;
     clipper.Execute(ClipperLib::ctUnion, result, ClipperLib::pftNegative);
@@ -450,8 +457,8 @@ inline nfp::Shapes<PolygonImpl> _merge(ClipperLib::Clipper& clipper) {
 
 namespace nfp {
 
-template<> inline nfp::Shapes<PolygonImpl>
-merge(const nfp::Shapes<PolygonImpl>& shapes)
+template<> inline std::vector<PolygonImpl>
+merge<std::vector<PolygonImpl>>(const std::vector<PolygonImpl>& shapes)
 {
     ClipperLib::Clipper clipper(ClipperLib::ioReverseSolution);
 

@@ -356,8 +356,7 @@ inline double area(const PolygonImpl& shape, const PolygonTag&)
 #endif
 
 template<>
-inline bool isInside<PolygonImpl>(const PointImpl& point,
-                                  const PolygonImpl& shape)
+inline bool isInside(const PointImpl& point, const PolygonImpl& shape)
 {
     return boost::geometry::within(point, shape);
 }
@@ -390,7 +389,8 @@ inline bp2d::Box boundingBox(const PolygonImpl& sh, const PolygonTag&)
 }
 
 template<>
-inline bp2d::Box boundingBox<PolygonImpl>(const bp2d::Shapes& shapes)
+inline bp2d::Box boundingBox<bp2d::Shapes>(const bp2d::Shapes& shapes,
+                                           const MultiPolygonTag&)
 {
     bp2d::Box b;
     boost::geometry::envelope(shapes, b);
@@ -400,7 +400,7 @@ inline bp2d::Box boundingBox<PolygonImpl>(const bp2d::Shapes& shapes)
 
 #ifndef DISABLE_BOOST_CONVEX_HULL
 template<>
-inline PolygonImpl convexHull(const PolygonImpl& sh)
+inline PolygonImpl convexHull(const PolygonImpl& sh, const PolygonTag&)
 {
     PolygonImpl ret;
     boost::geometry::convex_hull(sh, ret);
@@ -408,7 +408,8 @@ inline PolygonImpl convexHull(const PolygonImpl& sh)
 }
 
 template<>
-inline PolygonImpl convexHull(const bp2d::Shapes& shapes)
+inline PolygonImpl convexHull(const TMultiShape<PolygonImpl>& shapes,
+                              const MultiPolygonTag&)
 {
     PolygonImpl ret;
     boost::geometry::convex_hull(shapes, ret);

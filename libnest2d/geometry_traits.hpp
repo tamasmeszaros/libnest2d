@@ -61,12 +61,16 @@ struct PointPair {
 };
 
 struct PolygonTag {};
+struct MultiPolygonTag {};
 struct BoxTag {};
 struct CircleTag {};
 
 template<class Shape> struct ShapeTag { using Type = typename Shape::Tag; };
 
 template<class S> using Tag = typename ShapeTag<S>::Type;
+
+template<class S> struct MultiShape { using Type = std::vector<S>; };
+template<class S> using TMultiShape = typename MultiShape<S>::Type;
 
 /**
  * \brief An abstraction of a box;
@@ -375,7 +379,7 @@ enum class Formats {
 namespace shapelike {
 
     template<class RawShape>
-    using Shapes = std::vector<RawShape>;
+    using Shapes = TMultiShape<RawShape>;
 
     template<class RawShape>
     inline RawShape create(const TContour<RawShape>& contour,
@@ -563,27 +567,29 @@ namespace shapelike {
                       "ShapeLike::boundingBox(shape) unimplemented!");
     }
 
-    template<class RawShape>
-    inline _Box<TPoint<RawShape>> boundingBox(const Shapes<RawShape>& /*sh*/)
+    template<class RawShapes>
+    inline _Box<TPoint<typename RawShapes::value_type>>
+    boundingBox(const RawShapes& /*sh*/, const MultiPolygonTag&)
     {
-        static_assert(always_false<RawShape>::value,
+        static_assert(always_false<RawShapes>::value,
                       "ShapeLike::boundingBox(shapes) unimplemented!");
     }
 
     template<class RawShape>
-    inline RawShape convexHull(const RawShape& /*sh*/)
+    inline RawShape convexHull(const RawShape& /*sh*/, const PolygonTag&)
     {
         static_assert(always_false<RawShape>::value,
                       "ShapeLike::convexHull(shape) unimplemented!");
         return RawShape();
     }
 
-    template<class RawShape>
-    inline RawShape convexHull(const Shapes<RawShape>& /*sh*/)
+    template<class RawShapes>
+    inline typename RawShapes::value_type
+    convexHull(const RawShapes& /*sh*/, const MultiPolygonTag&)
     {
-        static_assert(always_false<RawShape>::value,
+        static_assert(always_false<RawShapes>::value,
                       "ShapeLike::convexHull(shapes) unimplemented!");
-        return RawShape();
+        return typename RawShapes::value_type();
     }
 
     template<class RawShape>
@@ -707,6 +713,13 @@ namespace shapelike {
     }
 
     template<class RawShape>
+    inline auto convexHull(const RawShape& sh)
+        -> decltype(convexHull(sh, Tag<RawShape>())) // TODO: C++14 could deduce
+    {
+        return convexHull(sh, Tag<RawShape>());
+    }
+
+    template<class RawShape>
     inline bool isInside(const TPoint<RawShape>& point,
                          const _Circle<TPoint<RawShape>>& circ)
     {
@@ -824,10 +837,11 @@ namespace shapelike {
     using Polygon = T;               \
     using Point   = TPoint<T>;       \
     using Coord   = TCoord<Point>;   \
-    using Path    = TContour<T>;     \
+    using Contour = TContour<T>;     \
     using Box     = _Box<Point>;     \
     using Circle  = _Circle<Point>;  \
-    using Segment = _Segment<Point>
+    using Segment = _Segment<Point>; \
+    using Polygons = TMultiShape<T>
 
 }
 

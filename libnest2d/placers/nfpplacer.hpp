@@ -368,7 +368,6 @@ nfp::Shapes<RawShape> calcnfp( const Container& polygons,
 
     nfp::Shapes<RawShape> nfps;
 
-//    int pi = 0;
     for(Item& sh : polygons) {
         auto subnfp_r = noFitPolygon<NfpLevel::CONVEX_ONLY>(
                             sh.transformedShape(), trsh.transformedShape());
@@ -383,20 +382,6 @@ nfp::Shapes<RawShape> calcnfp( const Container& polygons,
         correctNfpPosition(subnfp_r, sh, trsh);
 
         nfps = nfp::merge(nfps, subnfp_r.first);
-
-//        double SCALE = 1000000;
-//        using SVGWriter = svg::SVGWriter<RawShape>;
-//        SVGWriter::Config conf;
-//        conf.mm_in_coord_units = SCALE;
-//        SVGWriter svgw(conf);
-//        Box bin(250*SCALE, 210*SCALE);
-//        svgw.setSize(bin);
-//        for(int i = 0; i <= pi; i++) svgw.writeItem(polygons[i]);
-//        svgw.writeItem(trsh);
-////        svgw.writeItem(Item(subnfp_r.first));
-//        for(auto& n : nfps) svgw.writeItem(Item(n));
-//        svgw.save("nfpout");
-//        pi++;
     }
 
     return nfps;
@@ -556,7 +541,151 @@ public:
     }
 
     template<class Range = ConstItemRange<typename Base::DefaultIter>>
-    PackResult trypack(
+    PackResult trypack(Item& item,
+                        const Range& remaining = Range()) {
+        auto result = _trypack(item, remaining);
+
+        // Experimental
+        // if(!result) repack(item, result);
+
+        return result;
+    }
+
+    ~_NofitPolyPlacer() {
+        clearItems();
+    }
+
+    inline void clearItems() {
+        finalAlign(bin_);
+        Base::clearItems();
+    }
+
+private:
+
+    // Very much experimental
+    void repack(Item& item, PackResult& result) {
+        if(!result) {
+            double a = 0;
+            std::for_each(items_.begin(), items_.end(), [&a](const Item& itm){ a+= itm.area(); });
+            if((sl::area(bin_) - a) >= item.area()) {
+                auto prev_func = config_.object_function;
+
+                unsigned iter = 0;
+                ItemGroup backup_rf = items_;
+                std::vector<Item> backup_cpy;
+                for(Item& itm : items_) backup_cpy.emplace_back(itm);
+
+                auto ofn = [this, &item, &result, &iter, &backup_cpy, &backup_rf](double ratio) {
+                    auto& bin = bin_;
+//                    std::cout << "Recalc: " << iter << std::endl;
+                    iter++;
+                    config_.object_function = [bin, ratio](
+                            nfp::Shapes<RawShape>& pile,
+                            const Item& item,
+                            const ItemGroup& /*remaining*/)
+                    {
+                        pile.emplace_back(item.transformedShape());
+                        auto ch = sl::convexHull(pile);
+                        auto pbb = sl::boundingBox(pile);
+                        pile.pop_back();
+
+                        double parea = 0.5*(sl::area(ch) + sl::area(pbb));
+
+                        double pile_area = std::accumulate(
+                                    pile.begin(), pile.end(), item.area(),
+                                    [](double sum, const RawShape& sh){
+                            return sum + sl::area(sh);
+                        });
+
+                        // The pack ratio -- how much is the convex hull occupied
+                        double pack_rate = (pile_area)/parea;
+
+                        // ratio of waste
+                        double waste = 1.0 - pack_rate;
+
+                        // Score is the square root of waste. This will extend the
+                        // range of good (lower) values and shrink the range of bad
+                        // (larger) values.
+                        auto wscore = std::sqrt(waste);
+
+
+                        auto ibb = item.boundingBox();
+                        auto bbb = sl::boundingBox(bin);
+                        auto c = ibb.center();
+                        double norm = 0.5*pl::distance(bbb.minCorner(),
+                                                       bbb.maxCorner());
+
+                        double dscore = pl::distance(c, pbb.center()) / norm;
+
+                        return ratio*wscore + (1.0 - ratio) * dscore;
+                    };
+
+                    auto bb = sl::boundingBox(bin);
+                    double norm = bb.width() + bb.height();
+
+                    auto items = items_;
+                    clearItems();
+                    auto it = items.begin();
+                    while(auto pr = _trypack(*it++)) {
+                        this->accept(pr); if(it == items.end()) break;
+                    }
+
+                    auto count_diff = items.size() - items_.size();
+                    double score = count_diff;
+
+                    if(count_diff == 0) {
+                        result = _trypack(item);
+
+                        if(result) {
+                            std::cout << "Success" << std::endl;
+                            score = 0.0;
+                        } else {
+                            sl::Shapes<RawShape> pile;
+                            pile.reserve(items_.size() + 1);
+                            for(Item& itm : items_)
+                                pile.emplace_back(itm.transformedShape());
+                            pile.emplace_back(item.transformedShape());
+                            auto pbb = sl::boundingBox(pile);
+
+                            auto wdiff = pbb.width() - bb.width();
+                            auto hdiff = pbb.height() - bb.height();
+                            if(wdiff > 0) score = wdiff / norm;
+                            if(hdiff > 0) score += hdiff / norm;
+
+                        }
+                    } else {
+                        result = PackResult();
+                        items_ = backup_rf;
+                        for(unsigned i = 0; i < items_.size(); i++) {
+                            items_[i].get() = backup_cpy[i];
+                        }
+                    }
+
+                    std::cout << iter << " repack result: " << score << " " << ratio << " " << count_diff << std::endl;
+
+                    return score;
+                };
+
+//                opt::StopCriteria stopcr;
+//                stopcr.max_iterations = 300;
+//                stopcr.stop_score = 1e-20;
+//                opt::TOptimizer<opt::Method::L_SUBPLEX> solver(stopcr);
+//                solver.optimize_min(ofn, opt::initvals(0.5),
+//                                    opt::bound(0.0, 1.0));
+                std::array<double, 5> vals = {0, 0.25, 0.5, 0.75, 1.0};
+                for(auto v : vals) {
+                    double sc = ofn(v);
+                    if(sc <= 1e-20) break;
+                }
+
+                // optimize
+                config_.object_function = prev_func;
+            }
+        }
+    }
+
+    template<class Range = ConstItemRange<typename Base::DefaultIter>>
+    PackResult _trypack(
             Item& item,
             const Range& remaining = Range()) {
 
@@ -791,17 +920,6 @@ public:
         return ret;
     }
 
-    ~_NofitPolyPlacer() {
-        clearItems();
-    }
-
-    inline void clearItems() {
-        finalAlign(bin_);
-        Base::clearItems();
-    }
-
-private:
-
     inline void finalAlign(const RawShape& pbin) {
         auto bbin = sl::boundingBox(pbin);
         finalAlign(bbin);
@@ -823,7 +941,7 @@ private:
         nfp::Shapes<RawShape> m;
         m.reserve(items_.size());
         for(Item& item : items_) m.emplace_back(item.transformedShape());
-        auto&& bb = sl::boundingBox<RawShape>(m);
+        auto&& bb = sl::boundingBox(m);
 
         Vertex ci, cb;
 

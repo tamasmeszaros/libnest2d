@@ -54,19 +54,21 @@ void arrangeRectangles() {
     const int SCALE = 1000000;
 
     std::vector<Rectangle> rects = {
-        {60*SCALE, 200*SCALE},
-        {60*SCALE, 200*SCALE}
+        {100*SCALE, 100*SCALE},
+        {100*SCALE, 100*SCALE},
+        {100*SCALE, 100*SCALE},
+        {100*SCALE, 100*SCALE}
     };
 
     std::vector<Item> input;
-    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
 //    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
 //    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
-//    input.insert(input.end(), rects.begin(), rects.end());
+    input.insert(input.end(), rects.begin(), rects.end());
 //    input.insert(input.end(), proba.begin(), proba.end());
 //    input.insert(input.end(), crasher.begin(), crasher.end());
 
-    Box bin(250*SCALE, 210*SCALE);
+    Box bin(200*SCALE, 200*SCALE);
 //    PolygonImpl bin = {
 //        {
 //            {25*SCALE, 0},

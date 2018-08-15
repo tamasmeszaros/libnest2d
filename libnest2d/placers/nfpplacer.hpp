@@ -500,44 +500,52 @@ public:
     _NofitPolyPlacer& operator=(_NofitPolyPlacer&&) BP2D_NOEXCEPT = default;
 #endif
 
-    bool static inline wouldFit(const Box& bb, const RawShape& bin) {
-        auto bbin = sl::boundingBox<RawShape>(bin);
+    static inline double overfit(const Box& bb, const RawShape& bin) {
+        auto bbin = sl::boundingBox(bin);
         auto d = bbin.center() - bb.center();
         _Rectangle<RawShape> rect(bb.width(), bb.height());
         rect.translate(bb.minCorner() + d);
-        return sl::isInside<RawShape>(rect.transformedShape(), bin);
+        return sl::isInside(rect.transformedShape(), bin) ? -1.0 : 1;
     }
 
-    bool static inline wouldFit(const RawShape& chull, const RawShape& bin) {
-        auto bbch = sl::boundingBox<RawShape>(chull);
-        auto bbin = sl::boundingBox<RawShape>(bin);
+    static inline double overfit(const RawShape& chull, const RawShape& bin) {
+        auto bbch = sl::boundingBox(chull);
+        auto bbin = sl::boundingBox(bin);
         auto d =  bbch.center() - bbin.center();
         auto chullcpy = chull;
         sl::translate(chullcpy, d);
-        return sl::isInside<RawShape>(chullcpy, bin);
+        return sl::isInside(chullcpy, bin) ? -1.0 : 1.0;
     }
 
-    bool static inline wouldFit(const RawShape& chull, const Box& bin)
+    static inline double overfit(const RawShape& chull, const Box& bin)
     {
-        auto bbch = sl::boundingBox<RawShape>(chull);
-        return wouldFit(bbch, bin);
+        auto bbch = sl::boundingBox(chull);
+        return overfit(bbch, bin);
     }
 
-    bool static inline wouldFit(const Box& bb, const Box& bin)
+    static inline double overfit(const Box& bb, const Box& bin)
     {
-        return bb.width() <= bin.width() && bb.height() <= bin.height();
+        auto wdiff = double(bb.width() - bin.width());
+        auto hdiff = double(bb.height() - bin.height());
+        double diff = 0;
+        if((wdiff > 0) == (hdiff > 0)) diff = wdiff + hdiff;
+        else diff = std::max(wdiff, hdiff);
+        return diff;
     }
 
-    bool static inline wouldFit(const Box& bb, const _Circle<Vertex>& bin)
+    static inline double overfit(const Box& bb, const _Circle<Vertex>& bin)
     {
-
-        return sl::isInside<RawShape>(bb, bin);
+        double boxr = 0.5*pl::distance(bb.minCorner(), bb.maxCorner());
+        double diff = boxr - bin.radius();
+        return diff;
     }
 
-    bool static inline wouldFit(const RawShape& chull,
+    static inline double overfit(const RawShape& chull,
                                 const _Circle<Vertex>& bin)
     {
-        return boundingCircle(chull).radius() < bin.radius();
+        double r = boundingCircle(chull).radius();
+        double diff = r - bin.radius();
+        return diff;
     }
 
     template<class Range = ConstItemRange<typename Base::DefaultIter>>
@@ -564,124 +572,114 @@ private:
 
     // Very much experimental
     void repack(Item& item, PackResult& result) {
-        if(!result) {
-            double a = 0;
-            std::for_each(items_.begin(), items_.end(), [&a](const Item& itm){ a+= itm.area(); });
-            if((sl::area(bin_) - a) >= item.area()) {
-                auto prev_func = config_.object_function;
+        double a = 0;
+        std::for_each(items_.begin(), items_.end(), [&a](const Item& itm){ a+= itm.area(); });
+        if((sl::area(bin_) - a) >= item.area()) {
+            auto prev_func = config_.object_function;
 
-                unsigned iter = 0;
-                ItemGroup backup_rf = items_;
-                std::vector<Item> backup_cpy;
-                for(Item& itm : items_) backup_cpy.emplace_back(itm);
+            unsigned iter = 0;
+            ItemGroup backup_rf = items_;
+            std::vector<Item> backup_cpy;
+            for(Item& itm : items_) backup_cpy.emplace_back(itm);
 
-                auto ofn = [this, &item, &result, &iter, &backup_cpy, &backup_rf](double ratio) {
-                    auto& bin = bin_;
-//                    std::cout << "Recalc: " << iter << std::endl;
-                    iter++;
-                    config_.object_function = [bin, ratio](
-                            nfp::Shapes<RawShape>& pile,
-                            const Item& item,
-                            const ItemGroup& /*remaining*/)
-                    {
-                        pile.emplace_back(item.transformedShape());
-                        auto ch = sl::convexHull(pile);
-                        auto pbb = sl::boundingBox(pile);
-                        pile.pop_back();
+            auto ofn = [this, &item, &result, &iter, &backup_cpy, &backup_rf]
+                    (double ratio)
+            {
+                auto& bin = bin_;
+                iter++;
+                config_.object_function = [bin, ratio](
+                        nfp::Shapes<RawShape>& pile,
+                        const Item& item,
+                        const ItemGroup& /*remaining*/)
+                {
+                    pile.emplace_back(item.transformedShape());
+                    auto ch = sl::convexHull(pile);
+                    auto pbb = sl::boundingBox(pile);
+                    pile.pop_back();
 
-                        double parea = 0.5*(sl::area(ch) + sl::area(pbb));
+                    double parea = 0.5*(sl::area(ch) + sl::area(pbb));
 
-                        double pile_area = std::accumulate(
-                                    pile.begin(), pile.end(), item.area(),
-                                    [](double sum, const RawShape& sh){
-                            return sum + sl::area(sh);
-                        });
+                    double pile_area = std::accumulate(
+                                pile.begin(), pile.end(), item.area(),
+                                [](double sum, const RawShape& sh){
+                        return sum + sl::area(sh);
+                    });
 
-                        // The pack ratio -- how much is the convex hull occupied
-                        double pack_rate = (pile_area)/parea;
+                    // The pack ratio -- how much is the convex hull occupied
+                    double pack_rate = (pile_area)/parea;
 
-                        // ratio of waste
-                        double waste = 1.0 - pack_rate;
+                    // ratio of waste
+                    double waste = 1.0 - pack_rate;
 
-                        // Score is the square root of waste. This will extend the
-                        // range of good (lower) values and shrink the range of bad
-                        // (larger) values.
-                        auto wscore = std::sqrt(waste);
+                    // Score is the square root of waste. This will extend the
+                    // range of good (lower) values and shrink the range of bad
+                    // (larger) values.
+                    auto wscore = std::sqrt(waste);
 
 
-                        auto ibb = item.boundingBox();
-                        auto bbb = sl::boundingBox(bin);
-                        auto c = ibb.center();
-                        double norm = 0.5*pl::distance(bbb.minCorner(),
-                                                       bbb.maxCorner());
+                    auto ibb = item.boundingBox();
+                    auto bbb = sl::boundingBox(bin);
+                    auto c = ibb.center();
+                    double norm = 0.5*pl::distance(bbb.minCorner(),
+                                                   bbb.maxCorner());
 
-                        double dscore = pl::distance(c, pbb.center()) / norm;
+                    double dscore = pl::distance(c, pbb.center()) / norm;
 
-                        return ratio*wscore + (1.0 - ratio) * dscore;
-                    };
-
-                    auto bb = sl::boundingBox(bin);
-                    double norm = bb.width() + bb.height();
-
-                    auto items = items_;
-                    clearItems();
-                    auto it = items.begin();
-                    while(auto pr = _trypack(*it++)) {
-                        this->accept(pr); if(it == items.end()) break;
-                    }
-
-                    auto count_diff = items.size() - items_.size();
-                    double score = count_diff;
-
-                    if(count_diff == 0) {
-                        result = _trypack(item);
-
-                        if(result) {
-                            std::cout << "Success" << std::endl;
-                            score = 0.0;
-                        } else {
-                            sl::Shapes<RawShape> pile;
-                            pile.reserve(items_.size() + 1);
-                            for(Item& itm : items_)
-                                pile.emplace_back(itm.transformedShape());
-                            pile.emplace_back(item.transformedShape());
-                            auto pbb = sl::boundingBox(pile);
-
-                            auto wdiff = pbb.width() - bb.width();
-                            auto hdiff = pbb.height() - bb.height();
-                            if(wdiff > 0) score = wdiff / norm;
-                            if(hdiff > 0) score += hdiff / norm;
-
-                        }
-                    } else {
-                        result = PackResult();
-                        items_ = backup_rf;
-                        for(unsigned i = 0; i < items_.size(); i++) {
-                            items_[i].get() = backup_cpy[i];
-                        }
-                    }
-
-                    std::cout << iter << " repack result: " << score << " " << ratio << " " << count_diff << std::endl;
-
-                    return score;
+                    return ratio*wscore + (1.0 - ratio) * dscore;
                 };
 
-//                opt::StopCriteria stopcr;
-//                stopcr.max_iterations = 300;
-//                stopcr.stop_score = 1e-20;
-//                opt::TOptimizer<opt::Method::L_SUBPLEX> solver(stopcr);
-//                solver.optimize_min(ofn, opt::initvals(0.5),
-//                                    opt::bound(0.0, 1.0));
-                std::array<double, 5> vals = {0, 0.25, 0.5, 0.75, 1.0};
-                for(auto v : vals) {
-                    double sc = ofn(v);
-                    if(sc <= 1e-20) break;
+                auto bb = sl::boundingBox(bin);
+                double norm = bb.width() + bb.height();
+
+                auto items = items_;
+                clearItems();
+                auto it = items.begin();
+                while(auto pr = _trypack(*it++)) {
+                    this->accept(pr); if(it == items.end()) break;
                 }
 
-                // optimize
-                config_.object_function = prev_func;
-            }
+                auto count_diff = items.size() - items_.size();
+                double score = count_diff;
+
+                if(count_diff == 0) {
+                    result = _trypack(item);
+
+                    if(result) {
+                        std::cout << "Success" << std::endl;
+                        score = 0.0;
+                    } else {
+                        score += result.overfit() / norm;
+                    }
+                } else {
+                    result = PackResult();
+                    items_ = backup_rf;
+                    for(unsigned i = 0; i < items_.size(); i++) {
+                        items_[i].get() = backup_cpy[i];
+                    }
+                }
+
+                std::cout << iter << " repack result: " << score << " "
+                          << ratio << " " << count_diff << std::endl;
+
+                return score;
+            };
+
+                opt::StopCriteria stopcr;
+                stopcr.max_iterations = 30;
+                stopcr.stop_score = 1e-20;
+                opt::TOptimizer<opt::Method::L_SUBPLEX> solver(stopcr);
+                solver.optimize_min(ofn, opt::initvals(0.5),
+                                    opt::bound(0.0, 1.0));
+//            std::array<double, 5> vals = {0, 0.25, 0.5, 0.75, 1.0};
+//            for(auto v : vals) {
+//                double sc = ofn(v);
+//                if(sc <= 1e-20) break;
+//            }
+
+            // optimize
+            config_.object_function = prev_func;
         }
+
     }
 
     template<class Range = ConstItemRange<typename Base::DefaultIter>>
@@ -692,12 +690,14 @@ private:
         PackResult ret;
 
         bool can_pack = false;
+        double best_overfit = std::numeric_limits<double>::max();
 
         auto remlist = ItemGroup(remaining.from, remaining.to);
 
         if(items_.empty()) {
             setInitialPosition(item);
-            can_pack = item.isInside(bin_);
+            best_overfit = overfit(item.transformedShape(), bin_);
+            can_pack = best_overfit <= 0;
         } else {
 
             double global_score = std::numeric_limits<double>::max();
@@ -784,7 +784,9 @@ private:
                     // (larger) values.
                     auto score = std::sqrt(waste);
 
-                    if(!wouldFit(ch, bin)) score += norm;
+                    double miss = overfit(ch, bin);
+                    miss = miss > 0? miss : 0;
+                    score += miss / norm;
 
                     return score;
                 };
@@ -816,7 +818,7 @@ private:
                     auto chull = sl::convexHull(merged_pile);
                     merged_pile.pop_back();
 
-                    return wouldFit(chull, bin);
+                    return overfit(chull, bin);
                 };
 
                 opt::StopCriteria stopcr;
@@ -842,7 +844,8 @@ private:
                     __parallel::for_each(cache.corners().begin(),
                                   cache.corners().end(),
                                   [ch, &contour_ofn, &solver, &best_score,
-                                  &optimum, &boundaryCheck] (double pos)
+                                   &best_overfit, &optimum, &boundaryCheck]
+                                  (double pos)
                     {
                         try {
                             auto result = solver.optimize_min(contour_ofn,
@@ -852,9 +855,12 @@ private:
 
                             if(result.score < best_score) {
                                 Optimum o(std::get<0>(result.optimum), ch, -1);
-                                if(boundaryCheck(o)) {
+                                double miss = boundaryCheck(o);
+                                if(miss <= 0) {
                                     best_score = result.score;
                                     optimum = o;
+                                } else {
+                                    best_overfit = std::min(miss, best_overfit);
                                 }
                             }
                         } catch(std::exception& e) {
@@ -874,8 +880,8 @@ private:
                         // TODO : use parallel for
                         __parallel::for_each(cache.corners(hidx).begin(),
                                       cache.corners(hidx).end(),
-                                      [&hole_ofn, &solver, &best_score,
-                                       &optimum, ch, hidx, &boundaryCheck]
+                                      [&hole_ofn, &solver, &best_score, ch, hidx,
+                                       &best_overfit, &optimum, &boundaryCheck]
                                       (double pos)
                         {
                             try {
@@ -887,9 +893,13 @@ private:
                                 if(result.score < best_score) {
                                     Optimum o(std::get<0>(result.optimum),
                                               ch, hidx);
-                                    if(boundaryCheck(o)) {
+                                    double miss = boundaryCheck(o);
+                                    if(miss <= 0.0) {
                                         best_score = result.score;
                                         optimum = o;
+                                    } else {
+                                        best_overfit =
+                                                std::min(miss, best_overfit);
                                     }
                                 }
                             } catch(std::exception& e) {
@@ -915,6 +925,8 @@ private:
 
         if(can_pack) {
             ret = PackResult(item);
+        } else {
+            ret = PackResult(best_overfit);
         }
 
         return ret;

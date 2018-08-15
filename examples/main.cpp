@@ -61,14 +61,14 @@ void arrangeRectangles() {
     };
 
     std::vector<Item> input;
-//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
 //    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
 //    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
-    input.insert(input.end(), rects.begin(), rects.end());
+//    input.insert(input.end(), rects.begin(), rects.end());
 //    input.insert(input.end(), proba.begin(), proba.end());
 //    input.insert(input.end(), crasher.begin(), crasher.end());
 
-    Box bin(200*SCALE, 200*SCALE);
+    Box bin(180*SCALE, 200*SCALE);
 //    PolygonImpl bin = {
 //        {
 //            {25*SCALE, 0},

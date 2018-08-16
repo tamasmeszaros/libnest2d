@@ -2,7 +2,9 @@
 #define NOFITPOLY_HPP
 
 #include <cassert>
-#include <random>
+
+// For caching nfps
+#include <unordered_map>
 
 // For parallel for
 #include <functional>
@@ -44,6 +46,53 @@ inline void for_each(Iterator from, Iterator to,
 //    for(unsigned fi = 0; fi < rets.size(); ++fi) rets[fi].wait();
     std::for_each(from, to, fn);
 }
+
+}
+
+namespace __itemhash {
+
+template<class S>
+size_t hash(const _Item<S>& item) {
+    using Point = TPoint<S>;
+    using Segment = _Segment<Point>;
+
+    static const int N = 26;
+    static const int M = N*N - 1;
+
+    std::string ret;
+    auto& rhs = item.rawShape();
+    auto& ctr = sl::getContour(rhs);
+    auto it = ctr.begin();
+    auto nx = std::next(it);
+
+    double circ = 0;
+    while(nx != ctr.end()) {
+        Segment seg(*it++, *nx++);
+        Radians a = seg.angleToXaxis();
+        double deg = Degrees(a);
+        int ms = 'A', ls = 'A';
+        while(deg > N) { ms++; deg -= N; }
+        ls += int(deg);
+        ret.push_back(char(ms)); ret.push_back(char(ls));
+        circ += seg.length();
+    }
+
+    it = ctr.begin(); nx = std::next(it);
+
+    while(nx != ctr.end()) {
+        Segment seg(*it++, *nx++);
+        auto l = int(M * seg.length() / circ);
+        int ms = 'A', ls = 'A';
+        while(l > N) { ms++; l -= N; }
+        ls += l;
+        ret.push_back(char(ms)); ret.push_back(char(ls));
+    }
+
+    return std::hash<std::string>()(ret);
+}
+
+template<class S>
+using Hash = std::unordered_map<size_t, nfp::NfpResult<S>>;
 
 }
 
@@ -360,17 +409,34 @@ inline void correctNfpPosition(nfp::NfpResult<RawShape>& nfp,
 
 template<class RawShape, class Container>
 nfp::Shapes<RawShape> calcnfp( const Container& polygons,
-                           const _Item<RawShape>& trsh,
-                           Lvl<nfp::NfpLevel::CONVEX_ONLY>)
+                               const _Item<RawShape>& trsh,
+                               const size_t& /*itemkey*/,
+                               __itemhash::Hash<RawShape>& /*itemcache*/,
+                               const std::vector<size_t>& /*itemkeys*/,
+                               Lvl<nfp::NfpLevel::CONVEX_ONLY>)
 {
     using Item = _Item<RawShape>;
     using namespace nfp;
 
     nfp::Shapes<RawShape> nfps;
 
+//    unsigned idx = 0;
     for(Item& sh : polygons) {
-        auto subnfp_r = noFitPolygon<NfpLevel::CONVEX_ONLY>(
+
+//        auto ik = itemkeys[idx++] + itemkey;
+//        auto fnd = itemcache.find(ik);
+
+//        nfp::NfpResult<RawShape> subnfp_r;
+//        if(fnd == itemcache.end()) {
+
+            auto subnfp_r = noFitPolygon<NfpLevel::CONVEX_ONLY>(
                             sh.transformedShape(), trsh.transformedShape());
+//            itemcache[ik] = subnfp_r;
+//        } else {
+//            subnfp_r = fnd->second;
+////            std::cout << "found nfp" << std::endl;
+//        }
+
         #ifndef NDEBUG
             auto vv = sl::isValid(sh.transformedShape());
             assert(vv.first);
@@ -389,8 +455,11 @@ nfp::Shapes<RawShape> calcnfp( const Container& polygons,
 
 template<class RawShape, class Container, class Level>
 nfp::Shapes<RawShape> calcnfp( const Container& polygons,
-                           const _Item<RawShape>& trsh,
-                           Level)
+                               const _Item<RawShape>& trsh,
+                               const size_t& /*itemkey*/,
+                               __itemhash::Hash<RawShape>& /*itemcache*/,
+                               const std::vector<size_t>& /*itemkeys*/,
+                               Level)
 { // Function for arbitrary level of nfp implementation
     using namespace nfp;
     using Item = _Item<RawShape>;
@@ -481,7 +550,11 @@ class _NofitPolyPlacer: public PlacerBoilerplate<_NofitPolyPlacer<RawShape, TBin
 
     using Box = _Box<TPoint<RawShape>>;
 
+    using ItemKeys = std::vector<size_t>;
+
     const double norm_;
+    __itemhash::Hash<RawShape> nfpcache_;
+    ItemKeys item_keys_;
 
     using MaxNfpLevel = nfp::MaxNfpLevel<RawShape>;
 public:
@@ -693,6 +766,7 @@ private:
         double best_overfit = std::numeric_limits<double>::max();
 
         auto remlist = ItemGroup(remaining.from, remaining.to);
+        size_t itemhash = __itemhash::hash(item);
 
         if(items_.empty()) {
             setInitialPosition(item);
@@ -717,10 +791,11 @@ private:
                 // it is disjunct from the current merged pile
                 placeOutsideOfBin(item);
 
-                auto trsh = item.transformedShape();
+                nfps = calcnfp(items_, item,
+                               itemhash, nfpcache_, item_keys_,
+                               Lvl<MaxNfpLevel::value>());
 
-                nfps = calcnfp(items_, item, Lvl<MaxNfpLevel::value>());
-                auto iv = nfp::referenceVertex(trsh);
+                auto iv = item.referenceVertex();
 
                 auto startpos = item.translation();
 
@@ -925,6 +1000,7 @@ private:
 
         if(can_pack) {
             ret = PackResult(item);
+            item_keys_.emplace_back(itemhash);
         } else {
             ret = PackResult(best_overfit);
         }

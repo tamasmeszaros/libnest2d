@@ -66,7 +66,6 @@ struct BoxTag {};
 struct CircleTag {};
 
 template<class Shape> struct ShapeTag { using Type = typename Shape::Tag; };
-
 template<class S> using Tag = typename ShapeTag<S>::Type;
 
 template<class S> struct MultiShape { using Type = std::vector<S>; };

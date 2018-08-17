@@ -88,9 +88,6 @@ public:
     inline void clearItems() {
         items_.clear();
         farea_valid_ = false;
-#ifndef NDEBUG
-        debug_items_.clear();
-#endif
     }
 
     inline double filledArea() const {
@@ -106,10 +103,6 @@ public:
 
         return farea_;
     }
-
-#ifndef NDEBUG
-    std::vector<Item> debug_items_;
-#endif
 
 protected:
 

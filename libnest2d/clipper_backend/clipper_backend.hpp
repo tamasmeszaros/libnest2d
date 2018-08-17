@@ -458,7 +458,7 @@ inline std::vector<PolygonImpl> _merge(ClipperLib::Clipper& clipper) {
 namespace nfp {
 
 template<> inline std::vector<PolygonImpl>
-merge<std::vector<PolygonImpl>>(const std::vector<PolygonImpl>& shapes)
+merge(const std::vector<PolygonImpl>& shapes)
 {
     ClipperLib::Clipper clipper(ClipperLib::ioReverseSolution);
 

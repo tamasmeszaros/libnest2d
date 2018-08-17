@@ -99,10 +99,10 @@ void arrangeRectangles() {
                                  });
 
     std::vector<Item> input;
-//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
 //    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
 //    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
-    input.insert(input.end(), rects.begin(), rects.end());
+//    input.insert(input.end(), rects.begin(), rects.end());
 //    input.insert(input.end(), proba.begin(), proba.end());
 //    input.insert(input.end(), crasher.begin(), crasher.end());
 
@@ -124,7 +124,7 @@ void arrangeRectangles() {
 
 //    _Circle<PointImpl> bin({0, 0}, 125*SCALE);
 
-    auto min_obj_distance = static_cast<Coord>(1.5*SCALE);
+    auto min_obj_distance = static_cast<Coord>(6*SCALE);
 
     using Placer = strategies::_NofitPolyPlacer<PolygonImpl, decltype(bin)>;
     using Packer = Nester<Placer, FirstFitSelection>;
@@ -153,7 +153,7 @@ void arrangeRectangles() {
 //        svgw.setSize(bin);
 //        svgw.writePackGroup(arrange.lastResult());
 //        svgw.save("debout");
-//        std::cout << "Remaining items: " << r << std::endl;
+        std::cout << "Remaining items: " << r << std::endl;
     });
 
 //    findMinimumBoundingBoxRotations(input.begin(), input.end());

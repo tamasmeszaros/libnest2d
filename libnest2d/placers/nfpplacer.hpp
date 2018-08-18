@@ -832,34 +832,27 @@ private:
 
                 auto merged_pile = nfp::merge(pile);
                 auto& bin = bin_;
+                double norm = norm_;
 
                 // This is the kernel part of the object function that is
                 // customizable by the library client
                 auto _objfunc = config_.object_function?
                             config_.object_function :
-                            [pile_area, bin, merged_pile](
+                            [norm, pile_area, bin, merged_pile](
                                 const Pile& /*pile*/,
                                 const Item& item,
                                 const ItemGroup& /*remaining*/)
                 {
+                    auto ibb = item.boundingBox();
+                    auto binbb = sl::boundingBox(bin);
                     auto mp = merged_pile;
                     mp.emplace_back(item.transformedShape());
-                    auto ch = sl::convexHull(mp);
-                    auto ar = sl::area(ch);
-                    mp.pop_back();
+                    auto fullbb = sl::boundingBox(mp);
 
-                    // The pack ratio -- how much is the convex hull occupied
-                    double pack_rate = (pile_area + item.area())/ar;
+                    double score = pl::distance(ibb.center(), binbb.center());
+                    score /= norm;
 
-                    // ratio of waste
-                    double waste = 1.0 - pack_rate;
-
-                    // Score is the square root of waste. This will extend the
-                    // range of good (lower) values and shrink the range of bad
-                    // (larger) values.
-                    auto score = std::sqrt(waste);
-
-                    double miss = overfit(ch, bin);
+                    double miss = overfit(fullbb, bin);
                     miss = miss > 0? miss : 0;
                     score += std::pow(miss, 2);
 

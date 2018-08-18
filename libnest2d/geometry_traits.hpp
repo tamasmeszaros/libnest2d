@@ -28,28 +28,6 @@ template<class Sh> struct PointType { using Type = typename Sh::PointType; };
 template<class Shape>
 using TPoint = typename PointType<remove_cvref_t<Shape>>::Type;
 
-/// Getting the VertexIterator type of a shape class.
-template<class Shape> struct VertexIteratorType { /*using Type = void;*/ };
-
-/// Getting the const vertex iterator for a shape class.
-template<class Shape> struct VertexConstIteratorType {/* using Type = void;*/ };
-
-/**
- * TVertexIterator<Shape> as shorthand for
- * `typename VertexIteratorType<Shape>::Type`
- */
-template<class Shape>
-using TVertexIterator =
-typename VertexIteratorType<remove_cvref_t<Shape>>::Type;
-
-/**
- * \brief TVertexConstIterator<Shape> as shorthand for
- * `typename VertexConstIteratorType<Shape>::Type`
- */
-template<class ShapeClass>
-using TVertexConstIterator =
-typename VertexConstIteratorType<remove_cvref_t<ShapeClass>>::Type;
-
 /**
  * \brief A point pair base class for other point pairs (segment, box, ...).
  * \tparam RawPoint The actual point type to use.
@@ -462,25 +440,26 @@ namespace shapelike {
     }
 
     template<class RawShape>
-    inline TVertexIterator<RawShape> begin(RawShape& sh)
+    inline typename TContour<RawShape>::iterator begin(RawShape& sh)
     {
         return sh.begin();
     }
 
     template<class RawShape>
-    inline TVertexIterator<RawShape> end(RawShape& sh)
+    inline typename TContour<RawShape>::iterator end(RawShape& sh)
     {
         return sh.end();
     }
 
     template<class RawShape>
-    inline TVertexConstIterator<RawShape> cbegin(const RawShape& sh)
+    inline typename TContour<RawShape>::const_iterator
+    cbegin(const RawShape& sh)
     {
         return sh.cbegin();
     }
 
     template<class RawShape>
-    inline TVertexConstIterator<RawShape> cend(const RawShape& sh)
+    inline typename TContour<RawShape>::const_iterator cend(const RawShape& sh)
     {
         return sh.cend();
     }

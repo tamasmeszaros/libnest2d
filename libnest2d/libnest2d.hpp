@@ -31,6 +31,8 @@ class _Item {
     using Vertex = TPoint<RawShape>;
     using Box = _Box<Vertex>;
 
+    using VertexConstIterator = typename TContour<RawShape>::const_iterator;
+
     // The original shape that gets encapsulated.
     RawShape sh_;
 
@@ -59,8 +61,8 @@ class _Item {
     };
 
     mutable Convexity convexity_ = Convexity::UNCHECKED;
-    mutable TVertexConstIterator<RawShape> rmt_;    // rightmost top vertex
-    mutable TVertexConstIterator<RawShape> lmb_;    // leftmost bottom vertex
+    mutable VertexConstIterator rmt_;    // rightmost top vertex
+    mutable VertexConstIterator lmb_;    // leftmost bottom vertex
     mutable bool rmt_valid_ = false, lmb_valid_ = false;
     mutable struct BBCache {
         Box bb; bool valid; Vertex tr;
@@ -81,7 +83,7 @@ public:
      * supports. Giving out a non const iterator would make it impossible to
      * perform correct cache invalidation.
      */
-    using Iterator = TVertexConstIterator<RawShape>;
+    using Iterator = VertexConstIterator;
 
     /**
      * @brief Get the orientation of the polygon.

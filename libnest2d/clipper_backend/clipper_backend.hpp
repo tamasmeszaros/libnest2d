@@ -103,27 +103,22 @@ template<> struct PointType<PointImpl> {
     using Type = PointImpl;
 };
 
-// Type of vertex iterator used by Clipper
-template<> struct VertexIteratorType<PolygonImpl> {
-    using Type = ClipperLib::Path::iterator;
-};
-
-// Type of vertex iterator used by Clipper
-template<> struct VertexConstIteratorType<PolygonImpl> {
-    using Type = ClipperLib::Path::const_iterator;
-};
-
 template<> struct CountourType<PolygonImpl> {
     using Type = PathImpl;
 };
 
 template<> struct ShapeTag<PolygonImpl> { using Type = PolygonTag; };
+
 template<> struct ShapeTag<TMultiShape<PolygonImpl>> {
     using Type = MultiPolygonTag;
 };
 
 template<> struct PointType<TMultiShape<PolygonImpl>> {
     using Type = PointImpl;
+};
+
+template<> struct HolesContainer<PolygonImpl> {
+    using Type = ClipperLib::Paths;
 };
 
 namespace pointlike {
@@ -187,10 +182,6 @@ inline double area<Orientation::COUNTER_CLOCKWISE>(const PolygonImpl& sh) {
 }
 
 }
-
-template<> struct HolesContainer<PolygonImpl> {
-    using Type = ClipperLib::Paths;
-};
 
 namespace shapelike {
 
@@ -279,23 +270,23 @@ template<> inline std::string toString(const PolygonImpl& sh)
     return ss.str();
 }
 
-template<> inline TVertexIterator<PolygonImpl> begin(PolygonImpl& sh)
+template<> inline PathImpl::iterator begin(PolygonImpl& sh)
 {
     return sh.Contour.begin();
 }
 
-template<> inline TVertexIterator<PolygonImpl> end(PolygonImpl& sh)
+template<> inline PathImpl::iterator end(PolygonImpl& sh)
 {
     return sh.Contour.end();
 }
 
 template<>
-inline TVertexConstIterator<PolygonImpl> cbegin(const PolygonImpl& sh)
+inline PathImpl::const_iterator cbegin(const PolygonImpl& sh)
 {
     return sh.Contour.cbegin();
 }
 
-template<> inline TVertexConstIterator<PolygonImpl> cend(
+template<> inline PathImpl::const_iterator cend(
         const PolygonImpl& sh)
 {
     return sh.Contour.cend();

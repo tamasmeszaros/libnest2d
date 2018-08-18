@@ -53,7 +53,7 @@ void arrangeRectangles() {
 
     const int SCALE = 1000000;
 
-    std::vector<Item> rects(20,       {
+    std::vector<Item> rects(100,       {
                                      {-9945219, -3065619},
                                      {-9781479, -2031780},
                                      {-9510560, -1020730},
@@ -124,7 +124,7 @@ void arrangeRectangles() {
 
 //    _Circle<PointImpl> bin({0, 0}, 125*SCALE);
 
-    auto min_obj_distance = static_cast<Coord>(6*SCALE);
+    auto min_obj_distance = static_cast<Coord>(0*SCALE);
 
     using Placer = strategies::_NofitPolyPlacer<PolygonImpl, decltype(bin)>;
     using Packer = Nester<Placer, FirstFitSelection>;
@@ -135,7 +135,8 @@ void arrangeRectangles() {
     pconf.alignment = Placer::Config::Alignment::CENTER;
     pconf.starting_point = Placer::Config::Alignment::CENTER;
     pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/};
-    pconf.accuracy = 1.0f;
+    pconf.accuracy = 0.65f;
+    pconf.parallel = true;
 
     Packer::SelectionConfig sconf;
 //    sconf.allow_parallel = false;

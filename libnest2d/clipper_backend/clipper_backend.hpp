@@ -270,28 +270,6 @@ template<> inline std::string toString(const PolygonImpl& sh)
     return ss.str();
 }
 
-template<> inline PathImpl::iterator begin(PolygonImpl& sh)
-{
-    return sh.Contour.begin();
-}
-
-template<> inline PathImpl::iterator end(PolygonImpl& sh)
-{
-    return sh.Contour.end();
-}
-
-template<>
-inline PathImpl::const_iterator cbegin(const PolygonImpl& sh)
-{
-    return sh.Contour.cbegin();
-}
-
-template<> inline PathImpl::const_iterator cend(
-        const PolygonImpl& sh)
-{
-    return sh.Contour.cend();
-}
-
 template<>
 inline PolygonImpl create(const PathImpl& path, const HoleStore& holes)
 {

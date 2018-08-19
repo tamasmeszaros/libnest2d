@@ -442,26 +442,26 @@ namespace shapelike {
     template<class RawShape>
     inline typename TContour<RawShape>::iterator begin(RawShape& sh)
     {
-        return sh.begin();
+        return getContour(sh).begin();
     }
 
     template<class RawShape>
     inline typename TContour<RawShape>::iterator end(RawShape& sh)
     {
-        return sh.end();
+        return getContour(sh).end();
     }
 
     template<class RawShape>
     inline typename TContour<RawShape>::const_iterator
     cbegin(const RawShape& sh)
     {
-        return sh.cbegin();
+        return getContour(sh).cbegin();
     }
 
     template<class RawShape>
     inline typename TContour<RawShape>::const_iterator cend(const RawShape& sh)
     {
-        return sh.cend();
+        return getContour(sh).cend();
     }
 
     template<class RawShape>

@@ -923,11 +923,10 @@ private:
                     {
                         Optimizer solver;
                         try {
-                            auto result = solver.optimize_min(contour_ofn,
+                            results[n] = solver.optimize_min(contour_ofn,
                                             opt::initvals<double>(pos),
                                             opt::bound<double>(0, 1.0)
                                             );
-                            results[n] = result;
                         } catch(std::exception& e) {
                             derr() << "ERROR: " << e.what() << "\n";
                         }

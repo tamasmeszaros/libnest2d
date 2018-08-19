@@ -587,8 +587,7 @@ namespace shapelike {
     template<class RawShape>
     inline void offset(RawShape& /*sh*/, TCoord<TPoint<RawShape>> /*distance*/)
     {
-        static_assert(always_false<RawShape>::value,
-                      "ShapeLike::offset() unimplemented!");
+        dout() << "The current geometry backend does not support offsetting!\n";
     }
 
     template<class RawShape>

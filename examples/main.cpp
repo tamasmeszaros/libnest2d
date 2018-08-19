@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-
 //#define DEBUG_EXPORT_NFP
 
 #include <libnest2d.h>
@@ -12,6 +11,7 @@
 #include "libnest2d/rotfinder.hpp"
 
 //#include "tools/libnfpglue.hpp"
+#include "tools/nfp_svgnest_glue.hpp"
 
 using namespace libnest2d;
 using ItemGroup = std::vector<std::reference_wrapper<Item>>;
@@ -99,10 +99,10 @@ void arrangeRectangles() {
                                  });
 
     std::vector<Item> input;
-    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
-//    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
+//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
 //    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
-    input.insert(input.end(), rects.begin(), rects.end());
+//    input.insert(input.end(), rects.begin(), rects.end());
 //    input.insert(input.end(), proba.begin(), proba.end());
 //    input.insert(input.end(), crasher.begin(), crasher.end());
 
@@ -124,7 +124,7 @@ void arrangeRectangles() {
 
 //    _Circle<PointImpl> bin({0, 0}, 125*SCALE);
 
-    auto min_obj_distance = static_cast<Coord>(6*SCALE);
+    auto min_obj_distance = static_cast<Coord>(1.5*SCALE);
 
     using Placer = strategies::_NofitPolyPlacer<PolygonImpl, decltype(bin)>;
     using Packer = Nester<Placer, FirstFitSelection>;

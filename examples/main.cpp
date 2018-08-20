@@ -13,6 +13,7 @@
 //#include "tools/libnfpglue.hpp"
 #include "tools/nfp_svgnest_glue.hpp"
 
+
 using namespace libnest2d;
 using ItemGroup = std::vector<std::reference_wrapper<Item>>;
 
@@ -99,8 +100,8 @@ void arrangeRectangles() {
                                  });
 
     std::vector<Item> input;
-//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
-    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
+    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+//    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
 //    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
 //    input.insert(input.end(), rects.begin(), rects.end());
 //    input.insert(input.end(), proba.begin(), proba.end());

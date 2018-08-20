@@ -569,11 +569,7 @@ public:
         {
 
             packed_bins_[idx] = placer.getItems();
-#ifndef NDEBUG
-            packed_bins_[idx].insert(packed_bins_[idx].end(),
-                                       placer.getDebugItems().begin(),
-                                       placer.getDebugItems().end());
-#endif
+
             // TODO here should be a spinlock
             slock.lock();
             acounter -= packednum;

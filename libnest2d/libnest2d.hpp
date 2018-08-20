@@ -630,13 +630,6 @@ public:
 
     inline double filledArea() const { return impl_.filledArea(); }
 
-#ifndef NDEBUG
-    inline auto getDebugItems() -> decltype(impl_.debug_items_)&
-    {
-        return impl_.debug_items_;
-    }
-#endif
-
 };
 
 // The progress function will be called with the number of placed items

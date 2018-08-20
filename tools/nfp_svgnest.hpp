@@ -2,6 +2,7 @@
 #define NFP_SVGNEST_HPP
 
 #include <limits>
+#include <unordered_map>
 
 #include <libnest2d/geometry_traits_nfp.hpp>
 
@@ -15,24 +16,29 @@ using std::max;
 using std::abs;
 using std::isnan;
 
-template<class Coord> struct _Tol {
-    static const BP2D_CONSTEXPR long long Value = 1000000;
-};
+//template<class Coord> struct _Scale {
+//    static const BP2D_CONSTEXPR long long Value = 1000000;
+//};
 
 template<class S> struct _alg {
-    using Cntr = TContour<S>;
+    using Contour = TContour<S>;
     using Point = TPoint<S>;
-    using Coord = TCoord<Point>;
+    using iCoord = TCoord<Point>;
+    using Coord = double;
     using Shapes = nfp::Shapes<S>;
 
-#define TOL _Tol<Coord>::Value
+//#define TOL _Tol<Coord>::Value
+    static const BP2D_CONSTEXPR Coord TOL = std::pow(10, -9);
+
 #define dNAN std::nan("")
 
     struct Vector {
         Coord x, y;
+        bool marked = false;
+        Vector() = default;
         Vector(Coord X, Coord Y): x(X), y(Y) {}
         Vector(const Point& p): x(getX(p)), y(getY(p)) {}
-        operator Point() const { return {x, y}; }
+        operator Point() const { return {iCoord(x), iCoord(y)}; }
         Vector& operator=(const Point& p) {
             x = getX(p), y = getY(p); return *this;
         }
@@ -41,13 +47,154 @@ template<class S> struct _alg {
     };
 
 
-    inline static bool _almostEqual(Coord a, Coord b,
-                                    Coord tolerance = _Tol<S>::Value)
-    {
-        return std::abs(a - b) < tolerance;
+
+    static inline Coord x(const Point& p) { return Coord(getX(p)); }
+    static inline Coord y(const Point& p) { return Coord(getY(p)); }
+
+    static inline Coord x(const Vector& p) { return p.x; }
+    static inline Coord y(const Vector& p) { return p.y; }
+
+    class Cntr {
+        std::vector<Vector> v_;
+    public:
+        Cntr(const Contour& c) {
+            v_.reserve(c.size());
+            std::transform(c.begin(), c.end(), std::back_inserter(v_),
+                           [](const Point& p) {
+                return Vector(double(x(p))/1e6, double(y(p))/1e6);
+            });
+        }
+        Cntr() = default;
+
+        Coord offsetx = 0;
+        Coord offsety = 0;
+        size_t size() const { return v_.size(); }
+        bool empty() const { return v_.empty(); }
+        typename Contour::const_iterator begin() const { return v_.cbegin(); }
+        typename Contour::const_iterator end() const { return v_.cend(); }
+        Vector& operator[](size_t idx) { return v_[idx]; }
+        const Vector& operator[](size_t idx) const { return v_[idx]; }
+        template<class...Args>
+        void emplace_back(Args&&...args) {
+            v_.emplace_back(std::forward<Args>(args)...);
+        }
+        template<class...Args>
+        void push(Args&&...args) {
+            v_.emplace_back(std::forward<Args>(args)...);
+        }
+        void clear() { v_.clear(); }
+
+        operator Contour() const {
+            Contour cnt;
+            cnt.reserve(v_.size());
+            std::transform(v_.begin(), v_.end(), std::back_inserter(cnt),
+                           [](const Vector& vertex) {
+                return Point(iCoord(vertex.x*1e6), iCoord(vertex.y*1e6));
+            });
+            return cnt;
+        }
     };
 
-    static Point _normalizeVector(const Vector& v) {
+    inline static bool _almostEqual(Coord a, Coord b,
+                                    Coord tolerance = TOL)
+    {
+        return std::abs(a - b) < tolerance;
+    }
+
+    // returns true if p lies on the line segment defined by AB,
+    // but not at any endpoints may need work!
+    static bool _onSegment(const Vector& A, const Vector& B, const Vector& p) {
+
+        // vertical line
+        if(_almostEqual(A.x, B.x) && _almostEqual(p.x, A.x)) {
+            if(!_almostEqual(p.y, B.y) && !_almostEqual(p.y, A.y) &&
+                    p.y < max(B.y, A.y) && p.y > min(B.y, A.y)){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+
+        // horizontal line
+        if(_almostEqual(A.y, B.y) && _almostEqual(p.y, A.y)){
+            if(!_almostEqual(p.x, B.x) && !_almostEqual(p.x, A.x) &&
+                    p.x < max(B.x, A.x) && p.x > min(B.x, A.x)){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+
+        //range check
+        if((p.x < A.x && p.x < B.x) || (p.x > A.x && p.x > B.x) ||
+                (p.y < A.y && p.y < B.y) || (p.y > A.y && p.y > B.y))
+            return false;
+
+        // exclude end points
+        if((_almostEqual(p.x, A.x) && _almostEqual(p.y, A.y)) ||
+                (_almostEqual(p.x, B.x) && _almostEqual(p.y, B.y)))
+            return false;
+
+
+        double cross = (p.y - A.y) * (B.x - A.x) - (p.x - A.x) * (B.y - A.y);
+
+        if(abs(cross) > TOL) return false;
+
+        double dot = (p.x - A.x) * (B.x - A.x) + (p.y - A.y)*(B.y - A.y);
+
+        if(dot < 0 || _almostEqual(dot, 0)) return false;
+
+        double len2 = (B.x - A.x)*(B.x - A.x) + (B.y - A.y)*(B.y - A.y);
+
+        if(dot > len2 || _almostEqual(dot, len2)) return false;
+
+        return true;
+    }
+
+    // return true if point is in the polygon, false if outside, and null if exactly on a point or edge
+    static int pointInPolygon(const Vector& point, const Cntr& polygon) {
+        if(polygon.size() < 3){
+            return 0;
+        }
+
+        bool inside = false;
+        Coord offsetx = polygon.offsetx;
+        Coord offsety = polygon.offsety;
+
+        for (size_t i = 0, j = polygon.size() - 1; i < polygon.size(); j=i++) {
+            auto xi = polygon[i].x + offsetx;
+            auto yi = polygon[i].y + offsety;
+            auto xj = polygon[j].x + offsetx;
+            auto yj = polygon[j].y + offsety;
+
+            if(_almostEqual(xi, point.x) && _almostEqual(yi, point.y)){
+                return 0; // no result
+            }
+
+            if(_onSegment({xi, yi}, {xj, yj}, point)){
+                return 0; // exactly on the segment
+            }
+
+            if(_almostEqual(xi, xj) && _almostEqual(yi, yj)){ // ignore very small lines
+                continue;
+            }
+
+            bool intersect = ((yi > point.y) != (yj > point.y)) &&
+                    (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+        }
+
+        return inside? 1 : -1;
+    }
+
+    static bool intersect(const Cntr& A, const Cntr& B){
+        Contour a = A, b = B;
+        return shapelike::intersects(shapelike::create<S>(a), shapelike::create<S>(b));
+    }
+
+    static Vector _normalizeVector(const Vector& v) {
         if(_almostEqual(v.x*v.x + v.y*v.y, Coord(1))){
             return Point(v); // given vector was already a unit vector
         }
@@ -55,7 +202,7 @@ template<class S> struct _alg {
         auto inverse = 1/len;
 
         return { Coord(v.x*inverse), Coord(v.y*inverse) };
-    };
+    }
 
     static double pointDistance( const Vector& p,
                                  const Vector& s1,
@@ -101,7 +248,7 @@ template<class S> struct _alg {
 
         return -(pdotnorm - s1dotnorm + (s1dotnorm - s2dotnorm)*(s1dot - pdot)
                  / double(s1dot - s2dot));
-    };
+    }
 
     static double segmentDistance( const Vector& A,
                                    const Vector& B,
@@ -129,11 +276,11 @@ template<class S> struct _alg {
         auto crossE = E.x*direction.x + E.y*direction.y;
         auto crossF = F.x*direction.x + F.y*direction.y;
 
-        auto crossABmin = min(crossA, crossB);
-        auto crossABmax = max(crossA, crossB);
+//        auto crossABmin = min(crossA, crossB);
+//        auto crossABmax = max(crossA, crossB);
 
-        auto crossEFmax = max(crossE, crossF);
-        auto crossEFmin = min(crossE, crossF);
+//        auto crossEFmax = max(crossE, crossF);
+//        auto crossEFmin = min(crossE, crossF);
 
         auto ABmin = min(dotA, dotB);
         auto ABmax = max(dotA, dotB);
@@ -278,17 +425,18 @@ template<class S> struct _alg {
         }
 
         return *std::min_element(distances.begin(), distances.end());
-    };
+    }
 
     static double polygonSlideDistance( const Cntr& A,
                                         const Cntr& B,
                                         Vector direction,
                                         bool ignoreNegative)
     {
-        Cntr A1, A2, B1, B2;
-        Coord Aoffsetx = 0, Aoffsety = 0, Boffsetx = 0, Boffsety = 0;
-        auto x = [](const Point& p) { return getX(p); };
-        auto y = [](const Point& p) { return getY(p); };
+//        Vector A1, A2, B1, B2;
+        Coord Aoffsetx = A.offsetx;
+        Coord Boffsetx = B.offsetx;
+        Coord Aoffsety = A.offsety;
+        Coord Boffsety = B.offsety;
 
         auto& edgeA = A;
         auto& edgeB = B;
@@ -297,22 +445,22 @@ template<class S> struct _alg {
 
         Vector dir = _normalizeVector(direction);
 
-        Vector normal = {
-            dir.y,
-            -dir.x
-        };
+//        Vector normal = {
+//            dir.y,
+//            -dir.x
+//        };
 
-        Vector reverse = {
-            -dir.x,
-            -dir.y,
-        };
+//        Vector reverse = {
+//            -dir.x,
+//            -dir.y,
+//        };
 
-        for(auto i = 0; i < edgeB.size() - 1; i++){
-            for(auto j = 0; j < edgeA.size() - 1; j++){
-                A1 = {x(edgeA[j]),   y(edgeA[j]) };
-                A2 = {x(edgeA[j+1]), y(edgeA[j+1]) };
-                B1 = {x(edgeB[i]),   y(edgeB[i]) };
-                B2 = {x(edgeB[i+1]), y(edgeB[i+1]) };
+        for(size_t i = 0; i < edgeB.size() - 1; i++){
+            for(size_t j = 0; j < edgeA.size() - 1; j++){
+                Vector A1 = {x(edgeA[j]) + Aoffsetx, y(edgeA[j]) + Aoffsety };
+                Vector A2 = {x(edgeA[j+1]) + Aoffsetx, y(edgeA[j+1]) + Aoffsety};
+                Vector B1 = {x(edgeB[i]) + Boffsetx,  y(edgeB[i]) + Boffsety };
+                Vector B2 = {x(edgeB[i+1]) + Boffsety, y(edgeB[i+1]) + Boffsety};
 
                 if((_almostEqual(A1.x, A2.x) && _almostEqual(A1.y, A2.y)) ||
                    (_almostEqual(B1.x, B2.x) && _almostEqual(B1.y, B2.y))){
@@ -329,15 +477,16 @@ template<class S> struct _alg {
             }
         }
         return distance;
-    };
+    }
 
     static double polygonProjectionDistance(const Cntr& A,
                                             const Cntr& B,
                                             Vector direction)
     {
-        Coord Aoffsetx = 0, Aoffsety = 0, Boffsetx = 0, Boffsety = 0;
-        auto x = [](const Point& p) { return getX(p); };
-        auto y = [](const Point& p) { return getY(p); };
+        auto Boffsetx = B.offsetx;
+        auto Boffsety = B.offsety;
+        auto Aoffsetx = A.offsetx;
+        auto Aoffsety = A.offsety;
 
         // close the loop for polygons
         /*if(A[0] != A[A.length-1]){
@@ -352,16 +501,16 @@ template<class S> struct _alg {
         auto& edgeB = B;
 
         double distance = dNAN, d;
-        Vector p, s1, s2;
+//        Vector p, s1, s2;
 
-        for(auto i = 0; i < edgeB.size(); i++) {
+        for(size_t i = 0; i < edgeB.size(); i++) {
             // the shortest/most negative projection of B onto A
             double minprojection = dNAN;
-            double minp = dNAN;
-            for(auto j = 0; j < edgeA.size() - 1; j++){
-                p =  {x(edgeB[i]), y(edgeB[i]) };
-                s1 = {x(edgeA[j]), y(edgeA[j]) };
-                s2 = {x(edgeA[j+1]), y(edgeA[j+1]) };
+            Vector minp;
+            for(size_t j = 0; j < edgeA.size() - 1; j++){
+                Vector p =  {x(edgeB[i]) + Boffsetx, y(edgeB[i]) + Boffsety };
+                Vector s1 = {x(edgeA[j]) + Aoffsetx, y(edgeA[j]) + Aoffsety };
+                Vector s2 = {x(edgeA[j+1]) + Aoffsetx, y(edgeA[j+1]) + Aoffsety };
 
                 if(abs((s2.y-s1.y) * direction.x -
                        (s2.x-s1.x) * direction.y) < TOL) continue;
@@ -384,159 +533,151 @@ template<class S> struct _alg {
         return distance;
     }
 
-    static Vector searchStartPoint( const Cntr& A,
-                                    const Cntr& B,
-                                    const std::vector<bool>& Amarks,
-                                    const std::vector<bool>& Bmarks,
-                                    bool inside,
-                                    const S& NFP = S())
+    static std::pair<bool, Vector> searchStartPoint(
+            const Cntr& AA, const Cntr& BB, bool inside, const std::vector<Cntr>& NFP = {})
     {
         // clone arrays
-//        A = A.slice(0);
-//        B = B.slice(0);
+        auto A = AA;
+        auto B = BB;
 
 //        // close the loop for polygons
-//        if(A[0] != A[A.length-1]){
+//        if(A[0] != A[A.size()-1]){
 //            A.push(A[0]);
 //        }
 
-//        if(B[0] != B[B.length-1]){
+//        if(B[0] != B[B.size()-1]){
 //            B.push(B[0]);
 //        }
 
-//        for(var i=0; i<A.length-1; i++){
-//            if(!A[i].marked){
-//                A[i].marked = true;
-//                for(var j=0; j<B.length; j++){
-//                    B.offsetx = A[i].x - B[j].x;
-//                    B.offsety = A[i].y - B[j].y;
+        // returns true if point already exists in the given nfp
+        auto inNfp = [](const Vector& p, const std::vector<Cntr>& nfp){
+            if(nfp.empty()){
+                return false;
+            }
 
-//                    var Binside = null;
-//                    for(var k=0; k<B.length; k++){
-//                        var inpoly = this.pointInPolygon({x: B[k].x + B.offsetx, y: B[k].y + B.offsety}, A);
-//                        if(inpoly !== null){
-//                            Binside = inpoly;
-//                            break;
-//                        }
-//                    }
+            for(size_t i=0; i < nfp.size(); i++){
+                for(size_t j = 0; j< nfp[i].size(); j++){
+                    if(_almostEqual(p.x, nfp[i][j].x) &&
+                       _almostEqual(p.y, nfp[i][j].y)){
+                        return true;
+                    }
+                }
+            }
 
-//                    if(Binside === null){ // A and B are the same
-//                        return null;
-//                    }
+            return false;
+        };
 
-//                    var startPoint = {x: B.offsetx, y: B.offsety};
-//                    if(((Binside && inside) || (!Binside && !inside)) && !this.intersect(A,B) && !inNfp(startPoint, NFP)){
-//                        return startPoint;
-//                    }
+        for(size_t i = 0; i < A.size() - 1; i++){
+            if(!A[i].marked) {
+                A[i].marked = true;
+                for(size_t j = 0; j < B.size(); j++){
+                    B.offsetx = A[i].x - B[j].x;
+                    B.offsety = A[i].y - B[j].y;
 
-//                    // slide B along vector
-//                    var vx = A[i+1].x - A[i].x;
-//                    var vy = A[i+1].y - A[i].y;
+                    int Binside = 0;
+                    for(size_t k = 0; k < B.size(); k++){
+                        int inpoly = pointInPolygon({B[k].x + B.offsetx, B[k].y + B.offsety}, A);
+                        if(inpoly != 0){
+                            Binside = inpoly;
+                            break;
+                        }
+                    }
 
-//                    var d1 = this.polygonProjectionDistance(A,B,{x: vx, y: vy});
-//                    var d2 = this.polygonProjectionDistance(B,A,{x: -vx, y: -vy});
+                    if(Binside == 0){ // A and B are the same
+                        return {false, {}};
+                    }
 
-//                    var d = null;
+                    auto startPoint = std::make_pair(true, Vector(B.offsetx, B.offsety));
+                    if(((Binside && inside) || (!Binside && !inside)) &&
+                         !intersect(A,B) && !inNfp(startPoint.second, NFP)){
+                        return startPoint;
+                    }
 
-//                    // todo: clean this up
-//                    if(d1 === null && d2 === null){
-//                        // nothin
-//                    }
-//                    else if(d1 === null){
-//                        d = d2;
-//                    }
-//                    else if(d2 === null){
-//                        d = d1;
-//                    }
-//                    else{
-//                        d = Math.min(d1,d2);
-//                    }
+                    // slide B along vector
+                    auto vx = A[i+1].x - A[i].x;
+                    auto vy = A[i+1].y - A[i].y;
 
-//                    // only slide until no longer negative
-//                    // todo: clean this up
-//                    if(d !== null && !_almostEqual(d,0) && d > 0){
+                    double d1 = polygonProjectionDistance(A,B,{vx, vy});
+                    double d2 = polygonProjectionDistance(B,A,{-vx, -vy});
 
-//                    }
-//                    else{
-//                        continue;
-//                    }
+                    double d = dNAN;
 
-//                    var vd2 = vx*vx + vy*vy;
+                    // todo: clean this up
+                    if(isnan(d1) && isnan(d2)){
+                        // nothin
+                    }
+                    else if(isnan(d1)){
+                        d = d2;
+                    }
+                    else if(isnan(d2)){
+                        d = d1;
+                    }
+                    else{
+                        d = min(d1,d2);
+                    }
 
-//                    if(d*d < vd2 && !_almostEqual(d*d, vd2)){
-//                        var vd = Math.sqrt(vx*vx + vy*vy);
-//                        vx *= d/vd;
-//                        vy *= d/vd;
-//                    }
+                    // only slide until no longer negative
+                    // todo: clean this up
+                    if(!isnan(d) && !_almostEqual(d,0) && d > 0){
 
-//                    B.offsetx += vx;
-//                    B.offsety += vy;
+                    }
+                    else{
+                        continue;
+                    }
 
-//                    for(k=0; k<B.length; k++){
-//                        var inpoly = this.pointInPolygon({x: B[k].x + B.offsetx, y: B[k].y + B.offsety}, A);
-//                        if(inpoly !== null){
-//                            Binside = inpoly;
-//                            break;
-//                        }
-//                    }
-//                    startPoint = {x: B.offsetx, y: B.offsety};
-//                    if(((Binside && inside) || (!Binside && !inside)) && !this.intersect(A,B) && !inNfp(startPoint, NFP)){
-//                        return startPoint;
-//                    }
-//                }
-//            }
-//        }
+                    auto vd2 = vx*vx + vy*vy;
 
-//        // returns true if point already exists in the given nfp
-//        function inNfp(p, nfp){
-//            if(!nfp || nfp.length == 0){
-//                return false;
-//            }
+                    if(d*d < vd2 && !_almostEqual(d*d, vd2)){
+                        auto vd = sqrt(vx*vx + vy*vy);
+                        vx *= d/vd;
+                        vy *= d/vd;
+                    }
 
-//            for(var i=0; i<nfp.length; i++){
-//                for(var j=0; j<nfp[i].length; j++){
-//                    if(_almostEqual(p.x, nfp[i][j].x) && _almostEqual(p.y, nfp[i][j].y)){
-//                        return true;
-//                    }
-//                }
-//            }
+                    B.offsetx += vx;
+                    B.offsety += vy;
 
-//            return false;
-//        }
+                    for(size_t k = 0; k < B.size(); k++){
+                        int inpoly = pointInPolygon({B[k].x + B.offsetx, B[k].y + B.offsety}, A);
+                        if(inpoly != 0){
+                            Binside = inpoly;
+                            break;
+                        }
+                    }
+                    startPoint = std::make_pair(true, Vector{B.offsetx, B.offsety});
+                    if(((Binside && inside) || (!Binside && !inside)) &&
+                            !intersect(A,B) && !inNfp(startPoint.second, NFP)){
+                        return startPoint;
+                    }
+                }
+            }
+        }
 
-//        return null;
-        return Vector(0, 0);
+        return {false, Vector(0, 0)};
     }
 
-    static S noFitPolygon(const Cntr& A,
-                          const Cntr& B,
-                          bool inside,
-                          bool searchEdges)
+    static std::vector<Cntr> noFitPolygon(Cntr A,
+                                          Cntr B,
+                                          bool inside,
+                                          bool searchEdges)
     {
         if(A.size() < 3 || B.size() < 3) {
             throw GeometryException(GeomErr::NFP);
-            return S();
+            return {};
         }
 
-        auto x = [](const Point& p) { return getX(p); };
-        auto y = [](const Point& p) { return getY(p); };
-
-//        A.offsetx = 0;
-//        A.offsety = 0;
+        A.offsetx = 0;
+        A.offsety = 0;
 
         unsigned i = 0, j = 0;
 
         auto minA = y(A[0]);
-        unsigned minAindex = 0;
+        long minAindex = 0;
 
         auto maxB = y(B[0]);
-        unsigned maxBindex = 0;
-
-        std::vector<bool> Amarks(A.size(), false);
-        std::vector<bool> Bmarks(B.size(), false);
+        long maxBindex = 0;
 
         for(i = 1; i < A.size(); i++){
-            Amarks[i] = false;
+            A[i].marked = false;
             if(y(A[i]) < minA){
                 minA = y(A[i]);
                 minAindex = i;
@@ -544,277 +685,305 @@ template<class S> struct _alg {
         }
 
         for(i = 1; i < B.size(); i++){
-            Bmarks[i] = false;
+            B[i].marked = false;
             if(y(B[i]) > maxB){
                 maxB = y(B[i]);
                 maxBindex = i;
             }
         }
 
+        std::pair<bool, Vector> startpoint;
+
         if(!inside){
             // shift B such that the bottom-most point of B is at the top-most
             // point of A. This guarantees an initial placement with no
             // intersections
-            Vector startpoint = {
-                x(A[minAindex]) - x(B[maxBindex]),
-                y(A[minAindex]) - y(B[maxBindex])
+            startpoint = { true,
+                { x(A[minAindex]) - x(B[maxBindex]),
+                  y(A[minAindex]) - y(B[maxBindex]) }
             };
         }
-        else{
+        else {
             // no reliable heuristic for inside
-            auto startpoint = searchStartPoint(A, B, Amarks, Bmarks, true);
+            startpoint = searchStartPoint(A, B, true);
         }
 
-//        var NFPlist = [];
+        std::vector<Cntr> NFPlist;
 
-//        while(startpoint !== null){
+        struct Touch {
+            int type;
+            long A, B;
+            Touch(int t, long a, long b): type(t), A(a), B(b) {}
+        };
 
-//            B.offsetx = startpoint.x;
-//            B.offsety = startpoint.y;
+        while(startpoint.first) {
 
-//            // maintain a list of touching points/edges
-//            var touching;
+            B.offsetx = startpoint.second.x;
+            B.offsety = startpoint.second.y;
 
-//            var prevvector = null; // keep track of previous vector
-//            var NFP = [{
-//                x: B[0].x+B.offsetx,
-//                y: B[0].y+B.offsety
-//            }];
+            // maintain a list of touching points/edges
+            std::vector<Touch> touching;
 
-//            var referencex = B[0].x+B.offsetx;
-//            var referencey = B[0].y+B.offsety;
-//            var startx = referencex;
-//            var starty = referencey;
-//            var counter = 0;
+            Cntr NFP;
+            NFP.emplace_back(x(B[0]) + B.offsetx, y(B[0]) + B.offsety);
 
-//            while(counter < 10*(A.length + B.length)){ // sanity check, prevent infinite loop
-//                touching = [];
-//                // find touching vertices/edges
-//                for(i=0; i<A.length; i++){
-//                    var nexti = (i==A.length-1) ? 0 : i+1;
-//                    for(j=0; j<B.length; j++){
-//                        var nextj = (j==B.length-1) ? 0 : j+1;
-//                        if(_almostEqual(A[i].x, B[j].x+B.offsetx) && _almostEqual(A[i].y, B[j].y+B.offsety)){
-//                            touching.push({	type: 0, A: i, B: j });
-//                        }
-//                        else if(_onSegment(A[i],A[nexti],{x: B[j].x+B.offsetx, y: B[j].y + B.offsety})){
-//                            touching.push({	type: 1, A: nexti, B: j });
-//                        }
-//                        else if(_onSegment({x: B[j].x+B.offsetx, y: B[j].y + B.offsety},{x: B[nextj].x+B.offsetx, y: B[nextj].y + B.offsety},A[i])){
-//                            touching.push({	type: 2, A: i, B: nextj });
-//                        }
-//                    }
-//                }
+            auto referencex = x(B[0]) + B.offsetx;
+            auto referencey = y(B[0]) + B.offsety;
+            auto startx = referencex;
+            auto starty = referencey;
+            unsigned counter = 0;
 
-//                // generate translation vectors from touching vertices/edges
-//                var vectors = [];
-//                for(i=0; i<touching.length; i++){
-//                    var vertexA = A[touching[i].A];
-//                    vertexA.marked = true;
+            // sanity check, prevent infinite loop
+            while(counter < 10*(A.size() + B.size())){
+                touching.clear();
 
-//                    // adjacent A vertices
-//                    var prevAindex = touching[i].A-1;
-//                    var nextAindex = touching[i].A+1;
+                // find touching vertices/edges
+                for(i = 0; i < A.size(); i++){
+                    auto nexti = (i == A.size() - 1) ? 0 : i + 1;
+                    for(j = 0; j < B.size(); j++){
 
-//                    prevAindex = (prevAindex < 0) ? A.length-1 : prevAindex; // loop
-//                    nextAindex = (nextAindex >= A.length) ? 0 : nextAindex; // loop
+                        auto nextj = (j == B.size() - 1) ? 0 : j + 1;
 
-//                    var prevA = A[prevAindex];
-//                    var nextA = A[nextAindex];
+                        if( _almostEqual(A[i].x, B[j].x+B.offsetx) &&
+                            _almostEqual(A[i].y, B[j].y+B.offsety))
+                        {
+                            touching.emplace_back(0, i, j);
+                        }
+                        else if( _onSegment(
+                                    A[i], A[nexti],
+                                    { B[j].x+B.offsetx, B[j].y + B.offsety}) )
+                        {
+                            touching.emplace_back(1, nexti, j);
+                        }
+                        else if( _onSegment(
+                                {B[j].x+B.offsetx, B[j].y + B.offsety},
+                                {B[nextj].x+B.offsetx, B[nextj].y + B.offsety},
+                                A[i]) )
+                        {
+                            touching.emplace_back(2, i, nextj);
+                        }
+                    }
+                }
 
-//                    // adjacent B vertices
-//                    var vertexB = B[touching[i].B];
+                struct V {
+                    Coord x, y;
+                    Vector *start, *end;
+                    operator bool() {
+                        return start != nullptr && end != nullptr;
+                    }
+                    operator Vector() const { return {x, y}; }
+                };
 
-//                    var prevBindex = touching[i].B-1;
-//                    var nextBindex = touching[i].B+1;
+                // generate translation vectors from touching vertices/edges
+                std::vector<V> vectors;
+                for(i=0; i < touching.size(); i++){
+                    auto& vertexA = A[touching[i].A];
+                    vertexA.marked = true;
 
-//                    prevBindex = (prevBindex < 0) ? B.length-1 : prevBindex; // loop
-//                    nextBindex = (nextBindex >= B.length) ? 0 : nextBindex; // loop
+                    // adjacent A vertices
+                    auto prevAindex = touching[i].A - 1;
+                    auto nextAindex = touching[i].A + 1;
 
-//                    var prevB = B[prevBindex];
-//                    var nextB = B[nextBindex];
+                    prevAindex = (prevAindex < 0) ? A.size() - 1 : prevAindex; // loop
+                    nextAindex = (nextAindex >= A.size()) ? 0 : nextAindex; // loop
 
-//                    if(touching[i].type == 0){
+                    auto& prevA = A[prevAindex];
+                    auto& nextA = A[nextAindex];
 
-//                        var vA1 = {
-//                            x: prevA.x-vertexA.x,
-//                            y: prevA.y-vertexA.y,
-//                            start: vertexA,
-//                            end: prevA
-//                        };
+                    // adjacent B vertices
+                    auto& vertexB = B[touching[i].B];
 
-//                        var vA2 = {
-//                            x: nextA.x-vertexA.x,
-//                            y: nextA.y-vertexA.y,
-//                            start: vertexA,
-//                            end: nextA
-//                        };
+                    auto prevBindex = touching[i].B-1;
+                    auto nextBindex = touching[i].B+1;
 
-//                        // B vectors need to be inverted
-//                        var vB1 = {
-//                            x: vertexB.x-prevB.x,
-//                            y: vertexB.y-prevB.y,
-//                            start: prevB,
-//                            end: vertexB
-//                        };
+                    prevBindex = (prevBindex < 0) ? B.size() - 1 : prevBindex; // loop
+                    nextBindex = (nextBindex >= B.size()) ? 0 : nextBindex; // loop
 
-//                        var vB2 = {
-//                            x: vertexB.x-nextB.x,
-//                            y: vertexB.y-nextB.y,
-//                            start: nextB,
-//                            end: vertexB
-//                        };
+                    auto& prevB = B[prevBindex];
+                    auto& nextB = B[nextBindex];
 
-//                        vectors.push(vA1);
-//                        vectors.push(vA2);
-//                        vectors.push(vB1);
-//                        vectors.push(vB2);
-//                    }
-//                    else if(touching[i].type == 1){
-//                        vectors.push({
-//                            x: vertexA.x-(vertexB.x+B.offsetx),
-//                            y: vertexA.y-(vertexB.y+B.offsety),
-//                            start: prevA,
-//                            end: vertexA
-//                        });
+                    if(touching[i].type == 0){
 
-//                        vectors.push({
-//                            x: prevA.x-(vertexB.x+B.offsetx),
-//                            y: prevA.y-(vertexB.y+B.offsety),
-//                            start: vertexA,
-//                            end: prevA
-//                        });
-//                    }
-//                    else if(touching[i].type == 2){
-//                        vectors.push({
-//                            x: vertexA.x-(vertexB.x+B.offsetx),
-//                            y: vertexA.y-(vertexB.y+B.offsety),
-//                            start: prevB,
-//                            end: vertexB
-//                        });
+                        V vA1 = {
+                            prevA.x - vertexA.x,
+                            prevA.y - vertexA.y,
+                            &vertexA,
+                            &prevA
+                        };
 
-//                        vectors.push({
-//                            x: vertexA.x-(prevB.x+B.offsetx),
-//                            y: vertexA.y-(prevB.y+B.offsety),
-//                            start: vertexB,
-//                            end: prevB
-//                        });
-//                    }
-//                }
+                        V vA2 = {
+                            nextA.x - vertexA.x,
+                            nextA.y - vertexA.y,
+                            &vertexA,
+                            &nextA
+                        };
 
-//                // todo: there should be a faster way to reject vectors that will cause immediate intersection. For now just check them all
+                        // B vectors need to be inverted
+                        V vB1 = {
+                            vertexB.x - prevB.x,
+                            vertexB.y - prevB.y,
+                            &prevB,
+                            &vertexB
+                        };
 
-//                var translate = null;
-//                var maxd = 0;
+                        V vB2 = {
+                            vertexB.x - nextB.x,
+                            vertexB.y - nextB.y,
+                            &nextB,
+                            &vertexB
+                        };
 
-//                for(i=0; i<vectors.length; i++){
-//                    if(vectors[i].x == 0 && vectors[i].y == 0){
-//                        continue;
-//                    }
+                        vectors.emplace_back(vA1);
+                        vectors.emplace_back(vA2);
+                        vectors.emplace_back(vB1);
+                        vectors.emplace_back(vB2);
+                    }
+                    else if(touching[i].type == 1){
+                        vectors.emplace_back(V{
+                            vertexA.x-(vertexB.x+B.offsetx),
+                            vertexA.y-(vertexB.y+B.offsety),
+                            &prevA,
+                            &vertexA
+                        });
 
-//                    // if this vector points us back to where we came from, ignore it.
-//                    // ie cross product = 0, dot product < 0
-//                    if(prevvector && vectors[i].y * prevvector.y + vectors[i].x * prevvector.x < 0){
+                        vectors.emplace_back(V{
+                            prevA.x-(vertexB.x+B.offsetx),
+                            prevA.y-(vertexB.y+B.offsety),
+                            &vertexA,
+                            &prevA
+                        });
+                    }
+                    else if(touching[i].type == 2){
+                        vectors.emplace_back(V{
+                            vertexA.x-(vertexB.x+B.offsetx),
+                            vertexA.y-(vertexB.y+B.offsety),
+                            &prevB,
+                            &vertexB
+                        });
 
-//                        // compare magnitude with unit vectors
-//                        var vectorlength = Math.sqrt(vectors[i].x*vectors[i].x+vectors[i].y*vectors[i].y);
-//                        var unitv = {x: vectors[i].x/vectorlength, y:vectors[i].y/vectorlength};
+                        vectors.emplace_back(V{
+                            vertexA.x-(prevB.x+B.offsetx),
+                            vertexA.y-(prevB.y+B.offsety),
+                            &vertexB,
+                            &prevB
+                        });
+                    }
+                }
 
-//                        var prevlength = Math.sqrt(prevvector.x*prevvector.x+prevvector.y*prevvector.y);
-//                        var prevunit = {x: prevvector.x/prevlength, y:prevvector.y/prevlength};
+                // TODO: there should be a faster way to reject vectors that
+                // will cause immediate intersection. For now just check them all
 
-//                        // we need to scale down to unit vectors to normalize vector length. Could also just do a tan here
-//                        if(Math.abs(unitv.y * prevunit.x - unitv.x * prevunit.y) < 0.0001){
-//                            continue;
-//                        }
-//                    }
+                V translate = {0, 0, nullptr, nullptr};
+                V prevvector = {0, 0, nullptr, nullptr};
+                double maxd = 0;
 
-//                    var d = this.polygonSlideDistance(A, B, vectors[i], true);
-//                    var vecd2 = vectors[i].x*vectors[i].x + vectors[i].y*vectors[i].y;
+                for(i = 0; i < vectors.size(); i++) {
+                    if(vectors[i].x == 0 && vectors[i].y == 0){
+                        continue;
+                    }
 
-//                    if(d === null || d*d > vecd2){
-//                        var vecd = Math.sqrt(vectors[i].x*vectors[i].x + vectors[i].y*vectors[i].y);
-//                        d = vecd;
-//                    }
+                    // if this vector points us back to where we came from, ignore it.
+                    // ie cross product = 0, dot product < 0
+                    if(prevvector && vectors[i].y * prevvector.y + vectors[i].x * prevvector.x < 0){
 
-//                    if(d !== null && d > maxd){
-//                        maxd = d;
-//                        translate = vectors[i];
-//                    }
-//                }
+                        // compare magnitude with unit vectors
+                        double vectorlength = sqrt(vectors[i].x*vectors[i].x+vectors[i].y*vectors[i].y);
+                        Vector unitv = {Coord(vectors[i].x/vectorlength),
+                                        Coord(vectors[i].y/vectorlength)};
 
+                        double prevlength = sqrt(prevvector.x*prevvector.x+prevvector.y*prevvector.y);
+                        Vector prevunit = { prevvector.x/prevlength, prevvector.y/prevlength};
 
-//                if(translate === null || _almostEqual(maxd, 0)){
-//                    // didn't close the loop, something went wrong here
-//                    NFP = null;
-//                    break;
-//                }
+                        // we need to scale down to unit vectors to normalize vector length. Could also just do a tan here
+                        if(abs(unitv.y * prevunit.x - unitv.x * prevunit.y) < 0.0001){
+                            continue;
+                        }
+                    }
 
-//                translate.start.marked = true;
-//                translate.end.marked = true;
+                    double d = polygonSlideDistance(A, B, vectors[i], true);
+                    double vecd2 = vectors[i].x*vectors[i].x + vectors[i].y*vectors[i].y;
 
-//                prevvector = translate;
+                    if(isnan(d) || d*d > vecd2){
+                        double vecd = sqrt(vectors[i].x*vectors[i].x + vectors[i].y*vectors[i].y);
+                        d = vecd;
+                    }
 
-//                // trim
-//                var vlength2 = translate.x*translate.x + translate.y*translate.y;
-//                if(maxd*maxd < vlength2 && !_almostEqual(maxd*maxd, vlength2)){
-//                    var scale = Math.sqrt((maxd*maxd)/vlength2);
-//                    translate.x *= scale;
-//                    translate.y *= scale;
-//                }
+                    if(!isnan(d) && d > maxd){
+                        maxd = d;
+                        translate = vectors[i];
+                    }
+                }
 
-//                referencex += translate.x;
-//                referencey += translate.y;
+                if(!translate || _almostEqual(maxd, 0))
+                {
+                    // didn't close the loop, something went wrong here
+                    NFP.clear();
+                    break;
+                }
 
-//                if(_almostEqual(referencex, startx) && _almostEqual(referencey, starty)){
-//                    // we've made a full loop
-//                    break;
-//                }
+                translate.start->marked = true;
+                translate.end->marked = true;
 
-//                // if A and B start on a touching horizontal line, the end point may not be the start point
-//                var looped = false;
-//                if(NFP.length > 0){
-//                    for(i=0; i<NFP.length-1; i++){
-//                        if(_almostEqual(referencex, NFP[i].x) && _almostEqual(referencey, NFP[i].y)){
-//                            looped = true;
-//                        }
-//                    }
-//                }
+                prevvector = translate;
 
-//                if(looped){
-//                    // we've made a full loop
-//                    break;
-//                }
+                // trim
+                double vlength2 = translate.x*translate.x + translate.y*translate.y;
+                if(maxd*maxd < vlength2 && !_almostEqual(maxd*maxd, vlength2)){
+                    double scale = sqrt((maxd*maxd)/vlength2);
+                    translate.x *= scale;
+                    translate.y *= scale;
+                }
 
-//                NFP.push({
-//                    x: referencex,
-//                    y: referencey
-//                });
+                referencex += translate.x;
+                referencey += translate.y;
 
-//                B.offsetx += translate.x;
-//                B.offsety += translate.y;
+                if(_almostEqual(referencex, startx) &&
+                   _almostEqual(referencey, starty)) {
+                    // we've made a full loop
+                    break;
+                }
 
-//                counter++;
-//            }
+                // if A and B start on a touching horizontal line, the end point may not be the start point
+                bool looped = false;
+                if(NFP.size() > 0) {
+                    for(i = 0; i < NFP.size() - 1; i++) {
+                        if(_almostEqual(referencex, NFP[i].x) &&
+                           _almostEqual(referencey, NFP[i].y)){
+                            looped = true;
+                        }
+                    }
+                }
 
-//            if(NFP && NFP.length > 0){
-//                NFPlist.push(NFP);
-//            }
+                if(looped){
+                    // we've made a full loop
+                    break;
+                }
 
-//            if(!searchEdges){
-//                // only get outer NFP or first inner NFP
-//                break;
-//            }
+                NFP.emplace_back(referencex, referencey);
 
-//            startpoint = this.searchStartPoint(A,B,inside,NFPlist);
+                B.offsetx += translate.x;
+                B.offsety += translate.y;
 
-//        }
+                counter++;
+            }
 
-//        return NFPlist;
-        return S();
+            if(NFP.size() > 0){
+                NFPlist.emplace_back(NFP);
+            }
+
+            if(!searchEdges){
+                // only get outer NFP or first inner NFP
+                break;
+            }
+
+            startpoint =
+                    searchStartPoint(A, B, inside, NFPlist);
+
+        }
+
+        return NFPlist;
     }
 };
-
 
 template<class S>
 nfp::NfpResult<S> nfpSimpleSimple(const S& stat, const S& orb) {

@@ -136,8 +136,8 @@ void arrangeRectangles() {
     pconf.alignment = Placer::Config::Alignment::CENTER;
     pconf.starting_point = Placer::Config::Alignment::CENTER;
     pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/};
-    pconf.accuracy = 0.3f;
-    pconf.parallel = false;
+    pconf.accuracy = 0.5f;
+    pconf.parallel = true;
 
     Packer::SelectionConfig sconf;
 //    sconf.allow_parallel = false;
@@ -201,10 +201,10 @@ void arrangeRectangles() {
     for(auto& r : result) { std::cout << r.size() << " "; total += r.size(); }
     std::cout << ") Total: " << total << std::endl;
 
-    for(auto& it : input) {
-        auto ret = sl::isValid(it.transformedShape());
-        std::cout << ret.second << std::endl;
-    }
+//    for(auto& it : input) {
+//        auto ret = sl::isValid(it.transformedShape());
+//        std::cout << ret.second << std::endl;
+//    }
 
     if(total != input.size()) std::cout << "ERROR " << "could not pack "
                                         << input.size() - total << " elements!"

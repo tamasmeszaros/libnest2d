@@ -42,17 +42,21 @@ inline void enumerate(
     auto N = to-from;
 
 //    tbb::parallel_for<size_t>(0, N, [from, fn](size_t n) { fn(*(from + n), n); } );
-//#pragma omp parallel for
-    for(int n = 0; n < N; n++) fn(*(from + n), n);
-
-//    std::vector<std::future<void>> rets(N);
-
-//    auto it = from;
-//    for(unsigned b = 0; b < N; b++) {
-//        rets[b] = std::async(policy, fn, *it++, b);
+//    if((policy & std::launch::async) == std::launch::async) {
+//        #pragma omp parallel for
+//        for(int n = 0; n < N; n++) fn(*(from + n), n);
 //    }
+//    else {
+//        for(int n = 0; n < N; n++) fn(*(from + n), n);
+//    }
+    std::vector<std::future<void>> rets(N);
 
-//    for(unsigned fi = 0; fi < rets.size(); ++fi) rets[fi].wait();
+    auto it = from;
+    for(unsigned b = 0; b < N; b++) {
+        rets[b] = std::async(policy, fn, *it++, b);
+    }
+
+    for(unsigned fi = 0; fi < rets.size(); ++fi) rets[fi].wait();
 }
 
 class SpinLock {
@@ -155,30 +159,12 @@ struct NfpPConfig {
      * that will optimize for the best pack efficiency. With a custom fitting
      * function you can e.g. influence the shape of the arranged pile.
      *
-     * \param shapes The first parameter is a container with all the placed
-     * polygons excluding the current candidate. You can calculate a bounding
-     * box or convex hull on this pile of polygons without the candidate item
-     * or push back the candidate item into the container and then calculate
-     * some features.
-     *
-     * \param item The second parameter is the candidate item.
-     *
-     * \param remaining A container with the remaining items waiting to be
-     * placed. You can use some features about the remaining items to alter to
-     * score of the current placement. If you know that you have to leave place
-     * for other items as well, that might influence your decision about where
-     * the current candidate should be placed. E.g. imagine three big circles
-     * which you want to place into a box: you might place them in a triangle
-     * shape which has the maximum pack density. But if there is a 4th big
-     * circle than you won't be able to pack it. If you knew apriori that
-     * there four circles are to be placed, you would have placed the first 3
-     * into an L shape. This parameter can be used to make these kind of
-     * decisions (for you or a more intelligent AI).
+     * \param item The only parameter is the candidate item which has info
+     * about its current position. Your job is to rate this position compared to
+     * the already packed items.
      *
      */
-    std::function<double(const nfp::Shapes<RawShape>&, const _Item<RawShape>&,
-                         const ItemGroup&)>
-    object_function;
+    std::function<double(const _Item<RawShape>&)> object_function;
 
     /**
      * @brief The quality of search for an optimal placement.
@@ -200,6 +186,34 @@ struct NfpPConfig {
      * @brief If true, use all CPUs available. Run on a single core otherwise.
      */
     bool parallel = true;
+
+    /**
+     * @brief before_packing Callback that is called just before a search for
+     * a new item's position is started. You can use this to create various
+     * cache structures and update them between subsequent packings.
+     *
+     * \param merged pile A polygon that is the union of all items in the bin.
+     *
+     * \param pile The items parameter is a container with all the placed
+     * polygons excluding the current candidate. You can for instance check the
+     * alignment with the candidate item or do anything else.
+     *
+     * \param remaining A container with the remaining items waiting to be
+     * placed. You can use some features about the remaining items to alter to
+     * score of the current placement. If you know that you have to leave place
+     * for other items as well, that might influence your decision about where
+     * the current candidate should be placed. E.g. imagine three big circles
+     * which you want to place into a box: you might place them in a triangle
+     * shape which has the maximum pack density. But if there is a 4th big
+     * circle than you won't be able to pack it. If you knew apriori that
+     * there four circles are to be placed, you would have placed the first 3
+     * into an L shape. This parameter can be used to make these kind of
+     * decisions (for you or a more intelligent AI).
+     */
+    std::function<void(const nfp::Shapes<RawShape>&, // merged pile
+                       const ItemGroup&,             // packed items
+                       const ItemGroup&              // remaining items
+                       )> before_packing;
 
     NfpPConfig(): rotations({0.0, Pi/2.0, Pi, 3*Pi/2}),
         alignment(Alignment::CENTER), starting_point(Alignment::CENTER) {}
@@ -791,6 +805,21 @@ private:
         }
     };
 
+    static Box boundingBox(const Box& pilebb, const Box& ibb ) {
+        auto& pminc = pilebb.minCorner();
+        auto& pmaxc = pilebb.maxCorner();
+        auto& iminc = ibb.minCorner();
+        auto& imaxc = ibb.maxCorner();
+        Vertex minc, maxc;
+
+        setX(minc, std::min(getX(pminc), getX(iminc)));
+        setY(minc, std::min(getY(pminc), getY(iminc)));
+
+        setX(maxc, std::max(getX(pmaxc), getX(imaxc)));
+        setY(maxc, std::max(getY(pmaxc), getY(imaxc)));
+        return Box(minc, maxc);
+    }
+
     using Edges = EdgeCache<RawShape>;
 
     template<class Range = ConstItemRange<typename Base::DefaultIter>>
@@ -824,6 +853,7 @@ private:
 
                 item.translation(initial_tr);
                 item.rotation(initial_rot + rot);
+                item.boundingBox(); // fill the bb cache
 
                 // place the new item outside of the print bed to make sure
                 // it is disjunct from the current merged pile
@@ -854,23 +884,17 @@ private:
                 auto merged_pile = nfp::merge(pile);
                 auto& bin = bin_;
                 double norm = norm_;
+                auto pbb = sl::boundingBox(merged_pile);
+                auto binbb = sl::boundingBox(bin);
 
                 // This is the kernel part of the object function that is
                 // customizable by the library client
                 auto _objfunc = config_.object_function?
                             config_.object_function :
-                            [norm, /*pile_area,*/ bin, &merged_pile](
-                                const Pile& /*pile*/,
-                                const Item& item,
-                                const ItemGroup& /*remaining*/)
+                            [norm, bin, binbb, pbb](const Item& item)
                 {
                     auto ibb = item.boundingBox();
-                    auto binbb = sl::boundingBox(bin);
-
-                    auto& mp = merged_pile;
-                    mp.emplace_back(item.transformedShape());
-                    auto fullbb = sl::boundingBox(mp);
-                    mp.pop_back();
+                    auto fullbb = boundingBox(pbb, ibb);
 
                     double score = pl::distance(ibb.center(), binbb.center());
                     score /= norm;
@@ -884,15 +908,12 @@ private:
 
                 // Our object function for placement
                 auto rawobjfunc =
-                        [item, _objfunc, iv,
-                         startpos, remlist, pile] (Vertex v)
+                        [_objfunc, iv, startpos] (Vertex v, Item& itm)
                 {
                     auto d = v - iv;
                     d += startpos;
-                    Item itm = item;
                     itm.translation(d);
-
-                    return _objfunc(pile, itm, remlist);
+                    return _objfunc(itm);
                 };
 
                 auto getNfpPoint = [&ecache](const Optimum& opt)
@@ -922,6 +943,9 @@ private:
                 std::launch policy = std::launch::deferred;
                 if(config_.parallel) policy |= std::launch::async;
 
+                if(config_.before_packing)
+                    config_.before_packing(merged_pile, items_, remlist);
+
                 using OptResult = opt::Result<double>;
                 using OptResults = std::vector<OptResult>;
 
@@ -930,21 +954,27 @@ private:
                 for(unsigned ch = 0; ch < ecache.size(); ch++) {
                     auto& cache = ecache[ch];
 
-                    auto contour_ofn = [rawobjfunc, getNfpPoint, ch]
-                            (double relpos)
-                    {
-                        return rawobjfunc(getNfpPoint(Optimum(relpos, ch)));
-                    };
-
                     OptResults results(cache.corners().size());
+
+                    auto& rofn = rawobjfunc;
+                    auto& nfpoint = getNfpPoint;
 
                     __parallel::enumerate(
                                 cache.corners().begin(),
                                 cache.corners().end(),
-                                [&contour_ofn, &results]
+                                [&results, &item, &rofn, &nfpoint, ch]
                                 (double pos, unsigned n)
                     {
                         Optimizer solver;
+
+                        Item itemcpy = item;
+                        auto contour_ofn = [&rofn, &nfpoint, ch, &itemcpy]
+                                (double relpos)
+                        {
+                            Optimum op(relpos, ch);
+                            return rofn(nfpoint(op), itemcpy);
+                        };
+
                         try {
                             results[n] = solver.optimize_min(contour_ofn,
                                             opt::initvals<double>(pos),
@@ -975,24 +1005,27 @@ private:
                     }
 
                     for(unsigned hidx = 0; hidx < cache.holeCount(); ++hidx) {
-                        auto hole_ofn =
-                                [rawobjfunc, getNfpPoint, ch, hidx]
-                                (double pos)
-                        {
-                            Optimum opt(pos, ch, hidx);
-                            return rawobjfunc(getNfpPoint(opt));
-                        };
-
                         results.clear();
                         results.resize(cache.corners(hidx).size());
 
                         // TODO : use parallel for
                         __parallel::enumerate(cache.corners(hidx).begin(),
                                       cache.corners(hidx).end(),
-                                      [&hole_ofn, &results]
+                                      [&results, &item, &nfpoint,
+                                       &rofn, ch, hidx]
                                       (double pos, unsigned n)
                         {
                             Optimizer solver;
+
+                            Item itmcpy = item;
+                            auto hole_ofn =
+                                    [&rofn, &nfpoint, ch, hidx, &itmcpy]
+                                    (double pos)
+                            {
+                                Optimum opt(pos, ch, hidx);
+                                return rofn(nfpoint(opt), itmcpy);
+                            };
+
                             try {
                                 results[n] = solver.optimize_min(hole_ofn,
                                                 opt::initvals<double>(pos),

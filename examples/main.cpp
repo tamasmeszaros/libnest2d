@@ -11,7 +11,7 @@
 #include "libnest2d/rotfinder.hpp"
 
 //#include "tools/libnfpglue.hpp"
-#include "tools/nfp_svgnest_glue.hpp"
+//#include "tools/nfp_svgnest_glue.hpp"
 
 
 using namespace libnest2d;

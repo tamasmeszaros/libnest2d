@@ -493,8 +493,7 @@ public:
                             std::array<typename ItemList::iterator, 3>
                                     candidates = {it, it2, it3};
 
-                            auto tryPack = [&placer, &candidates, &not_packed,
-                                            &pack](
+                            auto tryPack = [&placer, &candidates, &pack](
                                     const decltype(indices)& idx)
                             {
                                 std::array<bool, 3> packed = {false};

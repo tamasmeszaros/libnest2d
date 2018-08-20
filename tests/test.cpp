@@ -5,6 +5,7 @@
 #include "printer_parts.h"
 #include <libnest2d/geometry_traits_nfp.hpp>
 //#include "../tools/libnfpglue.hpp"
+//#include "../tools/nfp_svgnest_glue.hpp"
 
 std::vector<libnest2d::Item>& prusaParts() {
     static std::vector<libnest2d::Item> ret;

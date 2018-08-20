@@ -27,8 +27,7 @@ template<class S> struct _alg {
     using Coord = double;
     using Shapes = nfp::Shapes<S>;
 
-//#define TOL _Tol<Coord>::Value
-    static const BP2D_CONSTEXPR Coord TOL = std::pow(10, -9);
+    static const Coord TOL;
 
 #define dNAN std::nan("")
 
@@ -45,8 +44,6 @@ template<class S> struct _alg {
         Vector(std::initializer_list<Coord> il):
             x(*il.begin()), y(*std::next(il.begin())) {}
     };
-
-
 
     static inline Coord x(const Point& p) { return Coord(getX(p)); }
     static inline Coord y(const Point& p) { return Coord(getY(p)); }
@@ -943,7 +940,8 @@ template<class S> struct _alg {
                     break;
                 }
 
-                // if A and B start on a touching horizontal line, the end point may not be the start point
+                // if A and B start on a touching horizontal line,
+                // the end point may not be the start point
                 bool looped = false;
                 if(NFP.size() > 0) {
                     for(i = 0; i < NFP.size() - 1; i++) {
@@ -985,18 +983,20 @@ template<class S> struct _alg {
     }
 };
 
-template<class S>
-nfp::NfpResult<S> nfpSimpleSimple(const S& stat, const S& orb) {
-//    using Cntr = TContour<S>;
-    using Point = TPoint<S>;
-//    using Coord = TCoord<Point>;
-//    using Shapes = nfp::Shapes<S>;
+template<class S> const double _alg<S>::TOL = std::pow(10, -9);
 
-    namespace sl = shapelike;
+//template<class S>
+//nfp::NfpResult<S> nfpSimpleSimple(const S& stat, const S& orb) {
+////    using Cntr = TContour<S>;
+//    using Point = TPoint<S>;
+////    using Coord = TCoord<Point>;
+////    using Shapes = nfp::Shapes<S>;
 
-    noFitPolygon(sl::getContour(stat), sl::getContour(orb), true, true);
-    return {S(), Point()};
-}
+//    namespace sl = shapelike;
+
+//    noFitPolygon(sl::getContour(stat), sl::getContour(orb), true, true);
+//    return {S(), Point()};
+//}
 
 }
 }

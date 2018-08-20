@@ -824,10 +824,10 @@ private:
 
                 Shapes pile;
                 pile.reserve(items_.size()+1);
-                double pile_area = 0;
+                // double pile_area = 0;
                 for(Item& mitem : items_) {
                     pile.emplace_back(mitem.transformedShape());
-                    pile_area += mitem.area();
+                    // pile_area += mitem.area();
                 }
 
                 auto merged_pile = nfp::merge(pile);
@@ -838,7 +838,7 @@ private:
                 // customizable by the library client
                 auto _objfunc = config_.object_function?
                             config_.object_function :
-                            [norm, pile_area, bin, merged_pile](
+                            [norm, /*pile_area,*/ bin, merged_pile](
                                 const Pile& /*pile*/,
                                 const Item& item,
                                 const ItemGroup& /*remaining*/)
@@ -918,7 +918,7 @@ private:
                     __parallel::enumerate(
                                 cache.corners().begin(),
                                 cache.corners().end(),
-                                [this, ch, &contour_ofn, &results]
+                                [&contour_ofn, &results]
                                 (double pos, unsigned n)
                     {
                         Optimizer solver;
@@ -953,7 +953,7 @@ private:
 
                     for(unsigned hidx = 0; hidx < cache.holeCount(); ++hidx) {
                         auto hole_ofn =
-                                [&rawobjfunc, &getNfpPoint, ch, hidx]
+                                [rawobjfunc, getNfpPoint, ch, hidx]
                                 (double pos)
                         {
                             Optimum opt(pos, ch, hidx);
@@ -966,7 +966,7 @@ private:
                         // TODO : use parallel for
                         __parallel::enumerate(cache.corners(hidx).begin(),
                                       cache.corners(hidx).end(),
-                                      [this, &hole_ofn, ch, hidx, &results]
+                                      [&hole_ofn, &results]
                                       (double pos, unsigned n)
                         {
                             Optimizer solver;

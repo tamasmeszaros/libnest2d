@@ -90,6 +90,19 @@ if(LIBNEST2D_UNITTESTS)
 endif()
 
 if(LIBNEST2D_BUILD_EXAMPLES)
+    find_package(OpenMP REQUIRED)
+#set(TBB_STATIC ON)
+#find_package(TBB REQUIRED)
+#include_directories(${TBB_INCLUDE_DIRS})
+#add_definitions(${TBB_DEFINITIONS})
+#if(MSVC)
+#    # Suppress implicit linking of the TBB libraries by the Visual Studio compiler.
+#    add_definitions(-D__TBB_NO_IMPLICIT_LINKAGE)
+#endif()
+## The Intel TBB library will use the std::exception_ptr feature of C++11.
+#add_definitions(-DTBB_USE_CAPTURED_EXCEPTION=0)
+
+
     add_executable(example examples/main.cpp
 #                           tools/libnfpglue.hpp
 #                           tools/libnfpglue.cpp
@@ -98,9 +111,13 @@ if(LIBNEST2D_BUILD_EXAMPLES)
                            tools/svgtools.hpp
                            tests/printer_parts.cpp
                            tests/printer_parts.h
-                           ${LIBNEST2D_SRCFILES})
+                           ${LIBNEST2D_SRCFILES}
+                           )
 
-
+target_link_libraries(example
+#                               ${TBB_LIBRARIES}
+                               OpenMP::OpenMP_CXX
+                               )
     target_link_libraries(example ${LIBNEST2D_LIBRARIES})
     target_include_directories(example PUBLIC ${LIBNEST2D_HEADERS})
 endif()

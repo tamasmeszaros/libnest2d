@@ -21,6 +21,9 @@
 
 #include "tools/svgtools.hpp"
 
+#include <omp.h>
+//#include <tbb/parallel_for.h>
+
 namespace libnest2d {
 
 namespace __parallel {
@@ -37,15 +40,33 @@ inline void enumerate(
         std::launch policy = std::launch::deferred | std::launch::async)
 {
     auto N = to-from;
-    std::vector<std::future<void>> rets(N);
 
-    auto it = from;
-    for(unsigned b = 0; b < N; b++) {
-        rets[b] = std::async(policy, fn, *it++, b);
-    }
+//    tbb::parallel_for<size_t>(0, N, [from, fn](size_t n) { fn(*(from + n), n); } );
+//#pragma omp parallel for
+    for(int n = 0; n < N; n++) fn(*(from + n), n);
 
-    for(unsigned fi = 0; fi < rets.size(); ++fi) rets[fi].wait();
+//    std::vector<std::future<void>> rets(N);
+
+//    auto it = from;
+//    for(unsigned b = 0; b < N; b++) {
+//        rets[b] = std::async(policy, fn, *it++, b);
+//    }
+
+//    for(unsigned fi = 0; fi < rets.size(); ++fi) rets[fi].wait();
 }
+
+class SpinLock {
+    static std::atomic_flag locked;
+public:
+    void lock() {
+        while (locked.test_and_set(std::memory_order_acquire)) { ; }
+    }
+    void unlock() {
+        locked.clear(std::memory_order_release);
+    }
+};
+
+std::atomic_flag SpinLock::locked = ATOMIC_FLAG_INIT ;
 
 }
 
@@ -838,16 +859,18 @@ private:
                 // customizable by the library client
                 auto _objfunc = config_.object_function?
                             config_.object_function :
-                            [norm, /*pile_area,*/ bin, merged_pile](
+                            [norm, /*pile_area,*/ bin, &merged_pile](
                                 const Pile& /*pile*/,
                                 const Item& item,
                                 const ItemGroup& /*remaining*/)
                 {
                     auto ibb = item.boundingBox();
                     auto binbb = sl::boundingBox(bin);
-                    auto mp = merged_pile;
+
+                    auto& mp = merged_pile;
                     mp.emplace_back(item.transformedShape());
                     auto fullbb = sl::boundingBox(mp);
+                    mp.pop_back();
 
                     double score = pl::distance(ibb.center(), binbb.center());
                     score /= norm;

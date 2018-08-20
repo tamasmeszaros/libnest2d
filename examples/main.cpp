@@ -54,7 +54,7 @@ void arrangeRectangles() {
 
     const int SCALE = 1000000;
 
-    std::vector<Item> rects(100,       {
+    std::vector<Item> rects(202,       {
                                      {-9945219, -3065619},
                                      {-9781479, -2031780},
                                      {-9510560, -1020730},
@@ -100,10 +100,10 @@ void arrangeRectangles() {
                                  });
 
     std::vector<Item> input;
-    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
+//    input.insert(input.end(), prusaParts().begin(), prusaParts().end());
 //    input.insert(input.end(), prusaExParts().begin(), prusaExParts().end());
 //    input.insert(input.end(), stegoParts().begin(), stegoParts().end());
-//    input.insert(input.end(), rects.begin(), rects.end());
+    input.insert(input.end(), rects.begin(), rects.end());
 //    input.insert(input.end(), proba.begin(), proba.end());
 //    input.insert(input.end(), crasher.begin(), crasher.end());
 
@@ -125,7 +125,7 @@ void arrangeRectangles() {
 
 //    _Circle<PointImpl> bin({0, 0}, 125*SCALE);
 
-    auto min_obj_distance = static_cast<Coord>(1.5*SCALE);
+    auto min_obj_distance = static_cast<Coord>(6*SCALE);
 
     using Placer = strategies::_NofitPolyPlacer<PolygonImpl, decltype(bin)>;
     using Packer = Nester<Placer, FirstFitSelection>;
@@ -136,8 +136,8 @@ void arrangeRectangles() {
     pconf.alignment = Placer::Config::Alignment::CENTER;
     pconf.starting_point = Placer::Config::Alignment::CENTER;
     pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/};
-    pconf.accuracy = 0.5f;
-    pconf.parallel = true;
+    pconf.accuracy = 0.3f;
+    pconf.parallel = false;
 
     Packer::SelectionConfig sconf;
 //    sconf.allow_parallel = false;

@@ -21,8 +21,11 @@
 
 #include "tools/svgtools.hpp"
 
+#ifdef TBB_INTERFACE_VERSION
+#include <tbb/parallel_for.h>
+#elif defined(_OPENMP)
 #include <omp.h>
-//#include <tbb/parallel_for.h>
+#endif
 
 namespace libnest2d {
 
@@ -40,23 +43,28 @@ inline void enumerate(
         std::launch policy = std::launch::deferred | std::launch::async)
 {
     auto N = to-from;
+    using TN = decltype(N);
 
-//    tbb::parallel_for<size_t>(0, N, [from, fn](size_t n) { fn(*(from + n), n); } );
-//    if((policy & std::launch::async) == std::launch::async) {
-//        #pragma omp parallel for
-//        for(int n = 0; n < N; n++) fn(*(from + n), n);
-//    }
-//    else {
-//        for(int n = 0; n < N; n++) fn(*(from + n), n);
-//    }
+#ifdef TBB_INTERFACE_VERSION
+    tbb::parallel_for<TN>(0, N, [from, fn] (TN n) { fn(*(from + n), n); } );
+#elif defined(_OPENMP)
+    if((policy & std::launch::async) == std::launch::async) {
+        #pragma omp parallel for
+        for(TN n = 0; n < N; n++) fn(*(from + n), n);
+    }
+    else {
+        for(TN n = 0; n < N; n++) fn(*(from + n), n);
+    }
+#else
     std::vector<std::future<void>> rets(N);
 
     auto it = from;
-    for(unsigned b = 0; b < N; b++) {
+    for(TN b = 0; b < N; b++) {
         rets[b] = std::async(policy, fn, *it++, b);
     }
 
-    for(unsigned fi = 0; fi < rets.size(); ++fi) rets[fi].wait();
+    for(TN fi = 0; fi < rets.size(); ++fi) rets[fi].wait();
+#endif
 }
 
 class SpinLock {
@@ -123,7 +131,7 @@ using Hash = std::unordered_map<Key, nfp::NfpResult<S>>;
 
 }
 
-namespace strategies {
+namespace placers {
 
 template<class RawShape>
 struct NfpPConfig {

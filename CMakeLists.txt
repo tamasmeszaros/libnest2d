@@ -90,7 +90,7 @@ if(LIBNEST2D_UNITTESTS)
 endif()
 
 if(LIBNEST2D_BUILD_EXAMPLES)
-#    find_package(OpenMP REQUIRED)
+    find_package(OpenMP REQUIRED)
 #set(TBB_STATIC ON)
 #find_package(TBB REQUIRED)
 #include_directories(${TBB_INCLUDE_DIRS})
@@ -114,10 +114,10 @@ if(LIBNEST2D_BUILD_EXAMPLES)
                            ${LIBNEST2D_SRCFILES}
                            )
 
-#target_link_libraries(example
+target_link_libraries(example
 #                               ${TBB_LIBRARIES}
-#                               OpenMP::OpenMP_CXX
-#                               )
+                               OpenMP::OpenMP_CXX
+                               )
     target_link_libraries(example ${LIBNEST2D_LIBRARIES})
     target_include_directories(example PUBLIC ${LIBNEST2D_HEADERS})
 endif()

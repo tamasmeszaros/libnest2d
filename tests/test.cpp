@@ -102,7 +102,7 @@ TEST(BasicFunctionality, creationAndDestruction)
 
 TEST(GeometryAlgorithms, boundingCircle) {
     using namespace libnest2d;
-    using strategies::boundingCircle;
+    using placers::boundingCircle;
 
     PolygonImpl p = {{{0, 10}, {10, 0}, {0, -10}, {0, 10}}, {}};
     _Circle<PointImpl> c = boundingCircle<PolygonImpl>(p);
@@ -720,7 +720,7 @@ void testNfp(const std::vector<ItemPair>& testdata) {
         auto&& nfp = nfp::noFitPolygon<lvl>(stationary.rawShape(),
                                             orbiter.transformedShape());
 
-        strategies::correctNfpPosition(nfp, stationary, orbiter);
+        placers::correctNfpPosition(nfp, stationary, orbiter);
 
         auto v = shapelike::isValid(nfp.first);
 
@@ -796,7 +796,7 @@ TEST(GeometryAlgorithms, pointOnPolygonContour) {
 
     Rectangle input(10, 10);
 
-    strategies::EdgeCache<PolygonImpl> ecache(input);
+    placers::EdgeCache<PolygonImpl> ecache(input);
 
     auto first = *input.begin();
     ASSERT_TRUE(getX(first) == getX(ecache.coords(0)));

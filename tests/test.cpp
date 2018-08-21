@@ -105,14 +105,14 @@ TEST(GeometryAlgorithms, boundingCircle) {
     using placers::boundingCircle;
 
     PolygonImpl p = {{{0, 10}, {10, 0}, {0, -10}, {0, 10}}, {}};
-    _Circle<PointImpl> c = boundingCircle<PolygonImpl>(p);
+    Circle c = boundingCircle(p);
 
     ASSERT_EQ(c.center().X, 0);
     ASSERT_EQ(c.center().Y, 0);
     ASSERT_DOUBLE_EQ(c.radius(), 10);
 
     shapelike::translate(p, PointImpl{10, 10});
-    c = boundingCircle<PolygonImpl>(p);
+    c = boundingCircle(p);
 
     ASSERT_EQ(c.center().X, 10);
     ASSERT_EQ(c.center().Y, 10);
@@ -712,7 +712,7 @@ void testNfp(const std::vector<ItemPair>& testdata) {
 
     auto& exportfun = exportSVG<SCALE, Box>;
 
-    auto onetest = [&](Item& orbiter, Item& stationary){
+    auto onetest = [&](Item& orbiter, Item& stationary, unsigned testidx){
         testcase++;
 
         orbiter.translate({210*SCALE, 0});
@@ -722,13 +722,17 @@ void testNfp(const std::vector<ItemPair>& testdata) {
 
         placers::correctNfpPosition(nfp, stationary, orbiter);
 
-        auto v = shapelike::isValid(nfp.first);
+        auto valid = shapelike::isValid(nfp.first);
 
-        if(!v.first) {
-            std::cout << v.second << std::endl;
-        }
+        /*Item infp(nfp.first);
+        if(!valid.first) {
+            std::cout << "test instance: " << testidx << " "
+                      << valid.second << std::endl;
+            std::vector<std::reference_wrapper<Item>> inp = {std::ref(infp)};
+            exportfun(inp, bin, testidx);
+        }*/
 
-        ASSERT_TRUE(v.first);
+        ASSERT_TRUE(valid.first);
 
         Item infp(nfp.first);
 
@@ -748,7 +752,7 @@ void testNfp(const std::vector<ItemPair>& testdata) {
 
             bool touching = Item::touches(tmp, stationary);
 
-            if(!touching) {
+            if(!touching || !valid.first) {
                 std::vector<std::reference_wrapper<Item>> inp = {
                     std::ref(stationary), std::ref(tmp), std::ref(infp)
                 };
@@ -760,16 +764,18 @@ void testNfp(const std::vector<ItemPair>& testdata) {
         }
     };
 
+    unsigned tidx = 0;
     for(auto& td : testdata) {
         auto orbiter = td.orbiter;
         auto stationary = td.stationary;
-        onetest(orbiter, stationary);
+        onetest(orbiter, stationary, tidx++);
     }
 
+    tidx = 0;
     for(auto& td : testdata) {
         auto orbiter = td.stationary;
         auto stationary = td.orbiter;
-        onetest(orbiter, stationary);
+        onetest(orbiter, stationary, tidx++);
     }
 }
 }

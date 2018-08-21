@@ -21,7 +21,7 @@
 
 #include "tools/svgtools.hpp"
 
-#ifdef TBB_INTERFACE_VERSION
+#ifdef USE_TBB
 #include <tbb/parallel_for.h>
 #elif defined(_OPENMP)
 #include <omp.h>
@@ -39,14 +39,19 @@ using TIteratorValue = typename iterator_traits<It>::value_type;
 template<class Iterator>
 inline void enumerate(
         Iterator from, Iterator to,
-        function<void(TIteratorValue<Iterator>, unsigned)> fn,
+        function<void(TIteratorValue<Iterator>, size_t)> fn,
         std::launch policy = std::launch::deferred | std::launch::async)
 {
-    auto N = to-from;
-    using TN = decltype(N);
+    using TN = size_t;
+    auto iN = to-from;
+    TN N = iN < 0? 0 : TN(iN);
 
-#ifdef TBB_INTERFACE_VERSION
-    tbb::parallel_for<TN>(0, N, [from, fn] (TN n) { fn(*(from + n), n); } );
+#ifdef USE_TBB
+    if((policy & std::launch::async) == std::launch::async) {
+        tbb::parallel_for<TN>(0, N, [from, fn] (TN n) { fn(*(from + n), n); } );
+    } else {
+        for(TN n = 0; n < N; n++) fn(*(from + n), n);
+    }
 #elif defined(_OPENMP)
     if((policy & std::launch::async) == std::launch::async) {
         #pragma omp parallel for
@@ -60,10 +65,10 @@ inline void enumerate(
 
     auto it = from;
     for(TN b = 0; b < N; b++) {
-        rets[b] = std::async(policy, fn, *it++, b);
+        rets[b] = std::async(policy, fn, *it++, unsigned(b));
     }
 
-    for(TN fi = 0; fi < rets.size(); ++fi) rets[fi].wait();
+    for(TN fi = 0; fi < N; ++fi) rets[fi].wait();
 #endif
 }
 
@@ -626,35 +631,25 @@ private:
     {
         using namespace nfp;
 
-        Shapes nfps;
+        Shapes nfps(items_.size());
         const Item& trsh = itsh.first;
-    //    nfps.reserve(polygons.size());
 
-//        unsigned idx = 0;
-        for(Item& sh : items_) {
-
-//            auto ik = item_keys_[idx++] + itsh.second;
-//            auto fnd = nfpcache_.find(ik);
-
-//            nfp::NfpResult<RawShape> subnfp_r;
-//            if(fnd == nfpcache_.end()) {
-
-                auto subnfp_r = noFitPolygon<NfpLevel::CONVEX_ONLY>(
-                                sh.transformedShape(), trsh.transformedShape());
-//                nfpcache_[ik] = subnfp_r;
-//            } else {
-//                subnfp_r = fnd->second;
-//            }
-
+        __parallel::enumerate(items_.begin(), items_.end(),
+                              [&nfps, &trsh](const Item& sh, size_t n)
+        {
+            auto& fixedp = sh.transformedShape();
+            auto& orbp = trsh.transformedShape();
+            auto subnfp_r = noFitPolygon<NfpLevel::CONVEX_ONLY>(fixedp, orbp);
             correctNfpPosition(subnfp_r, sh, trsh);
+            nfps[n] = subnfp_r.first;
+        });
 
-    //        nfps.emplace_back(subnfp_r.first);
-            nfps = nfp::merge(nfps, subnfp_r.first);
-        }
+//        for(auto& n : nfps) {
+//            auto valid = sl::isValid(n);
+//            if(!valid.first) std::cout << "Warning: " << valid.second << std::endl;
+//        }
 
-    //    nfps = nfp::merge(nfps);
-
-        return nfps;
+        return nfp::merge(nfps);
     }
 
     template<class Level>
@@ -971,7 +966,7 @@ private:
                                 cache.corners().begin(),
                                 cache.corners().end(),
                                 [&results, &item, &rofn, &nfpoint, ch]
-                                (double pos, unsigned n)
+                                (double pos, size_t n)
                     {
                         Optimizer solver;
 
@@ -1021,7 +1016,7 @@ private:
                                       cache.corners(hidx).end(),
                                       [&results, &item, &nfpoint,
                                        &rofn, ch, hidx]
-                                      (double pos, unsigned n)
+                                      (double pos, size_t n)
                         {
                             Optimizer solver;
 

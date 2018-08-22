@@ -476,7 +476,7 @@ Circle minimizeCircle(const RawShape& sh) {
 
 
     opt::StopCriteria stopcr;
-    stopcr.max_iterations = 100;
+    stopcr.max_iterations = 30;
     stopcr.relative_score_difference = 1e-3;
     opt::TOptimizer<opt::Method::L_SUBPLEX> solver(stopcr);
 

@@ -310,6 +310,7 @@ public:
     {
         if(translation_ != tr) {
             translation_ = tr; has_translation_ = true; tr_cache_valid_ = false;
+            //bb_cache_.valid = false;
         }
     }
 
@@ -345,9 +346,10 @@ public:
     inline Box boundingBox() const {
         if(!bb_cache_.valid) {
             if(!has_rotation_)
-                bb_cache_.bb = sl::boundingBox(transformedShape());
+                bb_cache_.bb = sl::boundingBox(offsettedShape());
             else {
-                auto rotsh = rawShape();
+                // TODO make sure this works
+                auto rotsh = offsettedShape();
                 sl::rotate(rotsh, rotation_);
                 bb_cache_.bb = sl::boundingBox(rotsh);
             }
@@ -355,7 +357,7 @@ public:
         }
 
         auto &bb = bb_cache_.bb; auto &tr = translation_;
-        return {bb.minCorner() + tr, bb.maxCorner() + tr};
+        return {bb.minCorner() + tr, bb.maxCorner() + tr };
     }
 
     inline Vertex referenceVertex() const {

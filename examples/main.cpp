@@ -123,7 +123,7 @@ void arrangeRectangles() {
 
 //    Circle bin({0, 0}, 125*SCALE);
 
-    auto min_obj_distance = static_cast<Coord>(0*SCALE);
+    auto min_obj_distance = static_cast<Coord>(6*SCALE);
 
     using Placer = placers::_NofitPolyPlacer<PolygonImpl, decltype(bin)>;
     using Packer = Nester<Placer, FirstFitSelection>;

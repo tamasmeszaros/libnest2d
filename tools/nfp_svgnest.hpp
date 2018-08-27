@@ -95,11 +95,51 @@ template<class S> struct _alg {
                            [](const Vector& vertex) {
                 return Point(iCoord(vertex.x) * 1000000, iCoord(vertex.y) * 1000000);
             });
-            if(!cnt.empty()) cnt.emplace_back(cnt.front());
-            S sh = shapelike::create<S>(cnt);
 
-//            std::reverse(cnt.begin(), cnt.end());
-            return shapelike::getContour(sh);
+//            auto bb = shapelike::boundingBox(cnt);
+
+//            struct P {
+//                iCoord x, y;
+//            };
+
+//            P center = {getX(bb.center()), getY(bb.center()) };
+
+//            std::sort(cnt.begin(), cnt.end(),
+//                      [center](const Point& pa, const Point& pb) {
+
+//                P a, b;
+
+//                a = { getX(pa), getY(pa) };
+//                b = { getX(pb), getY(pb) };
+
+//                if (a.x - center.x >= 0 && b.x - center.x < 0)
+//                    return true;
+//                if (a.x - center.x < 0 && b.x - center.x >= 0)
+//                    return false;
+//                if (a.x - center.x == 0 && b.x - center.x == 0) {
+//                    if (a.y - center.y >= 0 || b.y - center.y >= 0)
+//                        return a.y > b.y;
+//                    return b.y > a.y;
+//                }
+
+//                // compute the cross product of vectors (center -> a) x (center -> b)
+//                int det = (a.x - center.x) * (b.y - center.y) - (b.x - center.x) * (a.y - center.y);
+//                if (det < 0)
+//                    return true;
+//                if (det > 0)
+//                    return false;
+
+//                // points a and b are on the same line from the center
+//                // check which point is closer to the center
+//                int d1 = (a.x - center.x) * (a.x - center.x) + (a.y - center.y) * (a.y - center.y);
+//                int d2 = (b.x - center.x) * (b.x - center.x) + (b.y - center.y) * (b.y - center.y);
+//                return d1 < d2;
+//            });
+
+            auto closer = cnt.front();
+            cnt.emplace_back(closer);
+
+            return cnt;
         }
     };
 

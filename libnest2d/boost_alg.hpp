@@ -389,6 +389,14 @@ inline bp2d::Box boundingBox(const PolygonImpl& sh, const PolygonTag&)
 }
 
 template<>
+inline bp2d::Box boundingBox(const PathImpl& sh, const PolygonTag&)
+{
+    bp2d::Box b;
+    boost::geometry::envelope(sh, b);
+    return b;
+}
+
+template<>
 inline bp2d::Box boundingBox<bp2d::Shapes>(const bp2d::Shapes& shapes,
                                            const MultiPolygonTag&)
 {

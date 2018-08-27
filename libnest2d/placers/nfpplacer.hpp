@@ -649,11 +649,13 @@ private:
             auto subnfp_r = noFitPolygon<NfpLevel::CONVEX_ONLY>(fixedp, orbp);
             correctNfpPosition(subnfp_r, sh, trsh);
             nfps[n] = subnfp_r.first;
+
+
         });
 
 //        for(auto& n : nfps) {
 //            auto valid = sl::isValid(n);
-//            if(!valid.first) std::cout << "Warning: " << valid.second << std::endl;
+//            if(!valid.first) dout() << "Warning: " << valid.second << std::endl;
 //        }
 
         return nfp::merge(nfps);

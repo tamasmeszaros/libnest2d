@@ -4,6 +4,7 @@
 #include <libnest2d.h>
 #include "printer_parts.h"
 #include <libnest2d/geometry_traits_nfp.hpp>
+#include "../tools/svgtools.hpp"
 //#include "../tools/libnfpglue.hpp"
 //#include "../tools/nfp_svgnest_glue.hpp"
 
@@ -791,10 +792,17 @@ TEST(GeometryAlgorithms, nfpConvexConvex) {
 TEST(GeometryAlgorithms, nfpConcaveConcave) {
     using namespace libnest2d;
 
-//    Rectangle r1(10, 10);
-//    Rectangle r2(20, 20);
-//    auto result = Nfp::nfpSimpleSimple(r1.transformedShape(),
-//                                       r2.transformedShape());
+    Rectangle r1(10, 10);
+    Rectangle r2(20, 20);
+    auto result = nfp::nfpSimpleSimple(r1.transformedShape(),
+                                       r2.transformedShape());
+
+    svg::SVGWriter<PolygonImpl>::Config conf;
+    conf.mm_in_coord_units = 1;
+    svg::SVGWriter<PolygonImpl> wr(conf);
+    wr.writeItem(Item(result.first));
+    wr.save("simplesimple.svg");
+
 }
 
 TEST(GeometryAlgorithms, pointOnPolygonContour) {

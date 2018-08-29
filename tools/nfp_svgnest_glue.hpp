@@ -26,7 +26,7 @@ template<> struct NfpImpl<PolygonImpl, NfpLevel::CONVEX_ONLY> {
         using alg = __svgnest::_alg<PolygonImpl>;
 
         auto nfp_p = alg::noFitPolygon(sl::getContour(sh),
-                                       sl::getContour(cother), false, false);
+                                       sl::getContour(cother), false, true);
 
         PolygonImpl nfp_cntr;
         if(!nfp_p.empty()) nfp_cntr.Contour = nfp_p.front();
@@ -40,12 +40,11 @@ template<> struct NfpImpl<PolygonImpl, NfpLevel::ONE_CONVEX> {
         namespace sl = shapelike;
         using alg = __svgnest::_alg<PolygonImpl>;
 
-        std::cout << "Itt vagyok" << std::endl;
         auto nfp_p = alg::noFitPolygon(sl::getContour(sh),
                                        sl::getContour(cother), false, false);
 
         PolygonImpl nfp_cntr;
-        nfp_cntr.Contour = nfp_p.front();
+        if(!nfp_p.empty()) nfp_cntr.Contour = nfp_p.front();
         return {nfp_cntr, referenceVertex(nfp_cntr)};
     }
 };

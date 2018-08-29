@@ -135,7 +135,7 @@ void arrangeRectangles() {
     pconf.starting_point = Placer::Config::Alignment::CENTER;
     pconf.rotations = {0.0/*, Pi/2.0, Pi, 3*Pi/2*/};
     pconf.accuracy = 0.65f;
-    pconf.parallel = true;
+    pconf.parallel = false;
 
     Packer::SelectionConfig sconf;
 //    sconf.allow_parallel = false;

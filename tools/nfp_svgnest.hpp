@@ -61,7 +61,7 @@ template<class S> struct _alg {
             v_.reserve(c.size());
             std::transform(c.begin(), c.end(), std::back_inserter(v_),
                            [](const Point& p) {
-                return Vector(double(x(p)) / 1e6, double(y(p)) / 1e6);
+                return Vector(double(x(p)) / 1e3, double(y(p)) / 1e3);
             });
             std::reverse(v_.begin(), v_.end());
             v_.pop_back();
@@ -93,48 +93,59 @@ template<class S> struct _alg {
             cnt.reserve(v_.size() + 1);
             std::transform(v_.begin(), v_.end(), std::back_inserter(cnt),
                            [](const Vector& vertex) {
-                return Point(iCoord(vertex.x) * 1000000, iCoord(vertex.y) * 1000000);
+                return Point(iCoord(vertex.x) * 1000, iCoord(vertex.y) * 1000);
             });
 
-//            auto bb = shapelike::boundingBox(cnt);
+            auto bb = shapelike::boundingBox(cnt);
 
-//            struct P {
-//                iCoord x, y;
-//            };
+            struct P {
+                iCoord x_, y_;
+                iCoord x() const { return x_; }
+                iCoord y() const { return y_; }
+            };
 
-//            P center = {getX(bb.center()), getY(bb.center()) };
+            P center = {getX(bb.center()), getY(bb.center()) };
 
-//            std::sort(cnt.begin(), cnt.end(),
-//                      [center](const Point& pa, const Point& pb) {
+            std::sort(cnt.begin(), cnt.end(),
+                      [center](const Point& pa, const Point& pb) {
 
-//                P a, b;
+                P a, b;
 
-//                a = { getX(pa), getY(pa) };
-//                b = { getX(pb), getY(pb) };
+                a = { getX(pa), getY(pa) };
+                b = { getX(pb), getY(pb) };
 
-//                if (a.x - center.x >= 0 && b.x - center.x < 0)
-//                    return true;
-//                if (a.x - center.x < 0 && b.x - center.x >= 0)
-//                    return false;
-//                if (a.x - center.x == 0 && b.x - center.x == 0) {
-//                    if (a.y - center.y >= 0 || b.y - center.y >= 0)
-//                        return a.y > b.y;
-//                    return b.y > a.y;
-//                }
+                // Computes the quadrant for a and b (0-3):
+                //     ^
+                //   1 | 0
+                //  ---+-->
+                //   2 | 3
 
-//                // compute the cross product of vectors (center -> a) x (center -> b)
-//                int det = (a.x - center.x) * (b.y - center.y) - (b.x - center.x) * (a.y - center.y);
-//                if (det < 0)
-//                    return true;
-//                if (det > 0)
-//                    return false;
+                const int dax = ((a.x() - center.x()) > 0) ? 1 : 0;
+                const int day = ((a.y() - center.y()) > 0) ? 1 : 0;
+                const int qa = (1 - dax) + (1 - day) + ((dax & (1 - day)) << 1);
 
-//                // points a and b are on the same line from the center
-//                // check which point is closer to the center
-//                int d1 = (a.x - center.x) * (a.x - center.x) + (a.y - center.y) * (a.y - center.y);
-//                int d2 = (b.x - center.x) * (b.x - center.x) + (b.y - center.y) * (b.y - center.y);
-//                return d1 < d2;
-//            });
+                /* The previous computes the following:
+
+                   const int qa =
+                   (  (a.x() > center.x())
+                    ? ((a.y() > center.y())
+                        ? 0 : 3)
+                    : ((a.y() > center.y())
+                        ? 1 : 2)); */
+
+                const int dbx = ((b.x() - center.x()) > 0) ? 1 : 0;
+                const int dby = ((b.y() - center.y()) > 0) ? 1 : 0;
+                const int qb = (1 - dbx) + (1 - dby) + ((dbx & (1 - dby)) << 1);
+
+                if (qa == qb) {
+                    return (b.x() - center.x()) * (a.y() - center.y()) >
+                           (b.y() - center.y()) * (a.x() - center.x());
+                } else {
+                    return qa > qb;
+                }
+
+                return false;
+            });
 
             auto closer = cnt.front();
             cnt.emplace_back(closer);
@@ -1050,7 +1061,7 @@ template<class S> struct _alg {
     }
 };
 
-template<class S> const double _alg<S>::TOL = std::pow(10, -9);
+template<class S> const double _alg<S>::TOL = 1e-9;
 
 }
 }

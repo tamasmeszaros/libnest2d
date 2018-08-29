@@ -55,7 +55,7 @@ inline void enumerate(
 #elif defined(_OPENMP)
     if((policy & std::launch::async) == std::launch::async) {
         #pragma omp parallel for
-        for(TN n = 0; n < N; n++) fn(*(from + n), n);
+        for(int n = 0; n < int(N); n++) fn(*(from + n), TN(n));
     }
     else {
         for(TN n = 0; n < N; n++) fn(*(from + n), n);
@@ -642,21 +642,14 @@ private:
         const Item& trsh = itsh.first;
 
         __parallel::enumerate(items_.begin(), items_.end(),
-                              [&nfps, &trsh](const Item& sh, size_t n)
+                              [this,  &nfps, &trsh](const Item& sh, size_t n)
         {
             auto& fixedp = sh.transformedShape();
             auto& orbp = trsh.transformedShape();
             auto subnfp_r = noFitPolygon<NfpLevel::CONVEX_ONLY>(fixedp, orbp);
             correctNfpPosition(subnfp_r, sh, trsh);
             nfps[n] = subnfp_r.first;
-
-
         });
-
-//        for(auto& n : nfps) {
-//            auto valid = sl::isValid(n);
-//            if(!valid.first) dout() << "Warning: " << valid.second << std::endl;
-//        }
 
         return nfp::merge(nfps);
     }
@@ -844,7 +837,11 @@ private:
         bool can_pack = false;
         double best_overfit = std::numeric_limits<double>::max();
 
-        auto remlist = ItemGroup(remaining.from, remaining.to);
+        ItemGroup remlist;
+        if(remaining.valid) {
+            remlist.insert(remlist.end(), remaining.from, remaining.to);
+        }
+
         size_t itemhash = __itemhash::hash(item);
 
         if(items_.empty()) {

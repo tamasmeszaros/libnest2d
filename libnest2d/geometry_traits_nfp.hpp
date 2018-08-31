@@ -143,8 +143,8 @@ inline TPoint<RawShape> referenceVertex(const RawShape& sh)
  * cases (Through specializing the the NfpImpl struct). Currently, no other
  * cases are covered in the library.
  *
- * Complexity should be no more than linear in the number of edges of the input
- * polygons.
+ * Complexity should be no more than nlogn (std::sort) in the number of edges
+ * of the input polygons.
  *
  * \tparam RawShape the Polygon data type.
  * \param sh The stationary polygon

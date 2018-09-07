@@ -22,13 +22,59 @@ inline bool _vsort(const TPoint<RawShape>& v1, const TPoint<RawShape>& v2)
 
     return diff < 0;
 }
+
+template<class EdgeList, class RawShape, class Vertex = TPoint<RawShape>>
+inline void buildPolygon(const EdgeList& edgelist,
+                         RawShape& rsh,
+                         Vertex& top_nfp)
+{
+    namespace sl = shapelike;
+
+    sl::reserve(rsh, 2*edgelist.size());
+
+    // Add the two vertices from the first edge into the final polygon.
+    sl::addVertex(rsh, edgelist.front().first());
+    sl::addVertex(rsh, edgelist.front().second());
+
+    // Sorting function for the nfp reference vertex search
+    auto& cmp = _vsort<RawShape>;
+
+    // the reference (rightmost top) vertex so far
+    top_nfp = *std::max_element(sl::cbegin(rsh), sl::cend(rsh), cmp );
+
+    auto tmp = std::next(sl::begin(rsh));
+
+    // Construct final nfp by placing each edge to the end of the previous
+    for(auto eit = std::next(edgelist.begin());
+        eit != edgelist.end();
+        ++eit)
+    {
+        auto d = *tmp - eit->first();
+        Vertex p = eit->second() + d;
+
+        sl::addVertex(rsh, p);
+
+        // Set the new reference vertex
+        if(cmp(top_nfp, p)) top_nfp = p;
+
+        tmp = std::next(tmp);
+    }
+
+}
+
+template<class Container, class Iterator = typename Container::iterator>
+void advance(Iterator& it, Container& cont, bool direction)
+{
+    int dir = direction ? 1 : -1;
+    if(dir < 0 && it == cont.begin()) it = std::prev(cont.end());
+    else it += dir;
+    if(dir > 0 && it == cont.end()) it = cont.begin();
+}
+
 }
 
 /// A collection of static methods for handling the no fit polygon creation.
 namespace nfp {
-
-//namespace sl = shapelike;
-//namespace pl = pointlike;
 
 const double BP2D_CONSTEXPR TwoPi = 2*Pi;
 
@@ -62,7 +108,7 @@ using Shapes = TMultiShape<RawShape>;
  *
  * \return A set of polygons that is the union of the input polygons. Note that
  * mostly it will be a set containing only one big polygon but if the input
- * polygons are disjuct than the resulting set will contain more polygons.
+ * polygons are disjunct than the resulting set will contain more polygons.
  */
 template<class RawShapes>
 inline RawShapes merge(const RawShapes& /*shc*/)
@@ -80,14 +126,14 @@ inline RawShapes merge(const RawShapes& /*shc*/)
  *
  * \return A set of polygons that is the union of the input polygons. Note that
  * mostly it will be a set containing only one big polygon but if the input
- * polygons are disjuct than the resulting set will contain more polygons.
+ * polygons are disjunct than the resulting set will contain more polygons.
  */
 template<class RawShape>
 inline TMultiShape<RawShape> merge(const TMultiShape<RawShape>& shc,
                                    const RawShape& sh)
 {
     auto m = nfp::merge(shc);
-    m.push_back(sh);
+    m.emplace_back(sh);
     return nfp::merge(m);
 }
 
@@ -198,33 +244,7 @@ inline NfpResult<RawShape> nfpConvexOnly(const RawShape& sh,
         return e1.angleToXaxis() > e2.angleToXaxis();
     });
 
-    // Add the two vertices from the first edge into the final polygon.
-    sl::addVertex(rsh, edgelist.front().first());
-    sl::addVertex(rsh, edgelist.front().second());
-
-    // Sorting function for the nfp reference vertex search
-    auto& cmp = __nfp::_vsort<RawShape>;
-
-    // the reference (rightmost top) vertex so far
-    top_nfp = *std::max_element(sl::cbegin(rsh), sl::cend(rsh), cmp );
-
-    auto tmp = std::next(sl::begin(rsh));
-
-    // Construct final nfp by placing each edge to the end of the previous
-    for(auto eit = std::next(edgelist.begin());
-        eit != edgelist.end();
-        ++eit)
-    {
-        auto d = *tmp - eit->first();
-        Vertex p = eit->second() + d;
-
-        sl::addVertex(rsh, p);
-
-        // Set the new reference vertex
-        if(cmp(top_nfp, p)) top_nfp = p;
-
-        tmp = std::next(tmp);
-    }
+    __nfp::buildPolygon(edgelist, rsh, top_nfp);
 
     return {rsh, top_nfp};
 }
@@ -282,15 +302,18 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
         std::reverse(orbcont.begin(), orbcont.end());
 
         // Step 1: Make the orbiter reverse oriented
-        for(auto &v : orbcont) v = -v;
 
         orbcont.pop_back();
         auto it = std::min_element(orbcont.begin(), orbcont.end(),
                               [](const Vertex& v1, const Vertex& v2) {
             return getY(v1) < getY(v2);
         });
+
         std::rotate(orbcont.begin(), it, orbcont.end());
         orbcont.emplace_back(orbcont.front());
+
+        for(auto &v : orbcont) v = -v;
+
     }
 
     // Copy the orbiter (contour only), we will have to work on it
@@ -303,6 +326,9 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
         MarkedEdge() = default;
         MarkedEdge(const Edge& ed, Radians ta, bool tp):
             e(ed), turn_angle(ta), is_turning_point(tp) {}
+
+        // debug
+        std::string label;
     };
 
     // Container for marked edges
@@ -311,69 +337,87 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
     EdgeList A, B;
 
     // This is how an edge list is created from the polygons
-    auto fillEdgeList = [](EdgeList& L, const RawShape& poly, int dir) {
+    auto fillEdgeList = [](EdgeList& L, const RawShape& ppoly, int dir) {
+        auto& poly = sl::getContour(ppoly);
+
         L.reserve(sl::contourVertexCount(poly));
 
-        auto it = sl::cbegin(poly);
-        auto nextit = std::next(it);
+        if(dir > 0) {
+            auto it = poly.begin();
+            auto nextit = std::next(it);
 
-        double turn_angle = 0;
-        bool is_turn_point = false;
+            double turn_angle = 0;
+            bool is_turn_point = false;
 
-        while(nextit != sl::cend(poly)) {
-            L.emplace_back(Edge(*it, *nextit), turn_angle, is_turn_point);
-            it++; nextit++;
+            while(nextit != poly.end()) {
+                L.emplace_back(Edge(*it, *nextit), turn_angle, is_turn_point);
+                it++; nextit++;
+            }
+        } else {
+            auto it = poly.rbegin();
+            auto nextit = std::next(it);
+
+            double turn_angle = 0;
+            bool is_turn_point = false;
+
+            while(nextit != poly.rend()) {
+                L.emplace_back(Edge(*it, *nextit), turn_angle, is_turn_point);
+                it++; nextit++;
+            }
         }
 
         auto getTurnAngle = [](const Edge& e1, const Edge& e2) {
             auto phi = e1.angleToXaxis();
             auto phi_prev = e2.angleToXaxis();
-            if(phi > Pi) phi -= TwoPi;
-            if(phi_prev > Pi) phi_prev -= TwoPi;
             auto turn_angle = phi-phi_prev;
             if(turn_angle > Pi) turn_angle -= TwoPi;
             if(turn_angle < -Pi) turn_angle += TwoPi;
             return turn_angle;
         };
 
-        if(dir > 0) {
-            auto eit = L.begin();
-            auto enext = std::next(eit);
+        auto eit = L.begin();
+        auto enext = std::next(eit);
 
-            eit->turn_angle = getTurnAngle(L.front().e, L.back().e);
+        eit->turn_angle = getTurnAngle(L.front().e, L.back().e);
 
-            while(enext != L.end()) {
-                enext->turn_angle = getTurnAngle( enext->e, eit->e);
-                enext->is_turning_point =
-                        signbit(enext->turn_angle) != signbit(eit->turn_angle);
-                ++eit; ++enext;
-            }
-
-            L.front().is_turning_point = signbit(L.front().turn_angle) !=
-                                         signbit(L.back().turn_angle);
-        } else {
-            std::cout << L.size() << std::endl;
-
-            auto eit = L.rbegin();
-            auto enext = std::next(eit);
-
-            eit->turn_angle = getTurnAngle(L.back().e, L.front().e);
-
-            while(enext != L.rend()) {
-                enext->turn_angle = getTurnAngle(enext->e, eit->e);
-                enext->is_turning_point =
-                        signbit(enext->turn_angle) != signbit(eit->turn_angle);
-                ++eit; ++enext;
-            }
-
-            L.back().is_turning_point = signbit(L.back().turn_angle) !=
-                                        signbit(L.front().turn_angle);
+        while(enext != L.end()) {
+            enext->turn_angle = getTurnAngle( enext->e, eit->e);
+            eit->is_turning_point =
+                    signbit(enext->turn_angle) != signbit(eit->turn_angle);
+            ++eit; ++enext;
         }
+
+        L.back().is_turning_point = signbit(L.back().turn_angle) !=
+                                    signbit(L.front().turn_angle);
+
     };
 
     // Step 2: Fill the edgelists
     fillEdgeList(A, stationary, 1);
     fillEdgeList(B, orbiter, 1);
+
+    int i = 1;
+    for(MarkedEdge& me : A) {
+        std::cout << "a" << i << ":\n\t"
+                  << getX(me.e.first()) << " " << getY(me.e.first()) << "\n\t"
+                  << getX(me.e.second()) << " " << getY(me.e.second()) << "\n\t"
+                  << "Turning point: " << (me.is_turning_point ? "yes" : "no")
+                  << std::endl;
+
+        me.label = "a"; me.label += std::to_string(i);
+        i++;
+    }
+
+    i = 1;
+    for(MarkedEdge& me : B) {
+        std::cout << "b" << i << ":\n\t"
+                  << getX(me.e.first()) << " " << getY(me.e.first()) << "\n\t"
+                  << getX(me.e.second()) << " " << getY(me.e.second()) << "\n\t"
+                  << "Turning point: " << (me.is_turning_point ? "yes" : "no")
+                  << std::endl;
+        me.label = "b"; me.label += std::to_string(i);
+        i++;
+    }
 
     // A reference to a marked edge that also knows its container
     struct MarkedEdgeRef {
@@ -424,10 +468,8 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
         Bref.emplace_back( ref(me), ref(Bref) );
     });
 
-    struct EdgeGroup { typename EdgeRefList::const_iterator first, last; };
-
     auto mink = [sortfn] // the Mink(Q, R, direction) sub-procedure
-            (const EdgeGroup& Q, const EdgeGroup& R, bool positive)
+            (const EdgeRefList& Q, const EdgeRefList& R, bool positive)
     {
 
         // Step 1 "merge sort_list(Q) and sort_list(R) to form merge_list(Q,R)"
@@ -437,65 +479,97 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
 
         EdgeRefList merged;
         EdgeRefList S, seq;
-        merged.reserve((Q.last - Q.first) + (R.last - R.first));
+        merged.reserve(Q.size() + R.size());
 
-        merged.insert(merged.end(), Q.first, Q.last);
-        merged.insert(merged.end(), R.first, R.last);
+        merged.insert(merged.end(), Q.begin(), Q.end());
+        merged.insert(merged.end(), R.begin(), R.end());
         sort(merged.begin(), merged.end(), sortfn);
 
         // Step 2 "set i = 1, k = 1, direction = 1, s1 = q1"
-        // we dont use i, instead, q is an iterator into Q. k would be an index
+        // we don't use i, instead, q is an iterator into Q. k would be an index
         // into the merged sequence but we use "it" as an iterator for that
 
         // here we obtain references for the containers for later comparisons
-        const auto& Rcont = R.first->container.get();
-        const auto& Qcont = Q.first->container.get();
+        const auto& Rcont = R.begin()->container.get();
+        const auto& Qcont = Q.begin()->container.get();
 
-        // Set the intial direction
-        Coord dir = positive? 1 : -1;
+        // Set the initial direction
+        Coord dir = 1;
 
-        // roughly i = 1 (so q = Q.first) and s1 = q1 so S[0] = q;
-        auto q = Q.first;
-        S.push_back(*q);
+        // roughly i = 1 (so q = Q.begin()) and s1 = q1 so S[0] = q;
+        if(positive) {
+            auto q = Q.begin();
+            S.emplace_back(*q);
 
-        // Roughly step 3
+            // Roughly step 3
 
-        std::cout << "merged size: " << merged.size() << std::endl;
-        auto mit = merged.begin();
-        for(bool finish = false; !finish && q != Q.last;) {
-            ++q; // "Set i = i + 1"
+            std::cout << "merged size: " << merged.size() << std::endl;
+            auto mit = merged.begin();
+            for(bool finish = false; !finish && q != Q.end();) {
+                ++q; // "Set i = i + 1"
 
-            while(!finish && mit != merged.end()) {
-                if(mit->isFrom(Rcont)) {
-                    auto s = *mit;
-                    s.dir = dir;
-                    S.push_back(s);
+                while(!finish && mit != merged.end()) {
+                    if(mit->isFrom(Rcont)) {
+                        auto s = *mit;
+                        s.dir = dir;
+                        S.emplace_back(s);
+                    }
+
+                    if(mit->eq(*q)) {
+                        S.emplace_back(*q);
+                        if(mit->isTurningPoint()) dir = -dir;
+                        if(q == Q.begin()) finish = true;
+                        break;
+                    }
+
+                    mit += dir;
+    //                __nfp::advance(mit, merged, dir > 0);
                 }
+            }
+        } else {
+            auto q = Q.rbegin();
+            S.emplace_back(*q);
 
-                if(mit->eq(*q)) {
-                    S.push_back(*q);
-                    if(mit->isTurningPoint()) dir = -dir;
-                    if(q == Q.first) finish = true;
-                    break;
+            // Roughly step 3
+
+            std::cout << "merged size: " << merged.size() << std::endl;
+            auto mit = merged.begin();
+            for(bool finish = false; !finish && q != Q.rend();) {
+                ++q; // "Set i = i + 1"
+
+                while(!finish && mit != merged.end()) {
+                    if(mit->isFrom(Rcont)) {
+                        auto s = *mit;
+                        s.dir = dir;
+                        S.emplace_back(s);
+                    }
+
+                    if(mit->eq(*q)) {
+                        S.emplace_back(*q);
+                        S.back().dir = -1;
+                        if(mit->isTurningPoint()) dir = -dir;
+                        if(q == Q.rbegin()) finish = true;
+                        break;
+                    }
+
+                    mit += dir;
+            //                __nfp::advance(mit, merged, dir > 0);
                 }
-
-                mit += dir;
             }
         }
 
-        // Step 4:
 
-        std::cout << "S size: " << S.size() << std::endl;
-        std::cout << "check: " << (Q.last - Q.first) + (R.last - R.first) << std::endl;
+        // Step 4:
 
         // "Let starting edge r1 be in position si in sequence"
         // whaaat? I guess this means the following:
         auto it = S.begin();
-        while(!it->eq(*R.first)) ++it;
+        while(!it->eq(*R.begin())) ++it;
 
         // "Set j = 1, next = 2, direction = 1, seq1 = si"
-        // we dont use j, seq is expanded dynamically.
-        dir = 1; auto next = std::next(R.first); seq.emplace_back(*it);
+        // we don't use j, seq is expanded dynamically.
+        dir = 1;
+        auto next = std::next(R.begin()); seq.emplace_back(*it);
 
         // Step 5:
         // "If all si edges have been allocated to seqj" should mean that
@@ -504,41 +578,96 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
             ++it; if(it == S.end()) it = S.begin();
 
             if(it->isFrom(Qcont)) {
-                seq.push_back(*it); // "If si is from Q, j = j + 1, seqj = si"
+                seq.emplace_back(*it); // "If si is from Q, j = j + 1, seqj = si"
 
                 // "If si is a turning point in Q,
                 // direction = - direction, next = next + direction"
-                if(it->isTurningPoint()) { dir = -dir; next += dir; }
+                if(it->isTurningPoint()) {
+                    dir = -dir;
+                    next += dir;
+//                    __nfp::advance(next, R, dir > 0);
+                }
             }
 
             if(it->eq(*next) && dir == next->dir) { // "If si = direction.rnext"
                 // "j = j + 1, seqj = si, next = next + direction"
-                seq.push_back(*it); next += dir;
+                seq.emplace_back(*it);
+                next += dir;
+//                __nfp::advance(next, R, dir > 0);
             }
         }
 
         return seq;
     };
 
-    EdgeGroup R{ Bref.begin(), Bref.begin() }, Q{ Aref.begin(), Aref.end() };
-    auto it = Bref.begin();
-    bool orientation = true;
-    EdgeRefList seqlist;
-    seqlist.reserve(3*(Aref.size() + Bref.size()));
+    std::vector<EdgeRefList> seqlist;
+    seqlist.reserve(Bref.size());
 
-    while(it != Bref.end()) // This is step 3 and step 4 in one loop
-        if(it->isTurningPoint()) {
-            R = {R.last, it++};
-            auto seq = mink(Q, R, orientation);
+    EdgeRefList Bslope = Bref;  // copy Bref, we will make a slope diagram
 
-            // TODO step 6 (should be 5 shouldn't it?): linking edges from A
-            // I don't get this step
+    // make the slope diagram of B
+    std::sort(Bslope.begin(), Bslope.end(), sortfn);
 
-            seqlist.insert(seqlist.end(), seq.begin(), seq.end());
-            orientation = !orientation;
-        } else ++it;
+    auto slopeit = Bslope.begin(); // search for the first turning point
+    while(!slopeit->isTurningPoint() && slopeit != Bslope.end()) slopeit++;
 
-    if(seqlist.empty()) seqlist = mink(Q, {Bref.begin(), Bref.end()}, true);
+    if(slopeit == Bslope.end()) {
+        // no turning point means convex polygon.
+        seqlist.emplace_back(mink(Aref, Bref, true));
+    } else {
+        int dir = 1;
+
+        auto firstturn = Bref.begin();
+        while(!firstturn->eq(*slopeit)) ++firstturn;
+
+        assert(firstturn != Bref.end());
+
+        EdgeRefList bgroup; bgroup.reserve(Bref.size());
+        bgroup.emplace_back(*slopeit);
+
+        auto b_it = std::next(firstturn);
+        while(b_it != firstturn) {
+            if(b_it == Bref.end()) b_it = Bref.begin();
+
+            while(!slopeit->eq(*b_it)) {
+                __nfp::advance(slopeit, Bslope, dir > 0);
+            }
+
+            if(!slopeit->isTurningPoint()) {
+                bgroup.emplace_back(*slopeit);
+            } else {
+                if(!bgroup.empty()) {
+                    if(dir > 0) bgroup.emplace_back(*slopeit);
+                    for(auto& me : bgroup) {
+                        std::cout << me.eref.get().label << ", ";
+                    }
+                    std::cout << std::endl;
+                    seqlist.emplace_back(mink(Aref, bgroup, dir == 1 ? true : false));
+                    bgroup.clear();
+                    if(dir < 0) bgroup.emplace_back(*slopeit);
+                } else {
+                    bgroup.emplace_back(*slopeit);
+                }
+
+                dir *= -1;
+            }
+            ++b_it;
+        }
+    }
+
+//    while(it != Bref.end()) // This is step 3 and step 4 in one loop
+//        if(it->isTurningPoint()) {
+//            R = {R.last, it++};
+//            auto seq = mink(Q, R, orientation);
+
+//            // TODO step 6 (should be 5 shouldn't it?): linking edges from A
+//            // I don't get this step
+
+//            seqlist.insert(seqlist.end(), seq.begin(), seq.end());
+//            orientation = !orientation;
+//        } else ++it;
+
+//    if(seqlist.empty()) seqlist = mink(Q, {Bref.begin(), Bref.end()}, true);
 
     // /////////////////////////////////////////////////////////////////////////
     // Algorithm 2: breaking Minkowski sums into track line trips
@@ -550,47 +679,21 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
     // /////////////////////////////////////////////////////////////////////////
 
 
-    std::cout << "seqlist size: " << seqlist.size() << std::endl;
-    for(auto& s : seqlist) {
-        std::cout << "(" << getX(s.eref.get().e.first()) << ", " << getY(s.eref.get().e.first()) << ") "
-                  << "(" << getX(s.eref.get().e.second()) << ", " << getY(s.eref.get().e.second()) << ")" << std::endl;
+    auto seq = seqlist.front();
+    std::cout << "seqlist size: " << seq.size() << std::endl;
+    for(auto& s : seq) {
+        std::cout << (s.dir > 0 ? "" : "-") << s.eref.get().label << ", ";
     }
+    std::cout << std::endl;
 
     RawShape rsh;
     Vertex top_nfp;
-    std::vector<Edge> edgelist;
-    for(auto& s : seqlist) {
+    std::vector<Edge> edgelist; edgelist.reserve(seq.size());
+    for(auto& s : seq) {
         edgelist.emplace_back(s.eref.get().e);
     }
-    sl::reserve(rsh, 2*edgelist.size());
 
-    // Add the two vertices from the first edge into the final polygon.
-    sl::addVertex(rsh, edgelist.front().first());
-    sl::addVertex(rsh, edgelist.front().second());
-
-    // Sorting function for the nfp reference vertex search
-    auto& cmp = __nfp::_vsort<RawShape>;
-
-    // the reference (rightmost top) vertex so far
-    top_nfp = *std::max_element(sl::cbegin(rsh), sl::cend(rsh), cmp );
-
-    auto tmp = std::next(sl::begin(rsh));
-
-    // Construct final nfp by placing each edge to the end of the previous
-    for(auto eit = std::next(edgelist.begin());
-        eit != edgelist.end();
-        ++eit)
-    {
-        auto d = *tmp - eit->first();
-        Vertex p = eit->second() + d;
-
-        sl::addVertex(rsh, p);
-
-        // Set the new reference vertex
-        if(cmp(top_nfp, p)) top_nfp = p;
-
-        tmp = std::next(tmp);
-    }
+    __nfp::buildPolygon(edgelist, rsh, top_nfp);
 
     return Result(rsh, top_nfp);
 }

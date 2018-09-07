@@ -680,9 +680,10 @@ namespace shapelike {
         return area(sh, Tag<RawShape>());
     }
 
-    template<class RawShape>
-    inline double area(const Shapes<RawShape>& shapes)
+    template<class RawShapes>
+    inline double area(const RawShapes& shapes, const MultiPolygonTag&)
     {
+        using RawShape = typename RawShapes::value_type;
         return std::accumulate(shapes.begin(), shapes.end(), 0.0,
                         [](double a, const RawShape& b) {
             return a += area(b);

@@ -215,7 +215,7 @@ public:
 
         switch(convexity_) {
         case Convexity::UNCHECKED:
-            ret = sl::isConvex<RawShape>(sl::getContour(transformedShape()));
+            ret = sl::isConvex(sl::contour(transformedShape()));
             convexity_ = ret? Convexity::C_TRUE : Convexity::C_FALSE;
             break;
         case Convexity::C_TRUE: ret = true; break;

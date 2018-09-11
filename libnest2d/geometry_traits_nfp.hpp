@@ -25,10 +25,12 @@ inline bool _vsort(const TPoint<RawShape>& v1, const TPoint<RawShape>& v2)
 
 template<class EdgeList, class RawShape, class Vertex = TPoint<RawShape>>
 inline void buildPolygon(const EdgeList& edgelist,
-                         RawShape& rsh,
+                         RawShape& rpoly,
                          Vertex& top_nfp)
 {
     namespace sl = shapelike;
+
+    auto& rsh = sl::contour(rpoly);
 
     sl::reserve(rsh, 2*edgelist.size());
 
@@ -282,22 +284,22 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
     // the way it should be, than make my way around the orientations.
 
     // Reverse the stationary contour to counter clockwise
-    auto stcont = sl::getContour(cstationary);
+    auto stcont = sl::contour(cstationary);
     {
-        std::reverse(stcont.begin(), stcont.end());
+        std::reverse(sl::begin(stcont), sl::end(stcont));
         stcont.pop_back();
-        auto it = std::min_element(stcont.begin(), stcont.end(),
+        auto it = std::min_element(sl::begin(stcont), sl::end(stcont),
                                [](const Vertex& v1, const Vertex& v2) {
             return getY(v1) < getY(v2);
         });
-        std::rotate(stcont.begin(), it, stcont.end());
-        stcont.emplace_back(stcont.front());
+        std::rotate(sl::begin(stcont), it, sl::end(stcont));
+        sl::addVertex(stcont, sl::front(stcont));
     }
     RawShape stationary;
-    sl::getContour(stationary) = stcont;
+    sl::contour(stationary) = stcont;
 
     // Reverse the orbiter contour to counter clockwise
-    auto orbcont = sl::getContour(cother);
+    auto orbcont = sl::contour(cother);
     {
         std::reverse(orbcont.begin(), orbcont.end());
 
@@ -318,7 +320,7 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
 
     // Copy the orbiter (contour only), we will have to work on it
     RawShape orbiter;
-    sl::getContour(orbiter) = orbcont;
+    sl::contour(orbiter) = orbcont;
 
     // An edge with additional data for marking it
     struct MarkedEdge {
@@ -338,7 +340,7 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
 
     // This is how an edge list is created from the polygons
     auto fillEdgeList = [](EdgeList& L, const RawShape& ppoly, int dir) {
-        auto& poly = sl::getContour(ppoly);
+        auto& poly = sl::contour(ppoly);
 
         L.reserve(sl::contourVertexCount(poly));
 
@@ -354,13 +356,13 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
                 it++; nextit++;
             }
         } else {
-            auto it = poly.rbegin();
+            auto it = sl::rbegin(poly);
             auto nextit = std::next(it);
 
             double turn_angle = 0;
             bool is_turn_point = false;
 
-            while(nextit != poly.rend()) {
+            while(nextit != sl::rend(poly)) {
                 L.emplace_back(Edge(*it, *nextit), turn_angle, is_turn_point);
                 it++; nextit++;
             }

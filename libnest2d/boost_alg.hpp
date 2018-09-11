@@ -241,11 +241,11 @@ template<> struct tag<bp2d::PolygonImpl> {
 
 template<> struct exterior_ring<bp2d::PolygonImpl> {
     static inline bp2d::PathImpl& get(bp2d::PolygonImpl& p) {
-        return libnest2d::shapelike::getContour(p);
+        return libnest2d::shapelike::contour(p);
     }
 
     static inline bp2d::PathImpl const& get(bp2d::PolygonImpl const& p) {
-        return libnest2d::shapelike::getContour(p);
+        return libnest2d::shapelike::contour(p);
     }
 };
 

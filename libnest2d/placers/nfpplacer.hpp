@@ -101,7 +101,7 @@ Key hash(const _Item<S>& item) {
 
     std::string ret;
     auto& rhs = item.rawShape();
-    auto& ctr = sl::getContour(rhs);
+    auto& ctr = sl::contour(rhs);
     auto it = ctr.begin();
     auto nx = std::next(it);
 
@@ -467,7 +467,7 @@ Circle minimizeCircle(const RawShape& sh) {
     using Point = TPoint<RawShape>;
     using Coord = TCoord<Point>;
 
-    auto& ctr = sl::getContour(sh);
+    auto& ctr = sl::contour(sh);
     if(ctr.empty()) return {{0, 0}, 0};
 
     auto bb = sl::boundingBox(sh);

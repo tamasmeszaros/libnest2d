@@ -126,7 +126,7 @@ TEST(GeometryAlgorithms, boundingCircle) {
         c = boundingCircle(part.transformedShape());
         if(std::isnan(c.radius())) std::cout << "fail: radius is nan" << std::endl;
 
-        else for(auto v : shapelike::getContour(part.transformedShape()) ) {
+        else for(auto v : shapelike::contour(part.transformedShape()) ) {
             auto d = pointlike::distance(v, c.center());
             if(d > c.radius() ) {
                 auto e = std::abs( 1.0 - d/c.radius());

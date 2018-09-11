@@ -112,7 +112,7 @@ template<> struct CountourType<PolygonImpl> {
 };
 
 template<> struct ShapeTag<PolygonImpl> { using Type = PolygonTag; };
-template<> struct ShapeTag<PathImpl> { using Type = PolygonTag; };
+template<> struct ShapeTag<PathImpl> { using Type = PathTag; };
 
 template<> struct ShapeTag<TMultiShape<PolygonImpl>> {
     using Type = MultiPolygonTag;
@@ -189,11 +189,6 @@ inline double area<Orientation::COUNTER_CLOCKWISE>(const PolygonImpl& sh) {
 }
 
 namespace shapelike {
-
-template<> inline void reserve(PolygonImpl& sh, size_t vertex_capacity)
-{
-    return sh.Contour.reserve(vertex_capacity);
-}
 
 // Tell libnest2d how to make string out of a ClipperPolygon object
 template<> inline double area(const PolygonImpl& sh, const PolygonTag&)
@@ -332,13 +327,13 @@ template<> inline THolesContainer<PolygonImpl>& holes(PolygonImpl& sh)
 }
 
 template<>
-inline TContour<PolygonImpl>& getHole(PolygonImpl& sh, unsigned long idx)
+inline TContour<PolygonImpl>& hole(PolygonImpl& sh, unsigned long idx)
 {
     return sh.Holes[idx];
 }
 
 template<>
-inline const TContour<PolygonImpl>& getHole(const PolygonImpl& sh,
+inline const TContour<PolygonImpl>& hole(const PolygonImpl& sh,
                                             unsigned long idx)
 {
     return sh.Holes[idx];
@@ -349,13 +344,13 @@ template<> inline size_t holeCount(const PolygonImpl& sh)
     return sh.Holes.size();
 }
 
-template<> inline PathImpl& getContour(PolygonImpl& sh)
+template<> inline PathImpl& contour(PolygonImpl& sh)
 {
     return sh.Contour;
 }
 
 template<>
-inline const PathImpl& getContour(const PolygonImpl& sh)
+inline const PathImpl& contour(const PolygonImpl& sh)
 {
     return sh.Contour;
 }

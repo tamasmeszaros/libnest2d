@@ -483,9 +483,10 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
         EdgeRefList S, seq;
         merged.reserve(Q.size() + R.size());
 
-        merged.insert(merged.end(), Q.begin(), Q.end());
         merged.insert(merged.end(), R.begin(), R.end());
-        sort(merged.begin(), merged.end(), sortfn);
+        std::stable_sort(merged.begin(), merged.end(), sortfn);
+        merged.insert(merged.end(), Q.begin(), Q.end());
+        std::stable_sort(merged.begin(), merged.end(), sortfn);
 
         // Step 2 "set i = 1, k = 1, direction = 1, s1 = q1"
         // we don't use i, instead, q is an iterator into Q. k would be an index
@@ -576,8 +577,10 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
         // Step 5:
         // "If all si edges have been allocated to seqj" should mean that
         // we loop until seq has equal size with S
-        while(seq.size() < S.size()) {
+        auto send = it; //it == S.begin() ? it : std::prev(it);
+        while(it != S.end()) {
             ++it; if(it == S.end()) it = S.begin();
+            if(it == send) break;
 
             if(it->isFrom(Qcont)) {
                 seq.emplace_back(*it); // "If si is from Q, j = j + 1, seqj = si"
@@ -591,7 +594,7 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
                 }
             }
 
-            if(it->eq(*next) && dir == next->dir) { // "If si = direction.rnext"
+            if(it->eq(*next) /*&& dir == next->dir*/) { // "If si = direction.rnext"
                 // "j = j + 1, seqj = si, next = next + direction"
                 seq.emplace_back(*it);
                 next += dir;
@@ -681,13 +684,15 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
     // /////////////////////////////////////////////////////////////////////////
 
 
-    auto seq = seqlist.front();
-    std::cout << "seqlist size: " << seq.size() << std::endl;
-    for(auto& s : seq) {
-        std::cout << (s.dir > 0 ? "" : "-") << s.eref.get().label << ", ";
+    for(auto& seq : seqlist) {
+        std::cout << "seqlist size: " << seq.size() << std::endl;
+        for(auto& s : seq) {
+            std::cout << (s.dir > 0 ? "" : "-") << s.eref.get().label << ", ";
+        }
+        std::cout << std::endl;
     }
-    std::cout << std::endl;
 
+    auto& seq = seqlist.front();
     RawShape rsh;
     Vertex top_nfp;
     std::vector<Edge> edgelist; edgelist.reserve(seq.size());

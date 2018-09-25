@@ -5,6 +5,10 @@ if(NOT TARGET clipper) # If there is a clipper target in the parent project we a
     if(NOT CLIPPER_FOUND)
         find_package(Subversion QUIET)
         if(Subversion_FOUND)        
+
+            set(URL_CLIPPER "https://svn.code.sf.net/p/polyclipping/code/trunk/cpp" 
+            CACHE STRING "Clipper source code repository location.")
+
             message(STATUS "Clipper not found so it will be downloaded.")
             # Silently download and build the library in the build dir
 
@@ -16,7 +20,7 @@ if(NOT TARGET clipper) # If there is a clipper target in the parent project we a
 
             include(DownloadProject)
             download_project(   PROJ                clipper_library
-                                SVN_REPOSITORY      https://svn.code.sf.net/p/polyclipping/code/trunk/cpp
+                                SVN_REPOSITORY      ${URL_CLIPPER}
                                 SVN_REVISION        -r540
                                 #SOURCE_SUBDIR       cpp
                                 INSTALL_COMMAND     ""

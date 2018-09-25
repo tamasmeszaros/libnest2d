@@ -642,7 +642,7 @@ private:
         const Item& trsh = itsh.first;
 
         __parallel::enumerate(items_.begin(), items_.end(),
-                              [this,  &nfps, &trsh](const Item& sh, size_t n)
+                              [&nfps, &trsh](const Item& sh, size_t n)
         {
             auto& fixedp = sh.transformedShape();
             auto& orbp = trsh.transformedShape();

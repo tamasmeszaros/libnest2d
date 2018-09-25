@@ -725,9 +725,9 @@ template<class P> auto rcend(const P& p) -> decltype(_backward(cbegin(p)))
     return _backward(cbegin(p));
 }
 
-template<class P> TPoint<P> front(const P& p) { return *cbegin(p); }
+template<class P> TPoint<P> front(const P& p) { return *shapelike::cbegin(p); }
 template<class P> TPoint<P> back (const P& p) {
-    return *backward(cend(p));
+    return *backward(shapelike::cend(p));
 }
 
 // Optional, does nothing by default
@@ -921,7 +921,7 @@ inline const TPoint<RawShape>& vertex(const RawShape& sh,
 template<class RawShape>
 inline size_t contourVertexCount(const RawShape& sh)
 {
-    return cend(sh) - cbegin(sh);
+    return shapelike::cend(sh) - shapelike::cbegin(sh);
 }
 
 template<class RawShape, class Fn>

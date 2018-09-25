@@ -3,7 +3,10 @@
 find_package(GTest 1.7)
 
 if(NOT GTEST_FOUND)
-    message(STATUS "GTest not found so downloading...")
+    set(URL_GTEST "https://github.com/google/googletest.git" 
+        CACHE STRING "Google test source code repository location.")
+
+    message(STATUS "GTest not found so downloading from ${URL_GTEST}")
     # Go and download google test framework, integrate it with the build
     set(GTEST_LIBS_TO_LINK gtest gtest_main)
 
@@ -15,7 +18,7 @@ if(NOT GTEST_FOUND)
 
     include(DownloadProject)
     download_project(PROJ                googletest
-                     GIT_REPOSITORY      https://github.com/google/googletest.git
+                     GIT_REPOSITORY      ${URL_GTEST}
                      GIT_TAG             release-1.7.0
                      ${UPDATE_DISCONNECTED_IF_AVAILABLE}
     )

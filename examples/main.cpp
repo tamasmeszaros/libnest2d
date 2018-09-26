@@ -212,6 +212,20 @@ void arrangeRectangles() {
 }
 
 int main(void /*int argc, char **argv*/) {
-    arrangeRectangles();
+//    arrangeRectangles();
+
+    auto result = libnest2d::nest(prusaParts(), Box(250000000, 210000000),
+                                  [](unsigned cnt) {
+        std::cout << "parts left: " << cnt << std::endl;
+    });
+
+    using SVGWriter = libnest2d::svg::SVGWriter<PolygonImpl>;
+    SVGWriter::Config conf;
+    conf.mm_in_coord_units = 1000000;
+    SVGWriter svgw(conf);
+    svgw.setSize(Box(250000000, 210000000));
+    svgw.writePackGroup(result);
+    svgw.save("out");
+
     return EXIT_SUCCESS;
 }

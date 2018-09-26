@@ -41,6 +41,62 @@ using DJDHeuristic  = selections::_DJDHeuristic<PolygonImpl>;
 using NfpPlacer = placers::_NofitPolyPlacer<PolygonImpl>;
 using BottomLeftPlacer = placers::_BottomLeftPlacer<PolygonImpl>;
 
+template<class Iterator,
+         class BinType,
+         class Placer = placers::_NofitPolyPlacer<PolygonImpl, BinType>,
+         class Selector = FirstFitSelection> 
+PackGroup nest(Iterator from, Iterator to, const BinType& bin,
+               Coord dist = 0,
+               const typename Placer::Config& pconf = {},
+               const typename Selector::Config& sconf = {})
+{
+    Nester<Placer, Selector> nester(bin, dist, pconf, sconf);
+    return nester.execute(from, to);
+}
+
+template<class Container,
+         class BinType,
+         class Placer = placers::_NofitPolyPlacer<PolygonImpl, BinType>,
+         class Selector = FirstFitSelection>
+PackGroup nest(Container&& cont, const BinType& bin,
+               Coord dist = 0,
+               const typename Placer::Config& pconf = {},
+               const typename Selector::Config& sconf = {})
+{
+    return nest(cont.begin(), cont.end(), bin, dist, pconf, sconf);
+}
+
+template<class Iterator,
+         class BinType,
+         class Placer = placers::_NofitPolyPlacer<PolygonImpl, BinType>,
+         class Selector = FirstFitSelection>
+PackGroup nest(Iterator from, Iterator to, const BinType& bin,
+               ProgressFunction prg,
+               StopCondition scond = []() { return false; },
+               Coord dist = 0,
+               const typename Placer::Config& pconf = {},
+               const typename Selector::Config& sconf = {})
+{
+    Nester<Placer, Selector> nester(bin, dist, pconf, sconf);
+    if(prg) nester.progressIndicator(prg);
+    if(scond) nester.stopCondition(scond);
+    return nester.execute(from, to);
+}
+
+template<class Container,
+         class BinType,
+         class Placer = placers::_NofitPolyPlacer<PolygonImpl, BinType>,
+         class Selector = FirstFitSelection>
+PackGroup nest(Container&& cont, const BinType& bin,
+               ProgressFunction prg,
+               StopCondition scond = []() { return false; },
+               Coord dist = 0,
+               const typename Placer::Config& pconf = {},
+               const typename Selector::Config& sconf = {})
+{
+    return nest(cont.begin(), cont.end(), bin, prg, scond, dist, pconf, sconf);
+}
+
 }
 
 #endif // LIBNEST2D_H

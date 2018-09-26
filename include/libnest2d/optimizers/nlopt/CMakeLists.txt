@@ -56,3 +56,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/nlopt_boilerplate.hpp
 )
 
 target_compile_definitions(NloptOptimizer INTERFACE LIBNEST2D_OPTIMIZER_NLOPT)
+
+# And finally plug the NloptOptimizer into libnest2d
+target_link_libraries(libnest2d INTERFACE NloptOptimizer)

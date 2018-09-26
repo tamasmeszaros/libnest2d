@@ -47,8 +47,7 @@ add_executable(tests_clipper_nlopt
     printer_parts.cpp
 )
 
-target_link_libraries(tests_clipper_nlopt
-    libnest2d ClipperBackend NloptOptimizer ${GTEST_LIBS_TO_LINK} )
+target_link_libraries(tests_clipper_nlopt libnest2d ${GTEST_LIBS_TO_LINK} )
 
 target_include_directories(tests_clipper_nlopt PRIVATE BEFORE
     ${GTEST_INCLUDE_DIRS})

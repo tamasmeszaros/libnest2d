@@ -38,14 +38,20 @@ using FillerSelection = selections::_FillerSelection<PolygonImpl>;
 using FirstFitSelection = selections::_FirstFitSelection<PolygonImpl>;
 using DJDHeuristic  = selections::_DJDHeuristic<PolygonImpl>;
 
-using NfpPlacer = placers::_NofitPolyPlacer<PolygonImpl>;
+template<class Bin> // Generic placer for arbitrary bin types
+using _NfpPlacer = placers::_NofitPolyPlacer<PolygonImpl, Bin>;
+
+// NfpPlacer is with Box bin
+using NfpPlacer = _NfpPlacer<Box>;
+
+// This supports only box shaped bins
 using BottomLeftPlacer = placers::_BottomLeftPlacer<PolygonImpl>;
 
-template<class Iterator,
-         class BinType,
-         class Placer = placers::_NofitPolyPlacer<PolygonImpl, BinType>,
-         class Selector = FirstFitSelection> 
-PackGroup nest(Iterator from, Iterator to, const BinType& bin,
+template<class Placer = NfpPlacer,
+         class Selector = FirstFitSelection,
+         class Iterator = std::vector<Item>::iterator>
+PackGroup nest(Iterator from, Iterator to,
+               const typename Placer::BinType& bin,
                Coord dist = 0,
                const typename Placer::Config& pconf = {},
                const typename Selector::Config& sconf = {})
@@ -54,23 +60,24 @@ PackGroup nest(Iterator from, Iterator to, const BinType& bin,
     return nester.execute(from, to);
 }
 
-template<class Container,
-         class BinType,
-         class Placer = placers::_NofitPolyPlacer<PolygonImpl, BinType>,
-         class Selector = FirstFitSelection>
-PackGroup nest(Container&& cont, const BinType& bin,
+template<class Placer = NfpPlacer,
+         class Selector = FirstFitSelection,
+         class Container = std::vector<Item>>
+PackGroup nest(Container&& cont,
+               const typename Placer::BinType& bin,
                Coord dist = 0,
                const typename Placer::Config& pconf = {},
                const typename Selector::Config& sconf = {})
 {
-    return nest(cont.begin(), cont.end(), bin, dist, pconf, sconf);
+    return nest<Placer, Selector>(cont.begin(), cont.end(),
+                                  bin, dist, pconf, sconf);
 }
 
-template<class Iterator,
-         class BinType,
-         class Placer = placers::_NofitPolyPlacer<PolygonImpl, BinType>,
-         class Selector = FirstFitSelection>
-PackGroup nest(Iterator from, Iterator to, const BinType& bin,
+template<class Placer = NfpPlacer,
+         class Selector = FirstFitSelection,
+         class Iterator = std::vector<Item>::iterator>
+PackGroup nest(Iterator from, Iterator to,
+               const typename Placer::BinType& bin,
                ProgressFunction prg,
                StopCondition scond = []() { return false; },
                Coord dist = 0,
@@ -83,19 +90,85 @@ PackGroup nest(Iterator from, Iterator to, const BinType& bin,
     return nester.execute(from, to);
 }
 
-template<class Container,
-         class BinType,
-         class Placer = placers::_NofitPolyPlacer<PolygonImpl, BinType>,
-         class Selector = FirstFitSelection>
-PackGroup nest(Container&& cont, const BinType& bin,
+template<class Placer = NfpPlacer,
+         class Selector = FirstFitSelection,
+         class Container = std::vector<Item>>
+PackGroup nest(Container&& cont,
+               const typename Placer::BinType& bin,
                ProgressFunction prg,
                StopCondition scond = []() { return false; },
                Coord dist = 0,
                const typename Placer::Config& pconf = {},
                const typename Selector::Config& sconf = {})
 {
-    return nest(cont.begin(), cont.end(), bin, prg, scond, dist, pconf, sconf);
+    return nest<Placer, Selector>(cont.begin(), cont.end(),
+                                  bin, prg, scond, dist, pconf, sconf);
 }
+
+#ifdef LIBNEST2D_STATIC
+extern template
+PackGroup nest<NfpPlacer, FirstFitSelection, std::vector<Item>&>(
+    std::vector<Item>& cont,
+    const Box& bin,
+    Coord dist,
+    const NfpPlacer::Config& pcfg,
+    const FirstFitSelection::Config& scfg
+);
+
+extern template
+PackGroup nest<NfpPlacer, FirstFitSelection, std::vector<Item>&>(
+    std::vector<Item>& cont,
+    const Box& bin,
+    ProgressFunction prg,
+    StopCondition scond,
+    Coord dist,
+    const NfpPlacer::Config& pcfg,
+    const FirstFitSelection::Config& scfg
+);
+
+extern template
+PackGroup nest<NfpPlacer, FirstFitSelection, std::vector<Item>>(
+    std::vector<Item>&& cont,
+    const Box& bin,
+    Coord dist,
+    const NfpPlacer::Config& pcfg,
+    const FirstFitSelection::Config& scfg
+);
+
+extern template
+PackGroup nest<NfpPlacer, FirstFitSelection, std::vector<Item>>(
+    std::vector<Item>&& cont,
+    const Box& bin,
+    ProgressFunction prg,
+    StopCondition scond,
+    Coord dist,
+    const NfpPlacer::Config& pcfg,
+    const FirstFitSelection::Config& scfg
+);
+
+extern template
+PackGroup nest<NfpPlacer, FirstFitSelection, std::vector<Item>::iterator>(
+    std::vector<Item>::iterator from,
+    std::vector<Item>::iterator to,
+    const Box& bin,
+    Coord dist,
+    const NfpPlacer::Config& pcfg,
+    const FirstFitSelection::Config& scfg
+);
+
+extern template
+PackGroup nest<NfpPlacer, FirstFitSelection, std::vector<Item>::iterator>(
+    std::vector<Item>::iterator from,
+    std::vector<Item>::iterator to,
+    const Box& bin,
+    ProgressFunction prg,
+    StopCondition scond,
+    Coord dist,
+    const NfpPlacer::Config& pcfg,
+    const FirstFitSelection::Config& scfg
+);
+
+#endif
 
 }
 

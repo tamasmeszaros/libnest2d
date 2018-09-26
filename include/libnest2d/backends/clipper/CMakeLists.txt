@@ -68,3 +68,6 @@ target_sources(ClipperBackend INTERFACE
 
 target_compile_definitions(ClipperBackend INTERFACE LIBNEST2D_BACKEND_CLIPPER)
 
+# And finally plug the ClipperBackend into libnest2d
+target_link_libraries(libnest2d INTERFACE ClipperBackend)
+

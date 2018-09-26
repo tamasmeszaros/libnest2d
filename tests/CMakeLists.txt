@@ -38,17 +38,19 @@ else()
     set(GTEST_LIBS_TO_LINK  ${GTEST_BOTH_LIBRARIES}  Threads::Threads)
 endif()
 
-add_executable(bp2d_tests   test.cpp
-                            ../tools/svgtools.hpp
-#                            ../tools/libnfpglue.hpp
-#                            ../tools/libnfpglue.cpp
-                            printer_parts.h
-                            printer_parts.cpp
-                            ${LIBNEST2D_SRCFILES}
-                            )
-target_link_libraries(bp2d_tests ${LIBNEST2D_LIBRARIES} ${GTEST_LIBS_TO_LINK} )
+add_executable(tests_clipper_nlopt
+    test.cpp
+    ../tools/svgtools.hpp
+#   ../tools/libnfpglue.hpp
+#  ../tools/libnfpglue.cpp
+    printer_parts.h
+    printer_parts.cpp
+)
 
-target_include_directories(bp2d_tests PRIVATE BEFORE ${LIBNEST2D_HEADERS}
-                                                     ${GTEST_INCLUDE_DIRS})
+target_link_libraries(tests_clipper_nlopt
+    libnest2d ClipperBackend NloptOptimizer ${GTEST_LIBS_TO_LINK} )
 
-add_test(libnest2d_tests bp2d_tests)
+target_include_directories(tests_clipper_nlopt PRIVATE BEFORE
+    ${GTEST_INCLUDE_DIRS})
+
+add_test(libnest2d_tests tests_clipper_nlopt)

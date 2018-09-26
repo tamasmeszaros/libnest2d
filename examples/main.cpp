@@ -5,14 +5,13 @@
 
 #include <libnest2d.h>
 
-#include "tests/printer_parts.h"
-#include "tools/benchmark.h"
-#include "tools/svgtools.hpp"
-#include "libnest2d/rotfinder.hpp"
+#include "../tests/printer_parts.h"
+#include "../tools/benchmark.h"
+#include "../tools/svgtools.hpp"
+#include <libnest2d/utils/rotfinder.hpp>
 
 //#include "tools/libnfpglue.hpp"
 //#include "tools/nfp_svgnest_glue.hpp"
-
 
 using namespace libnest2d;
 using ItemGroup = std::vector<std::reference_wrapper<Item>>;

@@ -1,7 +1,7 @@
 #ifndef METALOOP_HPP
 #define METALOOP_HPP
 
-#include "common.hpp"
+#include <libnest2d/common.hpp>
 #include <tuple>
 #include <functional>
 

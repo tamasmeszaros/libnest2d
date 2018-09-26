@@ -13,7 +13,7 @@
 
 #include <libnest2d/optimizer.hpp>
 #include <cassert>
-#include "libnest2d/metaloop.hpp"
+#include <libnest2d/utils/metaloop.hpp>
 
 #include <utility>
 

@@ -7,8 +7,8 @@
 #include <vector>
 #include <iostream>
 
-#include "../geometry_traits.hpp"
-#include "../geometry_traits_nfp.hpp"
+#include <libnest2d/geometry_traits.hpp>
+#include <libnest2d/geometry_traits_nfp.hpp>
 
 #include <clipper.hpp>
 
@@ -455,6 +455,6 @@ merge(const std::vector<PolygonImpl>& shapes)
 //#define DISABLE_BOOST_UNSERIALIZE
 
 // All other operators and algorithms are implemented with boost
-#include "../boost_alg.hpp"
+#include <libnest2d/utils/boost_alg.hpp>
 
 #endif // CLIPPER_BACKEND_HPP

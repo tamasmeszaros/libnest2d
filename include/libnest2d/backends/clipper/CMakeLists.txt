@@ -33,20 +33,38 @@ if(NOT TARGET clipper) # If there is a clipper target in the parent project we a
             #                  ${clipper_library_BINARY_DIR}
             # )
 
-            add_library(clipper_lib STATIC
+            add_library(ClipperBackend STATIC
                 ${clipper_library_SOURCE_DIR}/clipper.cpp
                 ${clipper_library_SOURCE_DIR}/clipper.hpp)
 
-            set(CLIPPER_INCLUDE_DIRS ${clipper_library_SOURCE_DIR}
-                PARENT_SCOPE)
-    
-            set(CLIPPER_LIBRARIES clipper_lib PARENT_SCOPE)
-
+            target_include_directories(ClipperBackend INTERFACE 
+                ${clipper_library_SOURCE_DIR})
         else()
             message(FATAL_ERROR "Can't find clipper library and no SVN client found to download.
                 You can download the clipper sources and define a clipper target in your project, that will work for libnest2d.")
         endif()
+    else()
+        add_library(ClipperBackend INTERFACE)
+        target_link_libraries(ClipperBackend INTERFACE Clipper::Clipper)
     endif()
 else()
-    set(CLIPPER_LIBRARIES clipper PARENT_SCOPE)
+    # set(CLIPPER_INCLUDE_DIRS "" PARENT_SCOPE)
+    # set(CLIPPER_LIBRARIES clipper PARENT_SCOPE)
+    add_library(ClipperBackend INTERFACE)
+    target_link_libraries(ClipperBackend INTERFACE clipper)
 endif()
+
+# Clipper backend is not enough on its own, it still needs some functions
+# from Boost geometry
+if(NOT Boost_INCLUDE_DIRS_FOUND)
+    find_package(Boost 1.58 REQUIRED)
+    # TODO automatic download of boost geometry headers
+endif()
+
+target_include_directories(ClipperBackend INTERFACE ${Boost_INCLUDE_DIRS} )
+target_sources(ClipperBackend INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/geometries.hpp
+    ${SRC_DIR}/libnest2d/utils/boost_alg.hpp )
+
+target_compile_definitions(ClipperBackend INTERFACE LIBNEST2D_BACKEND_CLIPPER)
+

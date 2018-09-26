@@ -15,11 +15,13 @@
 #ifndef NDEBUG
 #include <iostream>
 #endif
-#include "placer_boilerplate.hpp"
-#include "../geometry_traits_nfp.hpp"
-#include "libnest2d/optimizer.hpp"
+#include <libnest2d/geometry_traits_nfp.hpp>
+#include <libnest2d/optimizer.hpp>
 
-#include "tools/svgtools.hpp"
+#include "placer_boilerplate.hpp"
+
+// temporary
+//#include "../tools/svgtools.hpp"
 
 #ifdef USE_TBB
 #include <tbb/parallel_for.h>

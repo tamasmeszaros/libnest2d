@@ -1,4 +1,5 @@
-[TOC]
+* TOC
+{:toc}
 # Introduction
 
 Libnest2D is a library and framework for the 2D bin packaging problem. 

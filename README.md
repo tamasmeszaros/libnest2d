@@ -1,8 +1,7 @@
 # Introduction
 
 Libnest2D is a library and framework for the 2D bin packaging problem. 
-Inspired from the [SVGNest](svgnest.com) Javascript library the project is  
-built from scratch in C++11. The library is written with a policy that it should
+Inspired from the [SVGNest](svgnest.com) Javascript library the project is built from scratch in C++11. The library is written with a policy that it should
 be usable out of the box with a very simple interface but has to be customizable
 to the very core as well. The algorithms are defined in a header only fashion 
 with templated geometry types. These geometries can have custom or already 
@@ -34,15 +33,21 @@ two approaches can be combined as well.
 
 # Integration 
 
-Integrating the library can be done in two ways. Use whichever suits best.
+Using libnest2d in its current state implies the following dependencies:
+* [Clipper](http://www.angusj.com/delphi/clipper.php)
+* [NLopt](https://nlopt.readthedocs.io/en/latest/)
+* [Boost Geometry](https://www.boost.org/doc/libs/1_65_1/libs/geometry/doc/html/index.html)
 
-1. Copying source files directly into a target project: The library is header 
-only and its enough to just copy the content of the ```include``` directory or 
-specify the location of these headers to the compiler. The project source tree can also be used as a subdirectory (or git submodule) in any other C++ project by using ```add_subdirectory()``` command in the parent level CMakeLists.txt file.
+Integrating the library can be done in at least two ways. Use whichever suits your project the most.
 
-1. Compile a shared or dynamic library with specific geometry and optimization backend and link to it. To do this, disable the ```LIBNEST2D_HEADER_ONLY``` option in the CMake configuration. Currently, the only available geometry backend is [Clipper](http://www.angusj.com/delphi/clipper.php) and the optimization features are provided by the [NLopt](https://nlopt.readthedocs.io/en/latest/) library. These can be selected
-with the ```LIBNEST2D_GEOMETRIES``` and ```LIBNEST2D_OPTIMIZER``` cache variables
-in CMake.
+1. The project source tree can be used as a subdirectory (or git submodule) in any other CMake based C++ project by using ```add_subdirectory()``` command in the parent level ```CMakeLists.txt``` file. This method ensures that the appropriate dependencies are detected or downloaded and built automatically if not found. This means that by default, if Clipper and NLopt are not installed, they will be downloaded into the CMake binary directory, built there and linked statically with your project (except for boost geometry). Just add the ```target_link_library(<your_target> libnest2d)``` line to your CMake build script. You can also compile the library with the selected dependencies into a static or shared library. To do this just disable the ```LIBNEST2D_HEADER_ONLY``` option in the CMake config. 
+
+2. Copying source files directly into a target project: The library is header 
+only and it is enough to just copy the content of the ```include``` directory or  specify the location of these headers to the compiler. Be aware that in this case you are on your own regarding the geometry backend and optimizer selection. To keep things simple just define ```LIBNEST2D_BACKEND_CLIPPER``` and ```LIBNEST2D_OPTIMIZER_NLOPT``` before including ```libnest2d.h```. You will also need to link to these libraries manually. 
+
+Please note that the clipper backend still uses some algorithms from ```boost::geometry``` (header only). The boost headers are not downloaded by the build script and later releases will probably get rid of the direct dependency. 
+
+The goal is to provide more geometry backends (e.g. boost only) and optimizer engines (e.g. optimlib) in the future. This would make it possible to use the already available dependencies in your project tree without including new ones.
 
 # Example
 
@@ -91,7 +96,7 @@ int main(int argc, const char* argv[]) {
     // Perform the nesting with a box shaped bin
     auto result = nest(input, Box(150000000, 150000000));
 
-    // Retrieve resuling geometries
+    // Retrieve resulting geometries
     for(auto& r : result) {
         for(Item& item : r) {
             auto polygon = item.transformedShape();
@@ -108,12 +113,15 @@ the type defined as a polygon by the geometry backend. In the example we use the
 clipper backend and clipper works with integer coordinates.
 
 Of course it is possible to configure the nesting in every possible way. The
-```nest``` function can take placer and selection algorithms as template parameters and their configuration as runtime parameter. It is also possible to pass a progress indication functor and a stop condition predicate to control the nesting process. For more details see the ```libnest2d.h``` header file.
+```nest``` function can take placer and selection algorithms as template arguments and their configuration as runtime arguments. It is also possible to pass a progress indication functor and a stop condition predicate to control the nesting process. For more details see the ```libnest2d.h``` header file.
 
 ## Example output
 
-![Alt text](examples/example.svg)
+![Alt text](doc/img/example.svg)
 
+## Screenshot from Slic3r 
+
+![Alt text](doc/img/slic3r_screenshot.png)
 
 # References
 - [SVGNest](https://github.com/Jack000/SVGnest)

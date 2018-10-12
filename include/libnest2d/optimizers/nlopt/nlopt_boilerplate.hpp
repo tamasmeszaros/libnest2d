@@ -161,11 +161,14 @@ protected:
         // Take care of the initial values, copy them to initvals_
         metaloop::apply(InitValFunc(*this), initvals);
 
+        std::pair<remove_ref_t<Func>*, NloptOptimizer*> data =
+                std::make_pair(&func, this);
+
         switch(dir_) {
         case OptDir::MIN:
-            opt_.set_min_objective(optfunc<Func, Args...>, &func); break;
+            opt_.set_min_objective(optfunc<Func, Args...>, &data); break;
         case OptDir::MAX:
-            opt_.set_max_objective(optfunc<Func, Args...>, &func); break;
+            opt_.set_max_objective(optfunc<Func, Args...>, &data); break;
         }
 
         Result<Args...> result;

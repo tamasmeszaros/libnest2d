@@ -32,6 +32,89 @@ results can be obtained. This is a different approach than that of SVGnest which
 uses genetic algorithms to find better and better selection orders. Maybe the 
 two approaches can be combined as well.
 
+# Integration 
+
+Integrating the library can be done in two ways. Use whichever suits best.
+
+1. Copying source files directly into a target project: The library is header 
+only and its enough to just copy the content of the ```include``` directory or 
+specify the location of these headers to the compiler. The project source tree can also be used as a subdirectory (or git submodule) in any other C++ project by using ```add_subdirectory()``` command in the parent level CMakeLists.txt file.
+
+1. Compile a shared or dynamic library with specific geometry and optimization backend and link to it. To do this, disable the ```LIBNEST2D_HEADER_ONLY``` option in the CMake configuration. Currently, the only available geometry backend is [Clipper](http://www.angusj.com/delphi/clipper.php) and the optimization features are provided by the [NLopt](https://nlopt.readthedocs.io/en/latest/) library. These can be selected
+with the ```LIBNEST2D_GEOMETRIES``` and ```LIBNEST2D_OPTIMIZER``` cache variables
+in CMake.
+
+# Example
+
+A simple example may be the best way to demonstrate the usage of the library.
+
+``` c++
+#include <iostream>
+#include <string>
+
+// Here we include the libnest2d library
+#include <libnest2d.h>
+
+int main(int argc, const char* argv[]) {
+    using namespace libnest2d;
+
+    // Example polygons 
+    std::vector<Item> input1(23,
+    {
+        {-5000000, 8954050},
+        {5000000, 8954050},
+        {5000000, -45949},
+        {4972609, -568550},
+        {3500000, -8954050},
+        {-3500000, -8954050},
+        {-4972609, -568550},
+        {-5000000, -45949},
+        {-5000000, 8954050},
+    });
+    std::vector<Item> input2(15,
+    {
+       {-11750000, 13057900},
+       {-9807860, 15000000},
+       {4392139, 24000000},
+       {11750000, 24000000},
+       {11750000, -24000000},
+       {4392139, -24000000},
+       {-9807860, -15000000},
+       {-11750000, -13057900},
+       {-11750000, 13057900},
+    });
+
+    std::vector<Item> input;
+    input.insert(input.end(), input1.begin(), input1.end());
+    input.insert(input.end(), input2.begin(), input2.end());
+
+    // Perform the nesting with a box shaped bin
+    auto result = nest(input, Box(150000000, 150000000));
+
+    // Retrieve resuling geometries
+    for(auto& r : result) {
+        for(Item& item : r) {
+            auto polygon = item.transformedShape();
+            // render polygon...
+        }
+    }
+
+    return EXIT_SUCCESS;
+}
+```
+
+It is worth to note that the type of the polygon carried by the Item objects is
+the type defined as a polygon by the geometry backend. In the example we use the
+clipper backend and clipper works with integer coordinates.
+
+Of course it is possible to configure the nesting in every possible way. The
+```nest``` function can take placer and selection algorithms as template parameters and their configuration as runtime parameter. It is also possible to pass a progress indication functor and a stop condition predicate to control the nesting process. For more details see the ```libnest2d.h``` header file.
+
+## Example output
+
+![Alt text](examples/example.svg)
+
+
 # References
 - [SVGNest](https://github.com/Jack000/SVGnest)
 - [An effective heuristic for the two-dimensional irregular

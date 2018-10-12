@@ -18,7 +18,7 @@ option(LIBNEST2D_UNITTESTS "If enabled, googletest framework will be downloaded
 
 option(LIBNEST2D_BUILD_EXAMPLES "If enabled, examples will be built." OFF)
 
-option(LIBNEST2D_HEADER_ONLY "If enabled static library will be built." ON)
+option(LIBNEST2D_HEADER_ONLY "If enabled static library will not be built." ON)
 
 set(GEOMETRY_BACKENDS clipper boost eigen)
 set(LIBNEST2D_GEOMETRIES clipper CACHE STRING "Geometry backend")

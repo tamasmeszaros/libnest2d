@@ -100,7 +100,13 @@ protected:
                           std::vector<double>& /*grad*/,
                           void *data)
     {
-        auto fnptr = static_cast<remove_ref_t<Fn>*>(data);
+        using TData = std::pair<remove_ref_t<Fn>*, NloptOptimizer*>;
+        auto typeddata = static_cast<TData*>(data);
+
+        if(typeddata->second->stopcr_.stop_condition())
+            typeddata->second->opt_.force_stop();
+
+        auto fnptr = typeddata->first;
         auto funval = std::tuple<Args...>();
 
         // copy the obtained objectfunction arguments to the funval tuple.
@@ -163,9 +169,14 @@ protected:
         }
 
         Result<Args...> result;
+        nlopt::result rescode;
 
-        auto rescode = opt_.optimize(initvals_, result.score);
-        result.resultcode = static_cast<ResultCodes>(rescode);
+        try {
+            rescode = opt_.optimize(initvals_, result.score);
+            result.resultcode = static_cast<ResultCodes>(rescode);
+        } catch( nlopt::forced_stop& ) {
+            result.resultcode = ResultCodes::FORCED_STOP;
+        }
 
         metaloop::apply(ResultCopyFunc(*this), result.optimum);
 

@@ -74,19 +74,6 @@ inline void enumerate(
 #endif
 }
 
-//class SpinLock {
-//    std::atomic_flag locked = ATOMIC_FLAG_INIT;
-//public:
-//    inline void lock() {
-//        while (locked.test_and_set(std::memory_order_acquire)) { ; }
-//    }
-//    inline void unlock() {
-//        locked.clear(std::memory_order_release);
-//    }
-//};
-
-//std::atomic_flag SpinLock::locked = ATOMIC_FLAG_INIT;
-
 }
 
 namespace __itemhash {
@@ -644,7 +631,7 @@ private:
         const Item& trsh = itsh.first;
 
         __parallel::enumerate(items_.begin(), items_.end(),
-                              [&nfps, &trsh](const Item& sh, size_t n)
+                              [&nfps, trsh](const Item& sh, size_t n)
         {
             auto& fixedp = sh.transformedShape();
             auto& orbp = trsh.transformedShape();

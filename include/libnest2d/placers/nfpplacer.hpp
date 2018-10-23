@@ -630,8 +630,25 @@ private:
         Shapes nfps(items_.size());
         const Item& trsh = itsh.first;
 
+        // /////////////////////////////////////////////////////////////////////
+        // TODO: this is a workaround and should be solved in Item with mutexes
+        // guarding the mutable members when writing them.
+        // /////////////////////////////////////////////////////////////////////
+        trsh.transformedShape();
+        trsh.referenceVertex();
+        trsh.rightmostTopVertex();
+        trsh.leftmostBottomVertex();
+
+        for(Item& itm : items_) {
+            itm.transformedShape();
+            itm.referenceVertex();
+            itm.rightmostTopVertex();
+            itm.leftmostBottomVertex();
+        }
+        // /////////////////////////////////////////////////////////////////////
+
         __parallel::enumerate(items_.begin(), items_.end(),
-                              [&nfps, trsh](const Item& sh, size_t n)
+                              [&nfps, &trsh](const Item& sh, size_t n)
         {
             auto& fixedp = sh.transformedShape();
             auto& orbp = trsh.transformedShape();
@@ -642,6 +659,7 @@ private:
 
         return nfp::merge(nfps);
     }
+
 
     template<class Level>
     Shapes calcnfp( const ItemWithHash itsh, Level)

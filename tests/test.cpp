@@ -3,8 +3,10 @@
 
 #include <libnest2d.h>
 #include "printer_parts.h"
-#include <libnest2d/geometries_io.hpp>
-#include <libnest2d/geometries_nfp.hpp>
+#include <libnest2d/geometry_traits_nfp.hpp>
+#include "../tools/svgtools.hpp"
+//#include "../tools/libnfpglue.hpp"
+//#include "../tools/nfp_svgnest_glue.hpp"
 
 std::vector<libnest2d::Item>& prusaParts() {
     static std::vector<libnest2d::Item> ret;
@@ -99,6 +101,43 @@ TEST(BasicFunctionality, creationAndDestruction)
 
 }
 
+TEST(GeometryAlgorithms, boundingCircle) {
+    using namespace libnest2d;
+    using placers::boundingCircle;
+
+    PolygonImpl p = {{{0, 10}, {10, 0}, {0, -10}, {0, 10}}, {}};
+    Circle c = boundingCircle(p);
+
+    ASSERT_EQ(c.center().X, 0);
+    ASSERT_EQ(c.center().Y, 0);
+    ASSERT_DOUBLE_EQ(c.radius(), 10);
+
+    shapelike::translate(p, PointImpl{10, 10});
+    c = boundingCircle(p);
+
+    ASSERT_EQ(c.center().X, 10);
+    ASSERT_EQ(c.center().Y, 10);
+    ASSERT_DOUBLE_EQ(c.radius(), 10);
+
+    auto parts = prusaParts();
+
+    int i = 0;
+    for(auto& part : parts) {
+        c = boundingCircle(part.transformedShape());
+        if(std::isnan(c.radius())) std::cout << "fail: radius is nan" << std::endl;
+
+        else for(auto v : shapelike::contour(part.transformedShape()) ) {
+            auto d = pointlike::distance(v, c.center());
+            if(d > c.radius() ) {
+                auto e = std::abs( 1.0 - d/c.radius());
+                ASSERT_LE(e, 1e-3);
+            }
+        }
+        i++;
+    }
+
+}
+
 TEST(GeometryAlgorithms, Distance) {
     using namespace libnest2d;
 
@@ -107,14 +146,14 @@ TEST(GeometryAlgorithms, Distance) {
     Point p2 = {10, 0};
     Point p3 = {10, 10};
 
-    ASSERT_DOUBLE_EQ(PointLike::distance(p1, p2), 10);
-    ASSERT_DOUBLE_EQ(PointLike::distance(p1, p3), sqrt(200));
+    ASSERT_DOUBLE_EQ(pointlike::distance(p1, p2), 10);
+    ASSERT_DOUBLE_EQ(pointlike::distance(p1, p3), sqrt(200));
 
     Segment seg(p1, p3);
 
-    ASSERT_DOUBLE_EQ(PointLike::distance(p2, seg), 7.0710678118654755);
+    ASSERT_DOUBLE_EQ(pointlike::distance(p2, seg), 7.0710678118654755);
 
-    auto result = PointLike::horizontalDistance(p2, seg);
+    auto result = pointlike::horizontalDistance(p2, seg);
 
     auto check = [](Coord val, Coord expected) {
         if(std::is_floating_point<Coord>::value)
@@ -127,11 +166,11 @@ TEST(GeometryAlgorithms, Distance) {
     ASSERT_TRUE(result.second);
     check(result.first, 10);
 
-    result = PointLike::verticalDistance(p2, seg);
+    result = pointlike::verticalDistance(p2, seg);
     ASSERT_TRUE(result.second);
     check(result.first, -10);
 
-    result = PointLike::verticalDistance(Point{10, 20}, seg);
+    result = pointlike::verticalDistance(Point{10, 20}, seg);
     ASSERT_TRUE(result.second);
     check(result.first, 10);
 
@@ -139,12 +178,12 @@ TEST(GeometryAlgorithms, Distance) {
     Point p4 = {80, 0};
     Segment seg2 = { {0, 0}, {0, 40} };
 
-    result = PointLike::horizontalDistance(p4, seg2);
+    result = pointlike::horizontalDistance(p4, seg2);
 
     ASSERT_TRUE(result.second);
     check(result.first, 80);
 
-    result = PointLike::verticalDistance(p4, seg2);
+    result = pointlike::verticalDistance(p4, seg2);
     // Point should not be related to the segment
     ASSERT_FALSE(result.second);
 
@@ -172,7 +211,7 @@ TEST(GeometryAlgorithms, Area) {
         {61, 97}
     };
 
-    ASSERT_TRUE(ShapeLike::area(item.transformedShape()) > 0 );
+    ASSERT_TRUE(shapelike::area(item.transformedShape()) > 0 );
 }
 
 TEST(GeometryAlgorithms, IsPointInsidePolygon) {
@@ -182,21 +221,21 @@ TEST(GeometryAlgorithms, IsPointInsidePolygon) {
 
     Point p = {1, 1};
 
-    ASSERT_TRUE(rect.isPointInside(p));
+    ASSERT_TRUE(rect.isInside(p));
 
     p = {11, 11};
 
-    ASSERT_FALSE(rect.isPointInside(p));
+    ASSERT_FALSE(rect.isInside(p));
 
 
     p = {11, 12};
 
-    ASSERT_FALSE(rect.isPointInside(p));
+    ASSERT_FALSE(rect.isInside(p));
 
 
     p = {3, 3};
 
-    ASSERT_TRUE(rect.isPointInside(p));
+    ASSERT_TRUE(rect.isInside(p));
 
 }
 
@@ -250,20 +289,20 @@ TEST(GeometryAlgorithms, LeftAndDownPolygon)
 
     Item leftp(placer.leftPoly(item));
 
-    ASSERT_TRUE(ShapeLike::isValid(leftp.rawShape()).first);
+    ASSERT_TRUE(shapelike::isValid(leftp.rawShape()).first);
     ASSERT_EQ(leftp.vertexCount(), leftControl.vertexCount());
 
-    for(size_t i = 0; i < leftControl.vertexCount(); i++) {
+    for(unsigned long i = 0; i < leftControl.vertexCount(); i++) {
         ASSERT_EQ(getX(leftp.vertex(i)), getX(leftControl.vertex(i)));
         ASSERT_EQ(getY(leftp.vertex(i)), getY(leftControl.vertex(i)));
     }
 
     Item downp(placer.downPoly(item));
 
-    ASSERT_TRUE(ShapeLike::isValid(downp.rawShape()).first);
+    ASSERT_TRUE(shapelike::isValid(downp.rawShape()).first);
     ASSERT_EQ(downp.vertexCount(), downControl.vertexCount());
 
-    for(size_t i = 0; i < downControl.vertexCount(); i++) {
+    for(unsigned long i = 0; i < downControl.vertexCount(); i++) {
         ASSERT_EQ(getX(downp.vertex(i)), getX(downControl.vertex(i)));
         ASSERT_EQ(getY(downp.vertex(i)), getY(downControl.vertex(i)));
     }
@@ -297,7 +336,7 @@ TEST(GeometryAlgorithms, ArrangeRectanglesTight)
         {20, 20} };
 
 
-    Arranger<BottomLeftPlacer, DJDHeuristic> arrange(Box(210, 250));
+    Nester<BottomLeftPlacer, DJDHeuristic> arrange(Box(210, 250));
 
     auto groups = arrange(rects.begin(), rects.end());
 
@@ -350,7 +389,7 @@ TEST(GeometryAlgorithms, ArrangeRectanglesLoose)
 
     Coord min_obj_distance = 5;
 
-    Arranger<BottomLeftPlacer, DJDHeuristic> arrange(Box(210, 250),
+    Nester<BottomLeftPlacer, DJDHeuristic> arrange(Box(210, 250),
                                                      min_obj_distance);
 
     auto groups = arrange(rects.begin(), rects.end());
@@ -401,7 +440,7 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                 setX(v, getX(v)/SCALE);
                 rbin.setVertex(i, v);
             }
-            out << ShapeLike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
+            out << shapelike::serialize<Formats::SVG>(rbin.rawShape()) << std::endl;
             for(Item& sh : r) {
                 Item tsh(sh.transformedShape());
                 for(unsigned i = 0; i < tsh.vertexCount(); i++) {
@@ -410,7 +449,7 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                     setX(v, getX(v)/SCALE);
                     tsh.setVertex(i, v);
                 }
-                out << ShapeLike::serialize<Formats::SVG>(tsh.rawShape()) << std::endl;
+                out << shapelike::serialize<Formats::SVG>(tsh.rawShape()) << std::endl;
             }
             out << "\n</svg>" << std::endl;
         }
@@ -424,9 +463,10 @@ R"raw(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 TEST(GeometryAlgorithms, BottomLeftStressTest) {
     using namespace libnest2d;
 
+    const Coord SCALE = 1000000;
     auto& input = prusaParts();
 
-    Box bin(210, 250);
+    Box bin(210*SCALE, 250*SCALE);
     BottomLeftPlacer placer(bin);
 
     auto it = input.begin();
@@ -440,19 +480,19 @@ TEST(GeometryAlgorithms, BottomLeftStressTest) {
         bool valid = true;
 
         if(result.size() == 2) {
-        Item& r1 = result[0];
-        Item& r2 = result[1];
+            Item& r1 = result[0];
+            Item& r2 = result[1];
             valid = !Item::intersects(r1, r2) || Item::touches(r1, r2);
             valid = (valid && !r1.isInside(r2) && !r2.isInside(r1));
             if(!valid) {
                 std::cout << "error index: " << i << std::endl;
                 exportSVG(result, bin, i);
             }
-//                    ASSERT_TRUE(valid);
+            ASSERT_TRUE(valid);
         } else {
             std::cout << "something went terribly wrong!" << std::endl;
+            FAIL();
         }
-
 
         placer.clearItems();
         it++;
@@ -621,40 +661,85 @@ std::vector<ItemPair> nfp_testdata = {
     }
 };
 
-}
+std::vector<ItemPair> nfp_concave_testdata = {
+    { // ItemPair
+      {
+          {
+              {533726, 142141},
+              {532359, 143386},
+              {530141, 142155},
+              {528649, 160091},
+              {533659, 157607},
+              {538669, 160091},
+              {537178, 142155},
+              {534959, 143386},
+              {533726, 142141},
+          }
+      },
+      {
+          {
+              {118305, 11603},
+              {118311, 26616},
+              {113311, 26611},
+              {109311, 29604},
+              {109300, 44608},
+              {109311, 49631},
+              {113300, 52636},
+              {118311, 52636},
+              {118308, 103636},
+              {223830, 103636},
+              {236845, 90642},
+              {236832, 11630},
+              {232825, 11616},
+              {210149, 11616},
+              {211308, 13625},
+              {209315, 17080},
+              {205326, 17080},
+              {203334, 13629},
+              {204493, 11616},
+              {118305, 11603},
+          }
+      },
+    }
+};
 
-TEST(GeometryAlgorithms, nfpConvexConvex) {
+template<nfp::NfpLevel lvl, Coord SCALE>
+void testNfp(const std::vector<ItemPair>& testdata) {
     using namespace libnest2d;
-
-    const Coord SCALE = 1000000;
 
     Box bin(210*SCALE, 250*SCALE);
 
     int testcase = 0;
 
-    auto& exportfun = exportSVG<1, Box>;
+    auto& exportfun = exportSVG<SCALE, Box>;
 
-    auto onetest = [&](Item& orbiter, Item& stationary){
+    auto onetest = [&](Item& orbiter, Item& stationary, unsigned testidx){
         testcase++;
 
         orbiter.translate({210*SCALE, 0});
 
-        auto&& nfp = Nfp::noFitPolygon(stationary.rawShape(),
-                                       orbiter.transformedShape());
+        auto&& nfp = nfp::noFitPolygon<lvl>(stationary.rawShape(),
+                                            orbiter.transformedShape());
 
-        auto v = ShapeLike::isValid(nfp);
+        placers::correctNfpPosition(nfp, stationary, orbiter);
 
-        if(!v.first) {
-            std::cout << v.second << std::endl;
-        }
+        auto valid = shapelike::isValid(nfp.first);
 
-        ASSERT_TRUE(v.first);
+        /*Item infp(nfp.first);
+        if(!valid.first) {
+            std::cout << "test instance: " << testidx << " "
+                      << valid.second << std::endl;
+            std::vector<std::reference_wrapper<Item>> inp = {std::ref(infp)};
+            exportfun(inp, bin, testidx);
+        }*/
 
-        Item infp(nfp);
+        ASSERT_TRUE(valid.first);
+
+        Item infp(nfp.first);
 
         int i = 0;
         auto rorbiter = orbiter.transformedShape();
-        auto vo = Nfp::referenceVertex(rorbiter);
+        auto vo = nfp::referenceVertex(rorbiter);
 
         ASSERT_TRUE(stationary.isInside(infp));
 
@@ -666,11 +751,9 @@ TEST(GeometryAlgorithms, nfpConvexConvex) {
 
             tmp.translate({dx, dy});
 
-            bool notinside = !tmp.isInside(stationary);
-            bool notintersecting = !Item::intersects(tmp, stationary) ||
-                                    Item::touches(tmp, stationary);
+            bool touching = Item::touches(tmp, stationary);
 
-            if(!(notinside && notintersecting)) {
+            if(!touching || !valid.first) {
                 std::vector<std::reference_wrapper<Item>> inp = {
                     std::ref(stationary), std::ref(tmp), std::ref(infp)
                 };
@@ -678,22 +761,130 @@ TEST(GeometryAlgorithms, nfpConvexConvex) {
                 exportfun(inp, bin, testcase*i++);
             }
 
-            ASSERT_TRUE(notintersecting);
-            ASSERT_TRUE(notinside);
+            ASSERT_TRUE(touching);
         }
     };
 
-    for(auto& td : nfp_testdata) {
+    unsigned tidx = 0;
+    for(auto& td : testdata) {
         auto orbiter = td.orbiter;
         auto stationary = td.stationary;
-        onetest(orbiter, stationary);
+        onetest(orbiter, stationary, tidx++);
     }
 
-    for(auto& td : nfp_testdata) {
+    tidx = 0;
+    for(auto& td : testdata) {
         auto orbiter = td.stationary;
         auto stationary = td.orbiter;
-        onetest(orbiter, stationary);
+        onetest(orbiter, stationary, tidx++);
     }
+}
+}
+
+TEST(GeometryAlgorithms, nfpConvexConvex) {
+    testNfp<nfp::NfpLevel::CONVEX_ONLY, 1>(nfp_testdata);
+}
+
+//TEST(GeometryAlgorithms, nfpConcaveConcave) {
+//    testNfp<NfpLevel::BOTH_CONCAVE, 1000>(nfp_concave_testdata);
+//}
+
+TEST(GeometryAlgorithms, nfpConcaveConcave) {
+    using namespace libnest2d;
+
+    Item stationary = {
+        {
+            {207, 76},
+            {194, 117},
+            {206, 117},
+            {206, 104},
+            {218, 104},
+            {231, 117},
+            {231, 130},
+            {244, 130},
+            {230, 92},
+            {220, 92},
+            {220, 84},
+            {239, 76},
+            {207, 76}
+        },
+        {}
+    };
+
+    Item orbiter = {
+        {
+            {78, 76},
+            {90, 89},
+            {76, 124},
+            {101, 124},
+            {101, 100},
+            {141, 113},
+            {141, 124},
+            {168, 124},
+            {158, 115},
+            {158, 104},
+            {121, 88},
+            {121, 76},
+            {78, 76}
+        },
+        {}
+    };
+
+    Rectangle r1(10, 10);
+    Rectangle r2(20, 20);
+    auto result = nfp::nfpSimpleSimple(stationary.transformedShape(),
+                                       orbiter.transformedShape());
+
+    svg::SVGWriter<PolygonImpl>::Config conf;
+    conf.mm_in_coord_units = 1;
+    svg::SVGWriter<PolygonImpl> wr(conf);
+    wr.writeItem(Item(result.first));
+    wr.save("simplesimple.svg");
+
+}
+
+TEST(GeometryAlgorithms, pointOnPolygonContour) {
+    using namespace libnest2d;
+
+    Rectangle input(10, 10);
+
+    placers::EdgeCache<PolygonImpl> ecache(input);
+
+    auto first = *input.begin();
+    ASSERT_TRUE(getX(first) == getX(ecache.coords(0)));
+    ASSERT_TRUE(getY(first) == getY(ecache.coords(0)));
+
+    auto last = *std::prev(input.end());
+    ASSERT_TRUE(getX(last) == getX(ecache.coords(1.0)));
+    ASSERT_TRUE(getY(last) == getY(ecache.coords(1.0)));
+
+    for(int i = 0; i <= 100; i++) {
+        auto v = ecache.coords(i*(0.01));
+        ASSERT_TRUE(shapelike::touches(v, input.transformedShape()));
+    }
+}
+
+TEST(GeometryAlgorithms, mergePileWithPolygon) {
+    using namespace libnest2d;
+
+    Rectangle rect1(10, 15);
+    Rectangle rect2(15, 15);
+    Rectangle rect3(20, 15);
+
+    rect2.translate({10, 0});
+    rect3.translate({25, 0});
+
+    shapelike::Shapes<PolygonImpl> pile;
+    pile.push_back(rect1.transformedShape());
+    pile.push_back(rect2.transformedShape());
+
+    auto result = nfp::merge(pile, rect3.transformedShape());
+
+    ASSERT_EQ(result.size(), 1);
+
+    Rectangle ref(45, 15);
+
+    ASSERT_EQ(shapelike::area(result.front()), ref.area());
 }
 
 int main(int argc, char **argv) {

@@ -130,7 +130,7 @@ namespace placers {
 template<class RawShape>
 struct NfpPConfig {
 
-    using ItemGroup = _ItemGroup<_Item<RawShape>>;
+    using ItemGroup = _ItemGroup<RawShape>;
 
     enum class Alignment {
         CENTER,

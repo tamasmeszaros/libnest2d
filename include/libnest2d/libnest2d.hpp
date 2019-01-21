@@ -738,16 +738,6 @@ public:
     }
 
     /**
-     * \brief Get the number of bins opened by the selection algorithm.
-     *
-     * Initially it is zero and after the call to packItems it will return
-     * the number of bins opened by the packing procedure.
-     *
-     * \return The number of bins opened.
-     */
-    inline size_t binCount() const { return impl_.binCount(); }
-
-    /**
      * @brief Get the items for a particular bin.
      * @param binIndex The index of the requested bin.
      * @return Returns a list of all items packed into the requested bin.
@@ -891,12 +881,12 @@ public:
         return selector_.getResult();
     }
 
-    template<class TIterator> inline void preload(const PackGroup& pgrp)
+    inline void preload(const PackGroup& pgrp)
     {
         selector_.preload(pgrp);
     }
 
-    template<class TIterator> inline void preload(const IndexedPackGroup& ipgrp)
+    inline void preload(const IndexedPackGroup& ipgrp)
     {
         PackGroup pgrp; pgrp.reserve(ipgrp.size());
         for(auto& ig : ipgrp) {
@@ -971,7 +961,7 @@ private:
                                                    TSel& selector)
     {
         IndexedPackGroup pg;
-        pg.reserve(selector.binCount());
+        pg.reserve(selector.getResult().size());
 
         const PackGroup& pckgrp = selector.getResult();
 

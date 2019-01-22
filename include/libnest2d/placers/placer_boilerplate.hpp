@@ -73,6 +73,7 @@ public:
     template<class Range = ConstItemRange<DefaultIter>>
     void preload(const Range& packeditems = Range()) {
         items_.insert(items_.end(), packeditems.from, packeditems.to);
+        farea_valid_ = false;
     }
 
     void accept(PackResult& r) {

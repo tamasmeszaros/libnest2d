@@ -138,6 +138,8 @@ struct NfpPConfig {
         BOTTOM_RIGHT,
         TOP_LEFT,
         TOP_RIGHT,
+        DONT_ALIGN      //!> Warning: parts may end up outside the bin with the
+                        //! default object function.
     };
 
     /// Which angles to try out for better results.
@@ -905,26 +907,43 @@ private:
 
                 // This is the kernel part of the object function that is
                 // customizable by the library client
-                auto _objfunc = config_.object_function?
-                            config_.object_function :
-                            [norm, bin, binbb, pbb](const Item& item)
-                {
-                    auto ibb = item.boundingBox();
-                    auto fullbb = boundingBox(pbb, ibb);
+                std::function<double(const Item&)> _objfunc;
+                if(config_.object_function) _objfunc = config_.object_function;
+                else {
 
-                    double score = pl::distance(ibb.center(), binbb.center());
-                    score /= norm;
+                    // Inside check has to be strict if no alignment was enabled.
+                    std::function<double(const Box&)> ins_check;
+                    if(config_.alignment == Config::Alignment::DONT_ALIGN)
+                        ins_check = [&bin, norm](const Box& fullbb) {
+                            double ret = 0;
+                            if(sl::isInside<RawShape>(fullbb, bin)) ret += norm;
+                            return ret;
+                        };
+                    else
+                        ins_check = [&bin](const Box& fullbb) {
+                            double miss = overfit(fullbb, bin);
+                            miss = miss > 0? miss : 0;
+                            return std::pow(miss, 2);
+                        };
 
-                    double miss = overfit(fullbb, bin);
-                    miss = miss > 0? miss : 0;
-                    score += std::pow(miss, 2);
+                    _objfunc = [norm, binbb, pbb, ins_check](const Item& item)
+                    {
+                        auto ibb = item.boundingBox();
+                        auto fullbb = boundingBox(pbb, ibb);
 
-                    return score;
-                };
+                        double score = pl::distance(ibb.center(),
+                                                    binbb.center());
+                        score /= norm;
+
+                        score += ins_check(fullbb);
+
+                        return score;
+                    };
+                }
 
                 // Our object function for placement
-                auto rawobjfunc =
-                        [_objfunc, iv, startpos] (Vertex v, Item& itm)
+                auto rawobjfunc = [_objfunc, iv, startpos]
+                        (Vertex v, Item& itm)
                 {
                     auto d = v - iv;
                     d += startpos;
@@ -1101,7 +1120,9 @@ private:
     }
 
     inline void finalAlign(_Circle<TPoint<RawShape>> cbin) {
-        if(items_.empty()) return;
+        if(items_.empty() ||
+                config_.alignment == Config::Alignment::DONT_ALIGN) return;
+
         nfp::Shapes<RawShape> m;
         m.reserve(items_.size());
         for(Item& item : items_) m.emplace_back(item.transformedShape());
@@ -1113,7 +1134,9 @@ private:
     }
 
     inline void finalAlign(Box bbin) {
-        if(items_.empty()) return;
+        if(items_.empty() ||
+                config_.alignment == Config::Alignment::DONT_ALIGN) return;
+
         nfp::Shapes<RawShape> m;
         m.reserve(items_.size());
         for(Item& item : items_) m.emplace_back(item.transformedShape());
@@ -1147,6 +1170,7 @@ private:
             cb = bbin.maxCorner();
             break;
         }
+        default: ; // DONT_ALIGN
         }
 
         auto d = cb - ci;
@@ -1184,6 +1208,7 @@ private:
             cb = bbin.maxCorner();
             break;
         }
+        default:;
         }
 
         auto d = cb - ci;

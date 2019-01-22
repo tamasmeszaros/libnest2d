@@ -45,6 +45,7 @@ public:
         // into the appropriate placer
         for(ItemGroup& ig : packed_bins_) {
             placers.emplace_back(bin);
+            placers.back().configure(pconfig);
             placers.back().preload({ig.begin(), ig.end()});
         }
 

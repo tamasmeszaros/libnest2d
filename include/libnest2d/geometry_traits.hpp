@@ -69,12 +69,14 @@ struct PointPair {
     RawPoint p2;
 };
 
+struct PointTag {};
 struct PolygonTag {};
 struct PathTag {};
 struct MultiPolygonTag {};
 struct BoxTag {};
 struct CircleTag {};
 
+/// Meta-functions to derive the tags
 template<class Shape> struct ShapeTag { using Type = typename Shape::Tag; };
 template<class S> using Tag = typename ShapeTag<remove_cvref_t<S>>::Type;
 
@@ -518,21 +520,19 @@ inline bool intersects(const RawShape& /*sh*/, const RawShape& /*sh*/)
     return false;
 }
 
-template<class RawShape>
-inline bool isInside(const TPoint<RawShape>& /*point*/,
-                     const RawShape& /*shape*/)
-{
-    static_assert(always_false<RawShape>::value,
-                  "shapelike::isInside(point, shape) unimplemented!");
+template<class TGuest, class THost>
+inline bool isInside(const TGuest&, const THost&,
+                     const PointTag&, const PolygonTag&) {
+    static_assert(always_false<THost>::value,
+                      "shapelike::isInside(point, path) unimplemented!");
     return false;
 }
 
-template<class RawShape>
-inline bool isInside(const RawShape& /*shape*/,
-                     const RawShape& /*shape*/)
-{
-    static_assert(always_false<RawShape>::value,
-                  "shapelike::isInside(shape, shape) unimplemented!");
+template<class TGuest, class THost>
+inline bool isInside(const TGuest&, const THost&,
+                     const PolygonTag&, const PolygonTag&) {
+    static_assert(always_false<THost>::value,
+                      "shapelike::isInside(shape, shape) unimplemented!");
     return false;
 }
 
@@ -818,16 +818,16 @@ inline auto convexHull(const RawShape& sh)
     return convexHull(sh, Tag<RawShape>());
 }
 
-template<class RawShape>
-inline bool isInside(const TPoint<RawShape>& point,
-                     const _Circle<TPoint<RawShape>>& circ)
+template<class TP, class TC>
+inline bool isInside(TP&& point, TC&& circ,
+                     const PointTag&, const CircleTag&)
 {
     return pointlike::distance(point, circ.center()) < circ.radius();
 }
 
-template<class RawShape>
-inline bool isInside(const TPoint<RawShape>& point,
-                     const _Box<TPoint<RawShape>>& box)
+template<class TP, class TB>
+inline bool isInside(const TP& point, const TB& box,
+                     const PointTag&, const BoxTag&)
 {
     auto px = getX(point);
     auto py = getY(point);
@@ -839,27 +839,26 @@ inline bool isInside(const TPoint<RawShape>& point,
     return px > minx && px < maxx && py > miny && py < maxy;
 }
 
-template<class RawShape>
-inline bool isInside(const RawShape& sh,
-                     const _Circle<TPoint<RawShape>>& circ)
+template<class RawShape, class TC>
+inline bool isInside(const RawShape&& sh, const TC& circ,
+                     const PolygonTag&, const CircleTag&)
 {
-    return std::all_of(cbegin(sh), cend(sh),
-                       [&circ](const TPoint<RawShape>& p){
-        return isInside<RawShape>(p, circ);
+    return std::all_of(cbegin(sh), cend(sh), [&circ](const TPoint<RawShape>& p)
+    {
+        return isInside(p, circ);
     });
 }
 
-template<class RawShape>
-inline bool isInside(const _Box<TPoint<RawShape>>& box,
-                     const _Circle<TPoint<RawShape>>& circ)
+template<class TB, class TC>
+inline bool isInside(const TB& box, const TC& circ,
+                     const BoxTag&, const CircleTag&)
 {
-    return isInside<RawShape>(box.minCorner(), circ) &&
-            isInside<RawShape>(box.maxCorner(), circ);
+    return isInside(box.minCorner(), circ) && isInside(box.maxCorner(), circ);
 }
 
-template<class RawShape>
-inline bool isInside(const _Box<TPoint<RawShape>>& ibb,
-                     const _Box<TPoint<RawShape>>& box)
+template<class TBGuest, class TBHost>
+inline bool isInside(const TBGuest& ibb, const TBHost& box,
+                     const BoxTag&, const BoxTag&)
 {
     auto iminX = getX(ibb.minCorner());
     auto imaxX = getX(ibb.maxCorner());
@@ -872,6 +871,19 @@ inline bool isInside(const _Box<TPoint<RawShape>>& ibb,
     auto maxY = getY(box.maxCorner());
 
     return iminX > minX && imaxX < maxX && iminY > minY && imaxY < maxY;
+}
+
+template<class RawShape, class TB>
+inline bool isInside(const RawShape& poly, const TB& box,
+                     const PolygonTag&, const BoxTag&)
+{
+    return isInside(boundingBox(poly), box, BoxTag(), BoxTag());
+}
+
+template<class TGuest, class THost>
+inline bool isInside(const TGuest& guest, const THost& host) {
+    return isInside(guest, host, Tag<remove_cvref_t<TGuest>>(),
+                    Tag<remove_cvref_t<THost>>());
 }
 
 template<class RawShape> // Potential O(1) implementation may exist

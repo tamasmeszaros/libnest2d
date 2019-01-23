@@ -973,8 +973,8 @@ private:
                     merged_pile.pop_back();
 
                     double miss = 0;
-                    if(alignment == Config::Alignment::DONT_ALIGN &&
-                       !sl::isInside(chull, bin)) miss = -1;
+                    if(alignment == Config::Alignment::DONT_ALIGN)
+                       miss = sl::isInside(chull, bin) ? -1.0 : 1.0;
                     else miss = overfit(chull, bin);
 
                     return miss;

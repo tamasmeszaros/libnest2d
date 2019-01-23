@@ -133,7 +133,7 @@ public:
     _Circle(const RawPoint& center, double r): center_(center), radius_(r) {}
 
     inline const RawPoint& center() const BP2D_NOEXCEPT { return center_; }
-    inline const void center(const RawPoint& c) { center_ = c; }
+    inline void center(const RawPoint& c) { center_ = c; }
 
     inline double radius() const BP2D_NOEXCEPT { return radius_; }
     inline void radius(double r) { radius_ = r; }
@@ -651,7 +651,7 @@ template<class RawPath> inline bool isConvex(const RawPath& sh, const PathTag&)
 
 template<class RawShape>
 inline typename TContour<RawShape>::iterator
-begin(RawShape& sh, const PolygonTag& t)
+begin(RawShape& sh, const PolygonTag&)
 {
     return begin(contour(sh), PathTag());
 }
@@ -819,7 +819,7 @@ inline auto convexHull(const RawShape& sh)
 }
 
 template<class TP, class TC>
-inline bool isInside(TP&& point, TC&& circ,
+inline bool isInside(const TP& point, const TC& circ,
                      const PointTag&, const CircleTag&)
 {
     return pointlike::distance(point, circ.center()) < circ.radius();
@@ -840,12 +840,12 @@ inline bool isInside(const TP& point, const TB& box,
 }
 
 template<class RawShape, class TC>
-inline bool isInside(const RawShape&& sh, const TC& circ,
+inline bool isInside(const RawShape& sh, const TC& circ,
                      const PolygonTag&, const CircleTag&)
 {
     return std::all_of(cbegin(sh), cend(sh), [&circ](const TPoint<RawShape>& p)
     {
-        return isInside(p, circ);
+        return isInside(p, circ, PointTag(), CircleTag());
     });
 }
 
@@ -853,7 +853,8 @@ template<class TB, class TC>
 inline bool isInside(const TB& box, const TC& circ,
                      const BoxTag&, const CircleTag&)
 {
-    return isInside(box.minCorner(), circ) && isInside(box.maxCorner(), circ);
+    return isInside(box.minCorner(), circ, BoxTag(), CircleTag()) &&
+           isInside(box.maxCorner(), circ, BoxTag(), CircleTag());
 }
 
 template<class TBGuest, class TBHost>
@@ -882,8 +883,7 @@ inline bool isInside(const RawShape& poly, const TB& box,
 
 template<class TGuest, class THost>
 inline bool isInside(const TGuest& guest, const THost& host) {
-    return isInside(guest, host, Tag<remove_cvref_t<TGuest>>(),
-                    Tag<remove_cvref_t<THost>>());
+    return isInside(guest, host, Tag<TGuest>(), Tag<THost>());
 }
 
 template<class RawShape> // Potential O(1) implementation may exist

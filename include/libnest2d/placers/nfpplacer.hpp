@@ -916,7 +916,7 @@ private:
                     if(config_.alignment == Config::Alignment::DONT_ALIGN)
                         ins_check = [&binbb, norm](const Box& fullbb) {
                             double ret = 0;
-                            if(sl::isInside<RawShape>(fullbb, binbb))
+                            if(!sl::isInside<RawShape>(fullbb, binbb))
                                 ret += norm*norm;
                             return ret;
                         };

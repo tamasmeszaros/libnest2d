@@ -205,6 +205,7 @@ public:
                     Input<Args...>(),
                     Bound<Args>()... );
     }
+
 };
 
 // Just to be able to instantiate an unimplemented method and generate compile

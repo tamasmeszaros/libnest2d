@@ -60,6 +60,7 @@ enum class Method {
     L_SIMPLEX,
     L_SUBPLEX,
     G_GENETIC,
+    G_PARTICLE_SWARM
     //...
 };
 

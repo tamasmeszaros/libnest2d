@@ -59,6 +59,12 @@ struct OrientationType {
     static const Orientation Value = Orientation::CLOCKWISE;
 };
 
+// template<class T> const constexpr PathOrientation = OrientationType<T>::Value;
+
+template<class T> inline bool is_clockwise() { 
+    return OrientationType<T>::Value == Orientation::CLOCKWISE; 
+}
+
 /**
  * \brief A point pair base class for other point pairs (segment, box, ...).
  * \tparam RawPoint The actual point type to use.
@@ -185,7 +191,7 @@ public:
     inline Radians angleToXaxis() const;
 
     /// The length of the segment in the measure of the coordinate system.
-    inline double length();
+    inline double length() const;
 };
 
 // This struct serves almost as a namespace. The only difference is that is can
@@ -333,7 +339,7 @@ inline Radians _Segment<RawPoint>::angleToXaxis() const
 }
 
 template<class RawPoint>
-inline double _Segment<RawPoint>::length()
+inline double _Segment<RawPoint>::length() const
 {
     return pointlike::distance(first(), second());
 }

@@ -200,20 +200,23 @@ inline PolygonImpl create(const PathImpl& path, const HoleStore& holes)
 {
     PolygonImpl p;
     p.Contour = path;
+    
+//    static_assert(OrientationType<PolygonImpl>::Value == Orientation::CLOCKWISE, 
+//                  "Libnest2D is ready only for clockwise oriented geometries.");
 
-    // Expecting that the coordinate system Y axis is positive in upwards
-    // direction
-    if(ClipperLib::Orientation(p.Contour)) {
-        // Not clockwise then reverse the b*tch
-        ClipperLib::ReversePath(p.Contour);
-    }
+//    // Expecting that the coordinate system Y axis is positive in upwards
+//    // direction
+//    if(ClipperLib::Orientation(p.Contour)) {
+//        // Not clockwise then reverse the b*tch
+//        ClipperLib::ReversePath(p.Contour);
+//    }
 
-    p.Holes = holes;
-    for(auto& h : p.Holes) {
-        if(!ClipperLib::Orientation(h)) {
-            ClipperLib::ReversePath(h);
-        }
-    }
+//    p.Holes = holes;
+//    for(auto& h : p.Holes) {
+//        if(!ClipperLib::Orientation(h)) {
+//            ClipperLib::ReversePath(h);
+//        }
+//    }
 
     return p;
 }
@@ -221,21 +224,24 @@ inline PolygonImpl create(const PathImpl& path, const HoleStore& holes)
 template<> inline PolygonImpl create( PathImpl&& path, HoleStore&& holes) {
     PolygonImpl p;
     p.Contour.swap(path);
+    
+//    static_assert(OrientationType<PolygonImpl>::Value == Orientation::CLOCKWISE, 
+//                  "Libnest2D is ready only for clockwise oriented geometries.");
 
-    // Expecting that the coordinate system Y axis is positive in upwards
-    // direction
-    if(ClipperLib::Orientation(p.Contour)) {
-        // Not clockwise then reverse the b*tch
-        ClipperLib::ReversePath(p.Contour);
-    }
+//    // Expecting that the coordinate system Y axis is positive in upwards
+//    // direction
+//    if(ClipperLib::Orientation(p.Contour)) {
+//        // Not clockwise then reverse the b*tch
+//        ClipperLib::ReversePath(p.Contour);
+//    }
 
-    p.Holes.swap(holes);
+//    p.Holes.swap(holes);
 
-    for(auto& h : p.Holes) {
-        if(!ClipperLib::Orientation(h)) {
-            ClipperLib::ReversePath(h);
-        }
-    }
+//    for(auto& h : p.Holes) {
+//        if(!ClipperLib::Orientation(h)) {
+//            ClipperLib::ReversePath(h);
+//        }
+//    }
 
     return p;
 }

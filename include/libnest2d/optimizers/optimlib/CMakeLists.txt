@@ -1,5 +1,5 @@
 find_package(Armadillo REQUIRED)
 
-add_library(OptimlibOptimizer INTERFACE)
-target_include_directories(OptimlibOptimizer INTERFACE ${ARMADILLO_INCLUDE_DIRS})
-target_link_libraries(OptimlibOptimizer INTERFACE ${ARMADILLO_LIBRARIES})
+add_library(optimlibOptimizer INTERFACE)
+target_include_directories(optimlibOptimizer INTERFACE ${ARMADILLO_INCLUDE_DIRS})
+target_link_libraries(optimlibOptimizer INTERFACE ${ARMADILLO_LIBRARIES})

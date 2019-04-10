@@ -48,6 +48,7 @@ set(LIBNEST2D_SRCFILES
     ${SRC_DIR}/libnest2d/optimizer.hpp
     ${SRC_DIR}/libnest2d/utils/metaloop.hpp
     ${SRC_DIR}/libnest2d/utils/rotfinder.hpp
+    ${SRC_DIR}/libnest2d/utils/rotcalipers.hpp
     ${SRC_DIR}/libnest2d/placers/placer_boilerplate.hpp
     ${SRC_DIR}/libnest2d/placers/bottomleftplacer.hpp
     ${SRC_DIR}/libnest2d/placers/nfpplacer.hpp

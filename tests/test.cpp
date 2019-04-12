@@ -5,6 +5,8 @@
 #include "printer_parts.h"
 #include <libnest2d/geometry_traits_nfp.hpp>
 #include "../tools/svgtools.hpp"
+#include "libnest2d/utils/rotcalipers.hpp"
+
 //#include "../tools/libnfpglue.hpp"
 //#include "../tools/nfp_svgnest_glue.hpp"
 
@@ -31,8 +33,8 @@ TEST(BasicFunctionality, Angles)
     ASSERT_DOUBLE_EQ(rad, Pi);
     ASSERT_DOUBLE_EQ(deg, 180);
     ASSERT_DOUBLE_EQ(deg2, 180);
-    ASSERT_DOUBLE_EQ(rad, (Radians) deg);
-    ASSERT_DOUBLE_EQ( (Degrees) rad, deg);
+    ASSERT_DOUBLE_EQ(rad, Radians(deg));
+    ASSERT_DOUBLE_EQ( Degrees(rad), deg);
 
     ASSERT_TRUE(rad == deg);
 
@@ -831,6 +833,108 @@ TEST(GeometryAlgorithms, mergePileWithPolygon) {
     Rectangle ref(45, 15);
 
     ASSERT_EQ(shapelike::area(result.front()), ref.area());
+}
+
+namespace  {
+bool eq(const PointImpl& p1, const PointImpl& p2) {
+    return getX(p1) == getX(p2) && getY(p1) == getY(p2);
+};
+
+bool checkRotcal(const libnest2d::PolygonImpl& poly, 
+                 const std::vector<libnest2d::Segment>& antip, 
+                 const std::vector<Segment>& excl = {}) 
+{
+    using namespace libnest2d;
+    
+    size_t vcount = poly.Contour.size();
+    
+    std::vector<bool> perms(vcount, false);
+    perms[0] = true; perms[1] = true;
+    
+    bool foundall = true;
+    
+    do {
+        std::array<size_t, 2> indx = {0, 0};
+        for(size_t i = 0, j = 0; i < vcount; ++i) if(perms[i]) indx[j++] = i;
+        
+        Segment sq(poly.Contour[indx[0]], poly.Contour[indx[1]]);
+        bool in_excl = false;
+        for(auto ex : excl) {
+            if((eq(sq.first(), ex.first()) && eq(sq.second(), ex.second())) || 
+               (eq(sq.first(), ex.second()) && eq(sq.second(), ex.first()))) { in_excl = true; break; }
+        }
+        
+        bool found = in_excl;
+        if(!found) for(const Segment& s : antip) {
+            
+            bool f = (eq(s.first(), sq.first()) && eq(s.second(), sq.second())) || 
+                     (eq(s.first(), sq.second()) && eq(s.second(), sq.first()));
+            
+            // No duplicates allowed and cannot be in excludes
+            if((found && f ) || (in_excl && f)) return false;
+            
+            found = found || f;
+        }
+        
+        if(!found) std::cout << "not found point antipodal pair: " << sq.first() << " " << sq.second() << std::endl;
+        
+        foundall = foundall && found;
+        
+    } while(std::prev_permutation(perms.begin(), perms.end()));
+    
+    return foundall;
+}
+
+}
+
+TEST(RotatingCalipers, SquareClk) {
+    using namespace libnest2d;
+    
+    PolygonImpl square({{-50, 50}, {-50, -50}, {50, -50}, {50, 50}});
+    std::reverse(square.Contour.begin(), square.Contour.end());
+    auto antip = antipodals(square);
+    
+    ASSERT_TRUE(checkRotcal(square, antip));
+}
+
+TEST(RotatingCalipers, BrokensquareClk) {
+    using namespace libnest2d;
+    
+    PolygonImpl brokensquare({{-50, 30}, {-50, -50}, {50, -50}, {50, 50}, {-40, 50}});
+    std::reverse(brokensquare.Contour.begin(), brokensquare.Contour.end());
+    auto antip = antipodals(brokensquare);
+    
+    std::vector<Segment> excludes = { 
+        { {-40, 50}, {-50, 30}  }, 
+        { {-50, 30}, {-50, -50} },
+        { {-40, 50}, {50, 50}   }  
+    };
+    
+    ASSERT_TRUE(checkRotcal(brokensquare, antip,  excludes));
+}
+
+TEST(RotatingCalipers, SquareCClk) {
+    using namespace libnest2d;
+    
+    PolygonImpl square({{-50, 50}, {-50, -50}, {50, -50}, {50, 50}});
+    auto antip = antipodals(square);
+    
+    ASSERT_TRUE(checkRotcal(square, antip));
+}
+
+TEST(RotatingCalipers, BrokensquareCClk) {
+    using namespace libnest2d;
+    
+    PolygonImpl brokensquare({{-50, 30}, {-50, -50}, {50, -50}, {50, 50}, {-40, 50}});
+    auto antip = antipodals(brokensquare);
+    
+    std::vector<Segment> excludes = { 
+        { {-40, 50}, {-50, 30}  }, 
+        { {-50, 30}, {-50, -50} },
+        { {-40, 50}, {50, 50}   }  
+    };
+    
+    ASSERT_TRUE(checkRotcal(brokensquare, antip,  excludes));
 }
 
 int main(int argc, char **argv) {

@@ -38,7 +38,7 @@ template<> struct PointType<PointImpl> {
     using Type = PointImpl;
 };
 
-template<> struct CountourType<PolygonImpl> {
+template<> struct ContourType<PolygonImpl> {
     using Type = PathImpl;
 };
 

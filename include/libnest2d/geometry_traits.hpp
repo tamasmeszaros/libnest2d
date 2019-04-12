@@ -31,10 +31,10 @@ template<class Shape>
 using TPoint = typename PointType<remove_cvref_t<Shape>>::Type;
 
 
-template<class RawShape> struct CountourType { using Type = RawShape; };
+template<class RawShape> struct ContourType { using Type = RawShape; };
 
 template<class RawShape>
-using TContour = typename CountourType<remove_cvref_t<RawShape>>::Type;
+using TContour = typename ContourType<remove_cvref_t<RawShape>>::Type;
 
 
 template<class RawShape>
@@ -57,6 +57,10 @@ struct OrientationType {
 
     // Default Polygon orientation that the library expects
     static const Orientation Value = Orientation::CLOCKWISE;
+};
+
+template <class Coord> struct Epsilon { 
+    static const Coord Value = std::numeric_limits<Coord>::epsilon();
 };
 
 // template<class T> const constexpr PathOrientation = OrientationType<T>::Value;
@@ -256,8 +260,8 @@ inline std::pair<TCoord<RawPoint>, bool> horizontalDistance(
         ret = std::min( x-x1, x -x2);
     else if( (y == y1 && y == y2) && (x < x1 && x < x2))
         ret = -std::min(x1 - x, x2 - x);
-    else if(std::abs(y - y1) <= std::numeric_limits<Unit>::epsilon() &&
-            std::abs(y - y2) <= std::numeric_limits<Unit>::epsilon())
+    else if(std::abs(y - y1) <= Epsilon<Unit>::Value &&
+            std::abs(y - y2) <= Epsilon<Unit>::Value)
         ret = 0;
     else
         ret = x - x1 + (x1 - x2)*(y1 - y)/(y1 - y2);
@@ -282,8 +286,8 @@ inline std::pair<TCoord<RawPoint>, bool> verticalDistance(
         ret = std::min( y-y1, y -y2);
     else if( (x == x1 && x == x2) && (y < y1 && y < y2))
         ret = -std::min(y1 - y, y2 - y);
-    else if(std::abs(x - x1) <= std::numeric_limits<Unit>::epsilon() &&
-            std::abs(x - x2) <= std::numeric_limits<Unit>::epsilon())
+    else if(std::abs(x - x1) <= Epsilon<Unit>::Value &&
+            std::abs(x - x2) <= Epsilon<Unit>::Value)
         ret = 0;
     else
         ret = y - y1 + (y1 - y2)*(x1 - x)/(x1 - x2);

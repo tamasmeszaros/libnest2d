@@ -140,13 +140,18 @@ std::vector<_Segment<TPoint<RawShape>>> antipodals_convex(const RawShape& poly)
     return _antipodals<RawShape>(U, L);
 }
 
-template <class RawShape> std::vector<_Segment<TPoint<RawShape>>> myantipodals(const RawShape& sh) 
+template <class RawShape> 
+std::vector<_Segment<TPoint<RawShape>>> myantipodals(const RawShape& sh) 
 {
     using Point = TPoint<RawShape>;
     using Coord = TCoord<Point>;
     using Iterator = typename TContour<RawShape>::const_iterator;
     using Line = _Segment<TPoint<RawShape>>;
     
+    size_t vcount = sl::contourVertexCount(sh);
+    if(vcount <= 3) return {};
+    
+    // compare function for vertex extreme search
     auto xcmp = [](const Point& v1, const Point& v2)
     {
         auto diff = getX(v1) - getX(v2);
@@ -155,53 +160,75 @@ template <class RawShape> std::vector<_Segment<TPoint<RawShape>>> myantipodals(c
         return diff < 0;    
     };
     
+    // We shall find the bottom-most left and top-most right vertex as the 
+    // starting points for the algorithm.
     auto minX = std::min_element(sl::cbegin(sh), sl::cend(sh), xcmp);
     auto maxX = std::max_element(sl::cbegin(sh), sl::cend(sh), xcmp);
-//    auto minY = std::min_element(sl::cbegin(sh), sl::cend(sh), ycmp);
-//    auto maxY = std::max_element(sl::cbegin(sh), sl::cend(sh), ycmp);
     
     auto i = minX, j = maxX;
     auto first = sl::cbegin(sh);
     auto last = std::prev(sl::cend(sh));
     
+    // If the last vertex is equal to the first, it signals a closed polygon and
+    // we should ignore it. Then the minimum number of verices should be 4.
+    if(getX(*last) == getX(*first) && getY(*last) == getY(*first)) {
+        if(vcount <= 4) return {};
+        --last;
+    }
+    
+    // Iterator rotating increment
     auto inc = [&first, &last](Iterator& it) {
        if(it == last) it = first; else ++it;
     };
+    
+    // Iterator rotating decrement
     auto dec = [&first, &last](Iterator& it) { 
         if(it == first) it = last; else --it;
     };
     
+    // rotating move operators on the vertex iterators
     auto next = [&inc](Iterator it) { auto t = it; inc(t); return t; };
     auto prev = [&dec](Iterator it) { auto t = it; dec(t); return t; };
     
+    // output vector
     std::vector<Line> lines;
     
+    // yielding means adding an element to the output vector
     auto yield = [&lines](Iterator a, Iterator b) {
         lines.emplace_back(*a, *b);
     };
     
+    // dot product
     auto dotp = [](const Point& a, const Point& b) {
         return getX(a) * getX(b) + getY(a) * getY(b);
     };
     
+    // squared vector magnitude
     auto magnsq = [](const Point& p) {
         return getX(p) * getX(p) + getY(p) * getY(p);
     };
     
-    auto anglecmp = [&sh, &prev, &dotp, &magnsq](Iterator A, Iterator B, Iterator C) {
+    // A numericly robust angle measuring function. The measured edges are
+    // the edges 'a' = (A - prev(A)) to 'b' = (B - prev(B)) and 'a' to 
+    // 'c' = (C - prev(C)). Instead of calculating the angle with an arcus 
+    // function, we use: |a|^2 * sin(phi)^2 
+    // 
+    // The phi angle should not and can not be greater than Pi/2 and sin is
+    // monotone in that interval. <- THIS IS NOT TRUE
+    //
+    // The above function can be computed with the
+    // expression: dot(a, vp)^2 / |v|^2  where v is either 'b' or 'c' and vp is
+    // a vector perpendicular to v [vp = (v.y, -v.x)]
+    // Source is: 
+    // https://www.geometrictools.com/Documentation/MinimumAreaRectangle.pdf
+    auto anglecmp = 
+            [&sh, &prev, &dotp, &magnsq](Iterator A, Iterator B, Iterator C) 
+    {
         Iterator Ap = prev(A);
         Iterator Bp = prev(B);
         Iterator Cp = prev(C);
         
         Point a = *A - *Ap, b = *B - *Bp, c = *C - *Cp;
-//        double csquare = getX(c)*getX(c) + getY(c)*getY(c);
-//        double bsquare = getX(b)*getX(b) + getY(b)*getY(b);
-        
-//        double dotab = getX(a)*getX(b) + getY(a)*getY(b);
-//        double dotac = getX(a)*getX(c) + getY(a)*getY(c);
-        
-//        return std::sqrt(csquare) * dotab /*/ std::sqrt(bsquare)*/ + std::sqrt(bsquare) * dotac /*/ std::sqrt(csquare)*/;
-        
         Point pb(getY(b), -getX(b)), pc(getY(c), -getX(c));
         
         double dotapb = dotp(a, pb), dotapc = dotp(a, pc);
@@ -209,12 +236,14 @@ template <class RawShape> std::vector<_Segment<TPoint<RawShape>>> myantipodals(c
         double ra = dotapb * dotapb / magnsq(b);
         double rc = dotapc * dotapc / magnsq(c);
         double diff = ra - rc;
+        
         if(std::abs(diff) < magnsq(a) * std::numeric_limits<double>::epsilon())
             return 0;
         
         return diff < 0 ? -1 : 1;
     };
     
+    // Go around the polygon, do the rotating calipers.
     while(j != minX) {
         yield(i, j);
         
@@ -358,14 +387,38 @@ template <class RawShape> Radians minAreaBoundingBoxRotation(const RawShape& sh)
         return getX(a) * getX(b) + getY(a) * getY(b);
     };
     
-    auto rectarea = 
-            [&dotp](const Point& axis, const Point& vl, const Point& vr, 
-                                       const Point& vb, const Point& vt) 
+    // squared vector magnitude
+    auto magnsq = [](const Point& p) {
+        return getX(p) * getX(p) + getY(p) * getY(p);
+    };
+    
+    auto rectarea = [&dotp, &magnsq](const Point& axis, 
+            const Point& vl, const Point& vr, const Point& vb, const Point& vt) 
     {
-        Point paxis(getY(axis), -getX(axis)); // perpendiculat point to our axis
+        Point paxis(getY(axis), -getX(axis)); // perpendicular vector to axis
+        return double(dotp(axis, vr - vl) * dotp(paxis, vt - vb)) / magnsq(axis);
+    };
+    
+    auto anglecmp = [&sh, &prev, &dotp, &magnsq]
+            (Iterator A, Iterator B, Iterator C, Iterator D, Iterator E) 
+    {
+        Iterator Ap = prev(A);
+        Iterator Bp = prev(B);
+        Iterator Cp = prev(C);
         
-        return double(dotp(axis, vr - vl) * dotp(paxis, vt - vb)) / 
-               (getX(axis) * getX(axis) + getY(axis) * getY(axis));
+        Point a = *A - *Ap, b = *B - *Bp, c = *C - *Cp;
+        Point pb(getY(b), -getX(b)), pc(getY(c), -getX(c));
+        
+        double dotapb = dotp(a, pb), dotapc = dotp(a, pc);
+        
+        double ra = dotapb * dotapb / magnsq(b);
+        double rc = dotapc * dotapc / magnsq(c);
+        double diff = ra - rc;
+        
+        if(std::abs(diff) < magnsq(a) * std::numeric_limits<double>::epsilon())
+            return 0;
+        
+        return diff < 0 ? -1 : 1;
     };
     
     while(l != minX) {

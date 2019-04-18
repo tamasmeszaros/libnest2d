@@ -140,18 +140,108 @@ std::vector<_Segment<TPoint<RawShape>>> antipodals_convex(const RawShape& poly)
     return _antipodals<RawShape>(U, L);
 }
 
+template <class RawShape> std::vector<_Segment<TPoint<RawShape>>> myantipodals(const RawShape& sh) 
+{
+    using Point = TPoint<RawShape>;
+    using Coord = TCoord<Point>;
+    using Iterator = typename TContour<RawShape>::const_iterator;
+    using Line = _Segment<TPoint<RawShape>>;
+    
+    auto xcmp = [](const Point& v1, const Point& v2)
+    {
+        auto diff = getX(v1) - getX(v2);
+        if(std::abs(diff) <= Epsilon<Coord>::Value) return getY(v1) < getY(v2);
+    
+        return diff < 0;    
+    };
+    
+    auto minX = std::min_element(sl::cbegin(sh), sl::cend(sh), xcmp);
+    auto maxX = std::max_element(sl::cbegin(sh), sl::cend(sh), xcmp);
+//    auto minY = std::min_element(sl::cbegin(sh), sl::cend(sh), ycmp);
+//    auto maxY = std::max_element(sl::cbegin(sh), sl::cend(sh), ycmp);
+    
+    auto i = minX, j = maxX;
+    auto first = sl::cbegin(sh);
+    auto last = std::prev(sl::cend(sh));
+    
+    auto inc = [&first, &last](Iterator& it) {
+       if(it == last) it = first; else ++it;
+    };
+    auto dec = [&first, &last](Iterator& it) { 
+        if(it == first) it = last; else --it;
+    };
+    
+    auto next = [&inc](Iterator it) { auto t = it; inc(t); return t; };
+    auto prev = [&dec](Iterator it) { auto t = it; dec(t); return t; };
+    
+    std::vector<Line> lines;
+    
+    auto yield = [&lines](Iterator a, Iterator b) {
+        lines.emplace_back(*a, *b);
+    };
+    
+    auto dotp = [](const Point& a, const Point& b) {
+        return getX(a) * getX(b) + getY(a) * getY(b);
+    };
+    
+    auto magnsq = [](const Point& p) {
+        return getX(p) * getX(p) + getY(p) * getY(p);
+    };
+    
+    auto anglecmp = [&sh, &prev, &dotp, &magnsq](Iterator A, Iterator B, Iterator C) {
+        Iterator Ap = prev(A);
+        Iterator Bp = prev(B);
+        Iterator Cp = prev(C);
+        
+        Point a = *A - *Ap, b = *B - *Bp, c = *C - *Cp;
+//        double csquare = getX(c)*getX(c) + getY(c)*getY(c);
+//        double bsquare = getX(b)*getX(b) + getY(b)*getY(b);
+        
+//        double dotab = getX(a)*getX(b) + getY(a)*getY(b);
+//        double dotac = getX(a)*getX(c) + getY(a)*getY(c);
+        
+//        return std::sqrt(csquare) * dotab /*/ std::sqrt(bsquare)*/ + std::sqrt(bsquare) * dotac /*/ std::sqrt(csquare)*/;
+        
+        Point pb(getY(b), -getX(b)), pc(getY(c), -getX(c));
+        
+        double dotapb = dotp(a, pb), dotapc = dotp(a, pc);
+        
+        double ra = dotapb * dotapb / magnsq(b);
+        double rc = dotapc * dotapc / magnsq(c);
+        double diff = ra - rc;
+        if(std::abs(diff) < magnsq(a) * std::numeric_limits<double>::epsilon())
+            return 0;
+        
+        return diff < 0 ? -1 : 1;
+    };
+    
+    while(j != minX) {
+        yield(i, j);
+        
+        int pr = anglecmp(i, next(i), next(j));
+        
+        if(pr == 0) { yield(i, next(j)); yield(next(i), j); inc(j); }
+            
+        if(pr <= 0) inc(i);
+        else inc(j);
+    }
+    
+    return lines;
+}
+
 template <class RawShape> inline
 std::vector<_Segment<TPoint<RawShape>>> antipodals(const RawShape& poly)
 {
 //    return antipodals_concave(poly);
-    return antipodals_convex(poly);
+//    return antipodals_convex(poly);
+    return myantipodals(poly);
 }
 
 template <class RawShape> double diameter(const RawShape& poly)
 {
     using Line = _Segment<TPoint<RawShape>>;
     
-    std::vector<Line> antip = myantipodals(poly);
+    std::vector<Line> antip = antipodals(poly);
     
     double l = 0.0;
     for(const Line& line : antip) l = std::max(l, line.length());
@@ -180,6 +270,111 @@ std::pair<TPoint<RawShape>, double> enclosingCircle(const RawShape& poly)
     
     return std::make_pair(center, mit->length() / 2);
 }
+
+//template <class RawShape> Radians minAreaBoundingBoxRotation(const RawShape& sh) 
+//{
+//    using Point = TPoint<RawShape>;
+//    using Line = _Segment<TPoint<RawShape>>;
+    
+//    std::vector<Line> antip = antipodals(sh);
+    
+//    auto lencmp = [](const Line& l1, const Line& l2)
+//    {
+//        return l1.length() < l2.length();     
+//    };
+    
+//    auto max_it = std::max_element(antip.begin(), antip.end(), lencmp);
+    
+//    auto p1 = std::find(sl::cbegin(sh), sl::cend(sh), max_it->first());
+//    auto p2 = std::find(sl::cbegin(sh), sl::cend(sh), max_it->second());
+    
+//    auto p1n = p1 == std::prev(sl::cend(sh)) ? sl::cbegin(sh) : std::next(p1);
+//    auto p2n = p2 == std::prev(sl::cend(sh)) ? sl::cbegin(sh) : std::next(p2);
+    
+//    auto p1v = p1 == sl::cbegin(sh) ? std::prev(sl::cend(sh)) : std::prev(p1);
+//    auto p2v = p2 == sl::cbegin(sh) ? std::prev(sl::cend(sh)) : std::prev(p2);
+    
+//    Point pp1 = *p1, pp1n = *p1n, pp2 = *p2, pp2n = *p2n, pp1v = *p1v, pp2v = *p2v;
+    
+//    std::array<Line, 4> lines = { Line{pp1, pp1n}, Line{pp2, pp2n}, Line{pp1v, pp1}, Line{pp2v, pp2}};
+    
+//    auto maxl_it = std::max_element(lines.begin(), lines.end(), lencmp);
+    
+//    Radians r = maxl_it->angleToXaxis();
+//    return 2*Pi - r;
+//}
+
+
+template <class RawShape> Radians minAreaBoundingBoxRotation(const RawShape& sh) 
+{
+    using Point = TPoint<RawShape>;
+    using Coord = TCoord<Point>;
+    using Iterator = typename TContour<RawShape>::const_iterator;
+    using Line = _Segment<TPoint<RawShape>>;
+    
+    auto first = sl::cbegin(sh);
+    auto last = std::prev(sl::cend(sh));
+    
+    auto inc = [&first, &last](Iterator& it) {
+       if(it == last) it = first; else ++it;
+    };
+    auto dec = [&first, &last](Iterator& it) { 
+        if(it == first) it = last; else --it;
+    };
+    
+    auto next = [&inc](Iterator it) { auto t = it; inc(t); return t; };
+    auto prev = [&dec](Iterator it) { auto t = it; dec(t); return t; };
+    
+    auto xcmp = [](const Point& v1, const Point& v2)
+    {
+        Coord x1 = getX(v1), x2 = getX(v2), y1 = getY(v1), y2 = getY(v2);
+        auto diff = x1 - x2;
+        
+        if(std::abs(diff) <= Epsilon<Coord>::Value)
+            return y1 < y2;
+    
+        return diff < 0;    
+    };
+    
+    auto ycmp = [](const Point& v1, const Point& v2)
+    {
+        Coord x1 = getX(v1), x2 = getX(v2), y1 = getY(v1), y2 = getY(v2);
+        auto diff = y1 - y2;
+        
+        if(std::abs(diff) <= Epsilon<Coord>::Value)
+            return x1 < x2;
+    
+        return diff < 0;    
+    };
+    
+    auto minX = std::min_element(sl::cbegin(sh), sl::cend(sh), xcmp);
+    auto maxX = std::max_element(sl::cbegin(sh), sl::cend(sh), xcmp);
+    auto minY = std::min_element(sl::cbegin(sh), sl::cend(sh), ycmp);
+    auto maxY = std::max_element(sl::cbegin(sh), sl::cend(sh), ycmp);
+    
+    auto i = minX, j = maxX, k = minY, l = maxY;
+    
+    auto dotp = [](const Point& a, const Point& b) {
+        return getX(a) * getX(b) + getY(a) * getY(b);
+    };
+    
+    auto rectarea = 
+            [&dotp](const Point& axis, const Point& vl, const Point& vr, 
+                                       const Point& vb, const Point& vt) 
+    {
+        Point paxis(getY(axis), -getX(axis)); // perpendiculat point to our axis
+        
+        return double(dotp(axis, vr - vl) * dotp(paxis, vt - vb)) / 
+               (getX(axis) * getX(axis) + getY(axis) * getY(axis));
+    };
+    
+    while(l != minX) {
+        
+    }
+    
+    return Radians();
+}
+
 
 }
 

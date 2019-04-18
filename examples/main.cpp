@@ -232,27 +232,62 @@ const std::vector<Item>& prusaParts() {
 //    return EXIT_SUCCESS;
 //}
 
+//int main(void /*int argc, char **argv*/) {
+//    using namespace libnest2d;
+
+////    Item input = Rectangle(4000000, 4000000);
+//    ClipperLib::Path rinput = PRINTER_PART_POLYGONS[2];
+//    std::reverse(rinput.begin(), rinput.end());
+//    rinput.pop_back();
+    
+//    Item input(rinput);
+
+//    using SVGWriter = libnest2d::svg::SVGWriter<PolygonImpl>;
+//    SVGWriter::Config conf;
+//    conf.mm_in_coord_units = 1000000;
+//    SVGWriter svgw(conf);
+//    svgw.setSize(Box(250000000, 210000000));
+//    svgw.writeItem(input);
+//    svgw.save("out");
+
+//    auto c = enclosingCircle(input.transformedShape());
+//    ClipperLib::IntPoint p = {c.first.X / 1000000, c.first.Y / 1000000};
+//    std::cout << "Item c = " << p << " radius: " << c.second / 1000000 << std::endl;
+    
+//    return EXIT_SUCCESS;
+//}
+
 int main(void /*int argc, char **argv*/) {
     using namespace libnest2d;
 
 //    Item input = Rectangle(4000000, 4000000);
-    ClipperLib::Path rinput = PRINTER_PART_POLYGONS[2];
-    std::reverse(rinput.begin(), rinput.end());
-    rinput.pop_back();
+    size_t i = 0;
+//    ClipperLib::Path rinput = PRINTER_PART_POLYGONS[16];
     
-    Item input(rinput);
-
-    using SVGWriter = libnest2d::svg::SVGWriter<PolygonImpl>;
-    SVGWriter::Config conf;
-    conf.mm_in_coord_units = 1000000;
-    SVGWriter svgw(conf);
-    svgw.setSize(Box(250000000, 210000000));
-    svgw.writeItem(input);
-    svgw.save("out");
-
-    auto c = enclosingCircle(input.transformedShape());
-    ClipperLib::IntPoint p = {c.first.X / 1000000, c.first.Y / 1000000};
-    std::cout << "Item c = " << p << " radius: " << c.second / 1000000 << std::endl;
+    for(ClipperLib::Path rinput : PRINTER_PART_POLYGONS) {
+        
+//        std::reverse(rinput.begin(), rinput.end());
+    
+        using SVGWriter = libnest2d::svg::SVGWriter<PolygonImpl>;
+        SVGWriter::Config conf;
+        conf.mm_in_coord_units = 1000000;
+        SVGWriter svgw(conf);
+        svgw.setSize(Box(250000000, 210000000));
+        
+        rinput.pop_back();
+        
+        Item input(rinput);
+        
+        svgw.writeItem(input);
+        
+        Radians r = minAreaBoundingBoxRotation(rinput);
+        input.rotate(r);
+        
+        input.translate({100000000, 100000000});
+    
+        svgw.writeItem(input);
+        svgw.save(std::string("out") + std::to_string(i++));
+    }
     
     return EXIT_SUCCESS;
 }

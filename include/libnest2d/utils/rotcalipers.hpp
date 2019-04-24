@@ -1,9 +1,43 @@
 #ifndef ROTCALIPERS_HPP
 #define ROTCALIPERS_HPP
 
+#include <numeric>
 #include <libnest2d/libnest2d.hpp>
+#include <boost/rational.hpp>
 
 namespace libnest2d {
+
+template <class T> using Rational = boost::rational<T>;
+
+template <class RawShape> RawShape removeCollinearPoints(const RawShape& sh)
+{
+    using Point = TPoint<RawShape>;
+    
+    RawShape ret; sl::reserve(ret, sl::contourVertexCount(sh));
+    
+    Point eprev = *sl::cbegin(sh) - *std::prev(sl::cend(sh));
+    
+    auto dotperp = [](const Point& a, const Point& b) {
+        return getX(a) * getY(b) - getY(a) * getX(b);
+    };
+    
+    auto it  = sl::cbegin(sh);
+    auto itx = std::next(it);
+    while (it != sl::cend(sh))
+    {
+        Point enext = *itx - *it;
+
+        TCoord<Point> dp = dotperp(eprev, enext);
+        
+        if (std::abs(dp) > Epsilon<TCoord<Point>>::Value) 
+            sl::addVertex(ret, *it);
+        
+        eprev = enext;
+        if (++itx == sl::cend(sh)) itx = sl::cbegin(sh);
+    }
+    
+    return ret;
+}
 
 template <class RawShape>
 std::vector<_Segment<TPoint<RawShape>>> _antipodals(
@@ -339,7 +373,7 @@ template <class RawShape> Radians minAreaBoundingBoxRotation(const RawShape& sh)
     using Point = TPoint<RawShape>;
     using Coord = TCoord<Point>;
     using Iterator = typename TContour<RawShape>::const_iterator;
-    using Line = _Segment<TPoint<RawShape>>;
+//    using Line = _Segment<TPoint<RawShape>>;
     
     auto first = sl::cbegin(sh);
     auto last = std::prev(sl::cend(sh));
@@ -351,7 +385,7 @@ template <class RawShape> Radians minAreaBoundingBoxRotation(const RawShape& sh)
         if(it == first) it = last; else --it;
     };
     
-    auto next = [&inc](Iterator it) { auto t = it; inc(t); return t; };
+//    auto next = [&inc](Iterator it) { auto t = it; inc(t); return t; };
     auto prev = [&dec](Iterator it) { auto t = it; dec(t); return t; };
     
     auto xcmp = [](const Point& v1, const Point& v2)
@@ -381,10 +415,16 @@ template <class RawShape> Radians minAreaBoundingBoxRotation(const RawShape& sh)
     auto minY = std::min_element(sl::cbegin(sh), sl::cend(sh), ycmp);
     auto maxY = std::max_element(sl::cbegin(sh), sl::cend(sh), ycmp);
     
-    auto i = minX, j = maxX, k = minY, l = maxY;
+    auto i = minY, j = maxX, k = maxY, l = minX;
     
-    auto dotp = [](const Point& a, const Point& b) {
+    auto dot = [](const Point& a, const Point& b) {
         return getX(a) * getX(b) + getY(a) * getY(b);
+    };
+    
+    auto perp = [](const Point& p) { return Point(getY(p), -getX(p)); };
+    
+    auto dotperp = [](const Point& a, const Point& b) {
+        return getX(a) * getY(b) - getY(a) * getX(b);
     };
     
     // squared vector magnitude
@@ -392,40 +432,115 @@ template <class RawShape> Radians minAreaBoundingBoxRotation(const RawShape& sh)
         return getX(p) * getX(p) + getY(p) * getY(p);
     };
     
-    auto rectarea = [&dotp, &magnsq](const Point& axis, 
-            const Point& vl, const Point& vr, const Point& vb, const Point& vt) 
+    auto rectarea = [&dot, &magnsq, &perp](const Point& axis, 
+            const Point& vb, const Point& vr, const Point& vt, const Point& vl) 
     {
-        Point paxis(getY(axis), -getX(axis)); // perpendicular vector to axis
-        return double(dotp(axis, vr - vl) * dotp(paxis, vt - vb)) / magnsq(axis);
+        return double(dot(axis, vr - vl)) * dot(-perp(axis), vt - vb) / magnsq(axis);
     };
     
-    auto anglecmp = [&sh, &prev, &dotp, &magnsq]
-            (Iterator A, Iterator B, Iterator C, Iterator D, Iterator E) 
+    auto update = [&sh, &prev, &dot, &dotperp, &perp, &magnsq, &inc]
+            (const Point& w, std::array<Iterator, 4>& vertices) 
     {
-        Iterator Ap = prev(A);
-        Iterator Bp = prev(B);
-        Iterator Cp = prev(C);
+        Iterator B = vertices[0], Bp = prev(B);
+        Iterator R = vertices[1], Rp = prev(R);
+        Iterator T = vertices[2], Tp = prev(T);
+        Iterator L = vertices[3], Lp = prev(L);
         
-        Point a = *A - *Ap, b = *B - *Bp, c = *C - *Cp;
-        Point pb(getY(b), -getX(b)), pc(getY(c), -getX(c));
+        Point b = *B - *Bp, r = *R - *Rp, t = *T - *Tp, l = *L - *Lp;
+        Point pw = perp(w);
         
-        double dotapb = dotp(a, pb), dotapc = dotp(a, pc);
+        Coord dotwpb = dotperp(w, b), dotwpr = dotperp(pw, r);
+        Coord dotwpt = dotperp(-w, t), dotwpl = dotperp(-pw, l);
         
-        double ra = dotapb * dotapb / magnsq(b);
-        double rc = dotapc * dotapc / magnsq(c);
-        double diff = ra - rc;
+        std::array<Rational<Coord>, 4> angles;
+        angles[0] = Rational<Coord>(dotwpb * dotwpb, magnsq(b));
+        angles[1] = Rational<Coord>(dotwpr * dotwpr, magnsq(r));
+        angles[2] = Rational<Coord>(dotwpt * dotwpt, magnsq(t));
+        angles[3] = Rational<Coord>(dotwpl * dotwpl, magnsq(l));
         
-        if(std::abs(diff) < magnsq(a) * std::numeric_limits<double>::epsilon())
-            return 0;
+        using AngleIndex = std::pair<Rational<Coord>, size_t>;
+        std::vector<AngleIndex> A; A.reserve(4);
+//        std::vector<size_t> M; M.reserve(4);
         
-        return diff < 0 ? -1 : 1;
+        for (size_t i = 3, j = 0; j < 4; i = j++) {
+            if(vertices[i] != vertices[j] && angles[i] > 0) {
+                auto iv = std::make_pair(angles[i], i);
+                auto it = std::lower_bound(A.begin(), A.end(), iv,
+                                           [](const AngleIndex& ai, 
+                                              const AngleIndex& aj) 
+                { 
+                    return ai.first < aj.first; 
+                });
+                
+                A.insert(it, iv);
+            }
+        }
+        
+        // I don't know what to do in this case... 
+        if(A.empty()) return vertices;
+       
+//        size_t mmin = 4;
+        auto amin = A.front().first;
+        auto imin = A.front().second;
+        for(auto& a : A)
+            if(a.first == amin) { 
+                inc(vertices[a.second]);
+//                M.emplace_back(a.second);
+//                if(a.second < mmin) mmin = a.second;
+            }
+        
+//        for(auto& m : M) inc(vertices[m]);
+        std::rotate(vertices.begin(), vertices.begin() + amin.second, vertices.end());
+        
+        return vertices;
     };
     
-    while(l != minX) {
+    Point w(1, 0);
+    Point w_min = w;
+    double min_area = (getX(*maxX) - getX(*minX)) * (getY(*maxY) - getY(*minY));
+    
+    std::array<Iterator, 4> vertices = {i, j, k, l};
+    
+    // We will examine edge count + 1 bounding boxes. The one additional is 
+    // the initial axis aligned bounding box
+    size_t c = 0, count = sl::contourVertexCount(sh) + 1;
+    std::vector<bool> edgemask(count, false);
+    long eidx = -1;
+    
+    while(c++ < count) 
+    {
+        // Update the support vertices
+        vertices = update(w, vertices);
         
+        if(eidx >= 0 && edgemask[size_t(eidx)]) { 
+            std::cout << "repeating edge " << eidx << std::endl; 
+            break;
+        }
+                
+        // get the unnormalized direction vector
+        w = *vertices[0] - *prev(vertices[0]);
+        
+        // get the area of the rotated rectangle
+        double rarea = rectarea(w, *vertices[0], *vertices[1], *vertices[2], *vertices[3]);
+        
+        // Update min area and the direction of the min bounding box;
+        if(rarea <= min_area) { w_min = w; min_area = rarea; }
+        
+        eidx = vertices[0] - sl::cbegin(sh);
+        edgemask[size_t(eidx)] = true;
     }
     
-    return Radians();
+    c = 0;
+    for(bool em : edgemask) {
+        if(!em) std::cout << "Unvisited edge: " << c << std::endl;
+        c++;
+    }
+    
+    double ret = std::atan2(getY(w_min), getX(w_min));
+    auto s = std::signbit(ret);
+    if(s) ret += Pi_2;
+    
+    return -ret;
 }
 
 

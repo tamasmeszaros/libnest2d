@@ -382,16 +382,9 @@ inline bool touches( const PointImpl& point, const PolygonImpl& shape)
 }
 
 #ifndef DISABLE_BOOST_BOUNDING_BOX
-template<>
-inline bp2d::Box boundingBox(const PolygonImpl& sh, const PolygonTag&)
-{
-    bp2d::Box b;
-    boost::geometry::envelope(sh, b);
-    return b;
-}
 
 template<>
-inline bp2d::Box boundingBox(const PathImpl& sh, const PolygonTag&)
+inline bp2d::Box boundingBox(const PathImpl& sh, const PathTag&)
 {
     bp2d::Box b;
     boost::geometry::envelope(sh, b);

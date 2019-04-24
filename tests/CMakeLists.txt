@@ -50,6 +50,6 @@ add_executable(tests_clipper_nlopt
 target_link_libraries(tests_clipper_nlopt libnest2d ${GTEST_LIBS_TO_LINK} )
 
 target_include_directories(tests_clipper_nlopt PRIVATE BEFORE
-    ${GTEST_INCLUDE_DIRS})
+    ${GTEST_INCLUDE_DIRS} gte/ )
 
 add_test(libnest2d_tests tests_clipper_nlopt)

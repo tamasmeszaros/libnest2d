@@ -566,7 +566,7 @@ inline bool touches( const TPoint<RawShape>& /*point*/,
 
 template<class RawShape>
 inline _Box<TPoint<RawShape>> boundingBox(const RawShape& /*sh*/,
-                                          const PolygonTag&)
+                                          const PathTag&)
 {
     static_assert(always_false<RawShape>::value,
                   "shapelike::boundingBox(shape) unimplemented!");
@@ -762,6 +762,12 @@ template<class RawShape, class...Args> // Tag dispatcher
 inline void addVertex(RawShape& sh, Args...args)
 {
     return addVertex(sh, Tag<RawShape>(), std::forward<Args>(args)...);
+}
+
+template<class RawShape>
+inline _Box<TPoint<RawShape>> boundingBox(const RawShape& poly, const PolygonTag&)
+{
+    return boundingBox(contour(poly), PathTag());
 }
 
 template<class Box>

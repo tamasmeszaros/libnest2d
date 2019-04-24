@@ -42,7 +42,7 @@ inline IntPoint& operator -=(IntPoint& p, const IntPoint& pa ) {
     return p;
 }
 
-inline IntPoint operator -(IntPoint& p ) {
+inline IntPoint operator -(const IntPoint& p ) {
     IntPoint ret = p;
     ret.X = -ret.X;
     ret.Y = -ret.Y;

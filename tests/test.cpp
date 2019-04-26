@@ -1003,12 +1003,12 @@ double gteMinAreaBox(const PolygonImpl& p) {
 }
 
 TEST(RotatingCalipers, MinAreaBBCClk) {
-    PolygonImpl poly({{-50, 30}, {-50, -50}, {50, -50}, {50, 50}, {-40, 50}});
+//    PolygonImpl poly({{-50, 30}, {-50, -50}, {50, -50}, {50, 50}, {-40, 50}});
     
 //    PolygonImpl poly({{-50, 0}, {50, 0}, {0, 100}});
     
-//    auto u = [](ClipperLib::cInt n) { return n*1000000; };
-//    PolygonImpl poly({ {u(0), u(0)}, {u(4), u(1)}, {u(2), u(4)}});
+    auto u = [](ClipperLib::cInt n) { return n*1000000; };
+    PolygonImpl poly({ {u(0), u(0)}, {u(4), u(1)}, {u(2), u(4)}});
     
     
     double arearef = refMinAreaBox(poly);
@@ -1027,16 +1027,34 @@ TEST(RotatingCalipers, AllPrusaMinBB) {
         rinput.pop_back();
         std::reverse(rinput.begin(), rinput.end());
         
-        PolygonImpl poly(rinput);
+        PolygonImpl poly(removeCollinearPoints<PathImpl, PointImpl, boost::multiprecision::int512_t>(rinput, 1000000));
+        
         
         double arearef = refMinAreaBox(poly);
-        double area = minAreaBoundingBox(poly).area();
+        auto bb = minAreaBoundingBox(poly);
+        double area = bb.area();
 //        double area = gteMinAreaBox(poly);
         
         bool succ = std::abs(arearef - area) < 500e6;
         std::cout << "part " << idx++ << " " << (succ ? "ok" : "fail") << std::endl;
         
 //        ASSERT_DOUBLE_EQ(area, arearef);
+    }
+    
+    for(ClipperLib::Path rinput : STEGOSAUR_POLYGONS) {
+        rinput.pop_back();
+        std::reverse(rinput.begin(), rinput.end());
+        
+        PolygonImpl poly(removeCollinearPoints<PathImpl, PointImpl, boost::multiprecision::int512_t>(rinput, 1000000));
+        
+        
+        double arearef = refMinAreaBox(poly);
+        auto bb = minAreaBoundingBox(poly);
+        double area = bb.area();
+//        double area = gteMinAreaBox(poly);
+        
+        bool succ = std::abs(arearef - area) < 500e6;
+        std::cout << "part " << idx++ << " " << (succ ? "ok" : "fail") << std::endl;
     }
 }
 

@@ -11,6 +11,8 @@
 #include <libnest2d/utils/rotfinder.hpp>
 #include <libnest2d/utils/rotcalipers.hpp>
 
+#include <boost/multiprecision/integer.hpp>
+
 //#include "tools/libnfpglue.hpp"
 //#include "tools/nfp_svgnest_glue.hpp"
 
@@ -264,7 +266,7 @@ int main(void /*int argc, char **argv*/) {
     size_t i = 0;
 //    ClipperLib::Path rinput = PRINTER_PART_POLYGONS[16];
     
-    for(ClipperLib::Path rinput : PRINTER_PART_POLYGONS) {
+    for(ClipperLib::Path rinput : STEGOSAUR_POLYGONS) {
         
         std::reverse(rinput.begin(), rinput.end());
     
@@ -276,9 +278,10 @@ int main(void /*int argc, char **argv*/) {
         
         rinput.pop_back();
         
+        rinput = removeCollinearPoints<PathImpl, PointImpl,boost::multiprecision::int512_t>(rinput, 1000000);
         Item input(rinput);
         
-        svgw.writeItem(input);
+//        svgw.writeItem(input);
         
         Radians r = minAreaBoundingBoxRotation(rinput);
         input.rotate(r);

@@ -7,6 +7,18 @@
 #include "../tools/svgtools.hpp"
 #include "libnest2d/utils/rotcalipers.hpp"
 
+#include "boost/multiprecision/integer.hpp"
+
+using BoostRational = boost::rational<boost::multiprecision::int512_t>;
+
+namespace std {
+BoostRational abs(const BoostRational& r) { return boost::abs(r); }
+boost::multiprecision::int512_t sqrt(const boost::multiprecision::int512_t& n)
+{
+    return boost::multiprecision::sqrt(n);
+}
+}
+
 #include "gte/Mathematics/GteMinimumAreaBox2.h"
 
 //#include "../tools/libnfpglue.hpp"
@@ -947,6 +959,7 @@ double refMinAreaBox(const PolygonImpl& p) {
     
     double min_area = std::numeric_limits<double>::max();
     
+ 
     auto update_min = [&min_area, &it, &itx, &p]() {
         Segment s(*it, *itx);
         
@@ -971,18 +984,18 @@ double refMinAreaBox(const PolygonImpl& p) {
 double gteMinAreaBox(const PolygonImpl& p) {    
     
     using GteCoord = ClipperLib::cInt;
-    using GtePoint = gte::Vector2<Coord>;
-    
-    gte::MinimumAreaBox2<GteCoord, long long> mb;
+    using GtePoint = gte::Vector2<GteCoord>;
+ 
+    gte::MinimumAreaBox2<GteCoord, boost::rational<boost::multiprecision::int512_t>> mb;
     
     std::vector<GtePoint> points; 
     points.reserve(p.Contour.size());
     
-    for(auto& pt : p.Contour) points.emplace_back(GtePoint{pt.X, pt.Y});
+    for(auto& pt : p.Contour) points.emplace_back(GtePoint{GteCoord(pt.X), GteCoord(pt.Y)});
     
-    auto box = mb(int(points.size()), points.data(), 0, nullptr, true);
+    mb(int(points.size()), points.data(), 0, nullptr, true);
     
-    double min_area = box.extent[0] * box.extent[1];
+    auto min_area = double(mb.GetArea());
     
     return min_area;
 }
@@ -990,20 +1003,21 @@ double gteMinAreaBox(const PolygonImpl& p) {
 }
 
 TEST(RotatingCalipers, MinAreaBBCClk) {
-//    PolygonImpl poly({{-50, 30}, {-50, -50}, {50, -50}, {50, 50}, {-40, 50}});
+    PolygonImpl poly({{-50, 30}, {-50, -50}, {50, -50}, {50, 50}, {-40, 50}});
     
-    PolygonImpl poly({{-50, 0}, {50, 0}, {0, 50}});
+//    PolygonImpl poly({{-50, 0}, {50, 0}, {0, 100}});
     
-    PolygonImpl rotpoly = poly;
-    Radians rot = minAreaBoundingBoxRotation(poly);
-    sl::rotate(rotpoly, rot);
+//    auto u = [](ClipperLib::cInt n) { return n*1000000; };
+//    PolygonImpl poly({ {u(0), u(0)}, {u(4), u(1)}, {u(2), u(4)}});
+    
     
     double arearef = refMinAreaBox(poly);
-    double area = sl::area(sl::boundingBox(rotpoly));
+    double area = minAreaBoundingBox(poly).area();
     double gtearea = gteMinAreaBox(poly);
     
-    ASSERT_DOUBLE_EQ(area, arearef);
-    ASSERT_DOUBLE_EQ(gtearea, arearef);
+    ASSERT_LE(std::abs(area - arearef), 500 );
+    ASSERT_LE(std::abs(gtearea - arearef), 500 );
+//    ASSERT_DOUBLE_EQ(gtearea, arearef);
 }
 
 TEST(RotatingCalipers, AllPrusaMinBB) {
@@ -1014,15 +1028,12 @@ TEST(RotatingCalipers, AllPrusaMinBB) {
         std::reverse(rinput.begin(), rinput.end());
         
         PolygonImpl poly(rinput);
-//        PolygonImpl rotpoly = poly;
-//        Radians rot = minAreaBoundingBoxRotation(poly);
-//        sl::rotate(rotpoly, rot);
         
         double arearef = refMinAreaBox(poly);
-//        double area = sl::area(sl::boundingBox(rotpoly));
-        double area = gteMinAreaBox(poly);
+        double area = minAreaBoundingBox(poly).area();
+//        double area = gteMinAreaBox(poly);
         
-        bool succ = std::abs(arearef - area) < 1e-6;
+        bool succ = std::abs(arearef - area) < 500e6;
         std::cout << "part " << idx++ << " " << (succ ? "ok" : "fail") << std::endl;
         
 //        ASSERT_DOUBLE_EQ(area, arearef);

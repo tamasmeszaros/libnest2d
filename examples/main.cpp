@@ -266,7 +266,7 @@ int main(void /*int argc, char **argv*/) {
     
     for(ClipperLib::Path rinput : PRINTER_PART_POLYGONS) {
         
-//        std::reverse(rinput.begin(), rinput.end());
+        std::reverse(rinput.begin(), rinput.end());
     
         using SVGWriter = libnest2d::svg::SVGWriter<PolygonImpl>;
         SVGWriter::Config conf;

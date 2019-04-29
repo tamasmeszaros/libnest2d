@@ -197,6 +197,28 @@ public:
     }
 };
 
+struct ScalarTag {};
+struct BigIntTag {};
+struct RationalTag {};
+
+template<class T> struct _NumTag { 
+    using Type = 
+        typename std::enable_if<std::is_arithmetic<T>::value, ScalarTag>::type; 
+//    ScalarTag;
+};
+
+template<class T> using NumTag = typename _NumTag<remove_cvref_t<T>>::Type;
+
+/// A local version for abs that is garanteed to work with libnest2d types
+template <class T> inline T abs(const T& v, ScalarTag) 
+{ 
+    return std::abs(v); 
+}
+
+template<class T> inline T abs(const T& v) { return abs(v, NumTag<T>()); }
+template<class T2, class T1> inline T2 cast(const T1& v) { 
+    return cast<T2, T1>(v, NumTag<T1>(), NumTag<T2>());
+}
 
 }
 #endif // LIBNEST2D_CONFIG_HPP

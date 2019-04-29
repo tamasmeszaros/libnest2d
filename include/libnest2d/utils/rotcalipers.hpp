@@ -4,16 +4,22 @@
 #include <numeric>
 
 #include <libnest2d/libnest2d.hpp>
+#include <libnest2d/utils/rational.hpp>
+#include <libnest2d/utils/bigint.hpp>
 
 #include <boost/rational.hpp>
 #include <boost/multiprecision/integer.hpp>
 
 #include <cmath>
 namespace std {
-boost::multiprecision::int512_t abs(const boost::multiprecision::int512_t& i) { return boost::multiprecision::abs(i); }
+boost::multiprecision::int512_t abs(const boost::multiprecision::int512_t& i) { return boost::multiprecision::abs(i); };
 }
 
 namespace libnest2d {
+
+template<> struct Epsilon<boost::multiprecision::int512_t> {
+    constexpr static const boost::multiprecision::int512_t Value = boost::multiprecision::int512_t(0);
+};
 
 template <class RawShape>
 std::vector<_Segment<TPoint<RawShape>>> _antipodals(
@@ -50,7 +56,7 @@ std::vector<_Segment<TPoint<RawShape>>> _antipodals(
                       (getX(U[i+1]) - getX(U[i])) * (getY(L[j]) - getY(L[j-1]));
             
             // This is not part of the original algorithm but it's necessary
-            if(std::abs(pr) <= Epsilon<Coord>::Value) 
+            if(abs(pr) <= Epsilon<Coord>::Value) 
                 yield(U[i+1], L[j]);
             
             if(predict(pr)) ++i;
@@ -80,7 +86,7 @@ std::vector<_Segment<TPoint<RawShape>>> antipodals_concave(const RawShape& poly)
         Coord x1 = getX(v1), x2 = getX(v2), y1 = getY(v1), y2 = getY(v2);
         auto diff = x1 - x2;
         
-        if(std::abs(diff) <= Epsilon<Coord>::Value)
+        if(abs(diff) <= Epsilon<Coord>::Value)
             return y1 < y2;
     
         return diff < 0;    
@@ -122,7 +128,7 @@ std::vector<_Segment<TPoint<RawShape>>> antipodals_convex(const RawShape& poly)
         Coord x1 = getX(v1), x2 = getX(v2), y1 = getY(v1), y2 = getY(v2);
         auto diff = x1 - x2;
         
-        if(std::abs(diff) <= Epsilon<Coord>::Value) return y1 < y2;
+        if(abs(diff) <= Epsilon<Coord>::Value) return y1 < y2;
     
         return diff < 0;    
     };
@@ -165,7 +171,7 @@ std::vector<_Segment<TPoint<RawShape>>> myantipodals(const RawShape& sh)
     auto xcmp = [](const Point& v1, const Point& v2)
     {
         auto diff = getX(v1) - getX(v2);
-        if(std::abs(diff) <= Epsilon<Coord>::Value) return getY(v1) < getY(v2);
+        if(abs(diff) <= Epsilon<Coord>::Value) return getY(v1) < getY(v2);
     
         return diff < 0;    
     };
@@ -247,7 +253,7 @@ std::vector<_Segment<TPoint<RawShape>>> myantipodals(const RawShape& sh)
         double rc = dotapc * dotapc / magnsq(c);
         double diff = ra - rc;
         
-        if(std::abs(diff) < magnsq(a) * std::numeric_limits<double>::epsilon())
+        if(abs(diff) < magnsq(a) * std::numeric_limits<double>::epsilon())
             return 0;
         
         return diff < 0 ? -1 : 1;
@@ -310,34 +316,12 @@ std::pair<TPoint<RawShape>, double> enclosingCircle(const RawShape& poly)
     return std::make_pair(center, mit->length() / 2);
 }
 
-template<class C> using TRational = boost::rational<C>;
-
-// A very simple representation of an unnormalized rational number.
-//    class Rational {
-//        Coord num, den;
-//    public:
-//        inline Rational(): num(Coord(0)), den(Coord(1)) {}
-//        inline explicit Rational(Coord n, Coord d = Coord(1)): num(n), den(d) {}
-    
-//        inline bool operator>(const Rational& o) const { 
-//            return o.den * num > den * o.num; 
-//        }
-    
-//        inline bool operator==(const Rational& o) const {
-//            return std::abs(o.den * num - den * o.num) <= Epsilon<Coord>::Value;
-//        }
-    
-//        inline bool operator!=(const Rational& o) const {
-//            return !(*this == o);
-//        }
-    
-//        inline bool operator<(Coord v) const { return num < v * den; }
-//        inline bool operator>(Coord v) const { return num > v * den; }
-//    };
+//template<class C> using TRational = boost::rational<C>;
+template<class C> using TRational = Rational<C>;
 
 template<class Pt, class Unit = TCoord<Pt>> class RotatedBox {
     Pt m_axis;
-    Unit m_bottom = 0, m_right = 0;
+    Unit m_bottom = Unit(0), m_right = Unit(0);
     long double m_area;
 public:
     
@@ -415,10 +399,7 @@ Poly removeCollinearPoints(const Poly& sh, Unit eps = Unit(0))
         Pt enext = *itx - *it;
 
         auto dp = dotperp<Pt, Unit>(eprev, enext);
-        double dpd = double(dp);
-        
-        if(std::abs(dp) > eps) 
-            sl::addVertex(ret, *it);
+        if(abs(dp) > eps) sl::addVertex(ret, *it);
         
         eprev = enext;
         if (++itx == sl::cend(sh)) itx = sl::cbegin(sh);
@@ -430,19 +411,19 @@ Poly removeCollinearPoints(const Poly& sh, Unit eps = Unit(0))
 
 // So I want to determine the extreme points of the polygon given a certain
 // unnormalized axis vector as the positive x axis directon.
-template <class Poly, 
-          class Pt   = TPoint<Poly>,
-          class Unit = TCoord<Pt>,
-          class It = typename TContour<Poly>::const_iterator> 
-std::array<It, 4> minRect(const Poly& p, const Pt& x_axis)
-{
-    std::array<It, 4> ret;
+//template <class Poly, 
+//          class Pt   = TPoint<Poly>,
+//          class Unit = TCoord<Pt>,
+//          class It = typename TContour<Poly>::const_iterator> 
+//std::array<It, 4> minRect(const Poly& p, const Pt& x_axis)
+//{
+//    std::array<It, 4> ret;
     
-    Pt y_axis = -perp(x_axis);
+//    Pt y_axis = -perp(x_axis);
     
     
-    return ret;
-}
+//    return ret;
+//}
 
 // The area of the bounding rectangle with the axis dir and support vertices
 template<class Pt, class Unit = TCoord<Pt>> 
@@ -484,7 +465,9 @@ inline double frectarea(const Pt& w, const std::array<It, 4>& rect)
 
 // This function is only applicable to counter-clockwise oriented convex
 // polygons where only two points can be collinear witch each other.
-template <class RawShape, class Point = TPoint<RawShape>, class Unit = boost::multiprecision::int512_t> 
+template <class RawShape, 
+          class Point = TPoint<RawShape>, 
+          class Unit = BigInt<Bits<512>>>/*boost::multiprecision::int512_t>*/ 
 RotatedBox<Point, Unit> minAreaBoundingBox(const RawShape& sh) 
 {
     using Coord = TCoord<Point>;
@@ -509,55 +492,39 @@ RotatedBox<Point, Unit> minAreaBoundingBox(const RawShape& sh)
         return it == first ? last : std::prev(it); 
     };
     
+    // Cyclic next iterator
     auto next = [&first, &last](Iterator it) {
         return it == last ? first : std::next(it);    
     };
     
-    auto xcmp = [](const Point& v1, const Point& v2)
-    {
-        auto diff = getX(v1) - getX(v2);
-        if(std::abs(diff) <= Epsilon<Coord>::Value) return getY(v1) > getY(v2);
-        return diff < 0;    
-    };
+    // Establish initial (axis aligned) rectangle support verices by determining 
+    // polygon extremes:
     
-    auto ycmp = [](const Point& v1, const Point& v2)
-    {
-        auto diff = getY(v1) - getY(v2);
-        if(std::abs(diff) <= Epsilon<Coord>::Value) return getX(v1) < getX(v2);
-        return diff < 0;    
-    };
+    auto it = sl::cbegin(sh);
+    Iterator minX = it, maxX = it, minY = it, maxY = it;
+    Coord eps = Epsilon<Coord>::Value;
     
-    // Get axis aligned polygon extremes, used as starting positions
-    auto minX = std::min_element(sl::cbegin(sh), sl::cend(sh), [](const Point& v1, const Point& v2)
-    {
-        auto diff = getX(v1) - getX(v2);
-        if(std::abs(diff) <= Epsilon<Coord>::Value) return getY(v1) < getY(v2);
-        return diff < 0;    
-    });
-    auto maxX = std::min_element(sl::cbegin(sh), sl::cend(sh), [](const Point& v1, const Point& v2)
-    {
-        auto diff = getX(v1) - getX(v2);
-        if(std::abs(diff) <= Epsilon<Coord>::Value) return getY(v1) > getY(v2);
-        return diff > 0;    
-    });
-    auto minY = std::min_element(sl::cbegin(sh), sl::cend(sh), [](const Point& v1, const Point& v2)
-    {
-        auto diff = getY(v1) - getY(v2);
-        if(std::abs(diff) <= Epsilon<Coord>::Value) return getX(v1) > getX(v2);
-        return diff < 0;    
-    });
-    auto maxY = std::min_element(sl::cbegin(sh), sl::cend(sh), [](const Point& v1, const Point& v2)
-    {
-        auto diff = getY(v1) - getY(v2);
-        if(std::abs(diff) <= Epsilon<Coord>::Value) return getX(v1) < getX(v2);
-        return diff > 0;    
-    });
+    do { // Linear walk through the vertices and save the extreme positions
+        
+        Point v = *it, d = v - *minX;
+        if(getX(d) < 0 || (abs(getX(d)) <= eps && getY(d) < 0)) minX = it;
+        
+        d = v - *maxX;
+        if(getX(d) > 0 || (abs(getX(d)) <= eps && getY(d) > 0)) maxX = it;
+        
+        d = v - *minY;
+        if(getY(d) < 0 || (abs(getY(d)) <= eps && getX(d) > 0)) minY = it;
+        
+        d = v - *maxY;
+        if(getY(d) > 0 || (abs(getY(d)) <= eps && getX(d) < 0)) maxY = it;
+        
+    } while(++it != sl::cend(sh));
     
     using Rational = TRational<Unit>;
     
     // Update the vertices defining the bounding rectangle. The rectangle with
     // the smallest rotation is selected and the supporting vertices are 
-    // returned in the 'vertices' argument.
+    // returned in the 'rect' argument.
     auto update = [&sh, &next, &inc]
             (const Point& w, std::array<Iterator, 4>& rect) 
     {
@@ -574,10 +541,10 @@ RotatedBox<Point, Unit> minAreaBoundingBox(const RawShape& sh)
         Unit dw = magnsq<Point, Unit>(w);
         
         std::array<Rational, 4> angles;
-        angles[0] = dotwpb * Rational(dotwpb, magnsq<Point, Unit>(b));
-        angles[1] = dotwpr * Rational(dotwpr, magnsq<Point, Unit>(r));
-        angles[2] = dotwpt * Rational(dotwpt, magnsq<Point, Unit>(t));
-        angles[3] = dotwpl * Rational(dotwpl, magnsq<Point, Unit>(l));
+        angles[0] = Rational(dotwpb, magnsq<Point, Unit>(b)) * dotwpb;
+        angles[1] = Rational(dotwpr, magnsq<Point, Unit>(r)) * dotwpr;
+        angles[2] = Rational(dotwpt, magnsq<Point, Unit>(t)) * dotwpt;
+        angles[3] = Rational(dotwpl, magnsq<Point, Unit>(l)) * dotwpl;
         
         using AngleIndex = std::pair<Rational, size_t>;
         std::vector<AngleIndex> A; A.reserve(4);
@@ -649,7 +616,7 @@ RotatedBox<Point, Unit> minAreaBoundingBox(const RawShape& sh)
     
     Unit a = dot<Point, Unit>(w_min, *rect[1] - *rect[3]);
     Unit b = dot<Point, Unit>(-perp(w_min), *rect[2] - *rect[0]);
-    RotatedBox<Point, Unit> bb(w_min, a, b, boost::rational_cast<long double>(minarea));
+    RotatedBox<Point, Unit> bb(w_min, a, b, cast<long double>(minarea));
     
     return bb;
 }

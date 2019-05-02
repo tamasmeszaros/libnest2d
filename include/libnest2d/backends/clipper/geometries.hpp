@@ -25,50 +25,13 @@ template<> struct CoordType<PointImpl> {
     using Type = ClipperLib::cInt;
 };
 
-//template<> struct CoordType<PathImpl> {
-//    using Type = ClipperLib::cInt;
-//};
-
-//template<> struct CoordType<PolygonImpl> {
-//    using Type = ClipperLib::cInt;
-//};
-
 template<> struct ComputeType<ClipperLib::cInt> {
-    using Type = __int128;
+    using Type = ClipperLib::cInt;
 };
-
-//template<> struct ComputeType<PointImpl> {
-//    using Type = __int128;
-//};
-
-//template<> struct ComputeType<PathImpl> {
-//    using Type = __int128;
-//};
-
-//template<> struct ComputeType<PolygonImpl> {
-//    using Type = __int128;
-//};
-
-//template<> struct ComputeType<PolygonImpl> {
-//    using Type = __int128;
-//};
-
-//template<> struct ComputeType<PolygonImpl> {
-//    using Type = __int128;
-//};
-
-// Type of point used by Clipper
-//template<> struct PointType<PolygonImpl> {
-//    using Type = PointImpl;
-//};
 
 template<> struct PointType<PathImpl> {
     using Type = PointImpl;
 };
-
-//template<> struct PointType<PointImpl> {
-//    using Type = PointImpl;
-//};
 
 template<> struct ContourType<PolygonImpl> {
     using Type = PathImpl;
@@ -82,8 +45,10 @@ template<> struct ShapeTag<TMultiShape<PolygonImpl>> {
     using Type = MultiPolygonTag;
 };
 
-template<> struct PointType<TMultiShape<PolygonImpl>> {
-    using Type = PointImpl;
+// Get the Contour type when working with a multipshape. This will also make
+// TPoint, TCoord and TCompute work with multishapes
+template<> struct ContourType<TMultiShape<PolygonImpl>> {
+    using Type = PathImpl;
 };
 
 template<> struct HolesContainer<PolygonImpl> {

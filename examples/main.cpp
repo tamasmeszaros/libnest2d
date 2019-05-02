@@ -214,25 +214,25 @@ const std::vector<Item>& prusaParts() {
 //    svgw.save("out");
 //}
 
-//int main(void /*int argc, char **argv*/) {
-////    arrangeRectangles();
+int main(void /*int argc, char **argv*/) {
+//    arrangeRectangles();
 
-//    std::vector<Item> input = prusaParts();
-//    auto result = libnest2d::nest(input, Box(250000000, 210000000),
-//                                  [](unsigned cnt) {
-//        std::cout << "parts left: " << cnt << std::endl;
-//    });
+    std::vector<Item> input = prusaParts();
+    auto result = libnest2d::nest(input, Box(250000000, 210000000),
+                                  [](unsigned cnt) {
+        std::cout << "parts left: " << cnt << std::endl;
+    });
 
-//    using SVGWriter = libnest2d::svg::SVGWriter<PolygonImpl>;
-//    SVGWriter::Config conf;
-//    conf.mm_in_coord_units = 1000000;
-//    SVGWriter svgw(conf);
-//    svgw.setSize(Box(250000000, 210000000));
-//    svgw.writePackGroup(result);
-//    svgw.save("out");
+    using SVGWriter = libnest2d::svg::SVGWriter<PolygonImpl>;
+    SVGWriter::Config conf;
+    conf.mm_in_coord_units = 1000000;
+    SVGWriter svgw(conf);
+    svgw.setSize(Box(250000000, 210000000));
+    svgw.writePackGroup(result);
+    svgw.save("out");
 
-//    return EXIT_SUCCESS;
-//}
+    return EXIT_SUCCESS;
+}
 
 //int main(void /*int argc, char **argv*/) {
 //    using namespace libnest2d;
@@ -259,38 +259,38 @@ const std::vector<Item>& prusaParts() {
 //    return EXIT_SUCCESS;
 //}
 
-int main(void /*int argc, char **argv*/) {
-    using namespace libnest2d;
+//int main(void /*int argc, char **argv*/) {
+//    using namespace libnest2d;
 
-//    Item input = Rectangle(4000000, 4000000);
-    size_t i = 0;
-//    ClipperLib::Path rinput = PRINTER_PART_POLYGONS[16];
+////    Item input = Rectangle(4000000, 4000000);
+//    size_t i = 0;
+////    ClipperLib::Path rinput = PRINTER_PART_POLYGONS[16];
     
-    for(ClipperLib::Path rinput : STEGOSAUR_POLYGONS) {
+//    for(ClipperLib::Path rinput : STEGOSAUR_POLYGONS) {
         
-        std::reverse(rinput.begin(), rinput.end());
+//        std::reverse(rinput.begin(), rinput.end());
     
-        using SVGWriter = libnest2d::svg::SVGWriter<PolygonImpl>;
-        SVGWriter::Config conf;
-        conf.mm_in_coord_units = 1000000;
-        SVGWriter svgw(conf);
-        svgw.setSize(Box(250000000, 210000000));
+//        using SVGWriter = libnest2d::svg::SVGWriter<PolygonImpl>;
+//        SVGWriter::Config conf;
+//        conf.mm_in_coord_units = 1000000;
+//        SVGWriter svgw(conf);
+//        svgw.setSize(Box(250000000, 210000000));
         
-        rinput.pop_back();
+//        rinput.pop_back();
         
-        rinput = removeCollinearPoints<PathImpl, PointImpl,boost::multiprecision::int512_t>(rinput, 1000000);
-        Item input(rinput);
+//        rinput = removeCollinearPoints<PathImpl, PointImpl,boost::multiprecision::int512_t>(rinput, 1000000);
+//        Item input(rinput);
         
+////        svgw.writeItem(input);
+        
+//        Radians r = minAreaBoundingBoxRotation(rinput);
+//        input.rotate(r);
+        
+//        input.translate({100000000, 100000000});
+    
 //        svgw.writeItem(input);
-        
-        Radians r = minAreaBoundingBoxRotation(rinput);
-        input.rotate(r);
-        
-        input.translate({100000000, 100000000});
+//        svgw.save(std::string("out") + std::to_string(i++));
+//    }
     
-        svgw.writeItem(input);
-        svgw.save(std::string("out") + std::to_string(i++));
-    }
-    
-    return EXIT_SUCCESS;
-}
+//    return EXIT_SUCCESS;
+//}

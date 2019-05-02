@@ -284,25 +284,34 @@ std::pair<TPoint<RawShape>, double> enclosingCircle(const RawShape& poly)
 //template<class C> using TRational = boost::rational<C>;
 //template<class C> using TRational = Rational<C>;
 
-template<class Pt, class Unit = TCoord<Pt>> class RotatedBox {
-    Pt m_axis;
-    Unit m_bottom = Unit(0), m_right = Unit(0);
-    long double m_area;
+template<class Pt, class Unit = TCompute<Pt>> class RotatedBox {
+    Pt axis_;
+    Unit bottom_ = Unit(0), right_ = Unit(0);
 public:
     
     RotatedBox() = default;
-    RotatedBox(const Pt& axis, Unit b, Unit r, long double ar):
-        m_axis(axis), m_bottom(b), m_right(r), m_area(ar) {}
+    RotatedBox(const Pt& axis, Unit b, Unit r):
+        axis_(axis), bottom_(b), right_(r) {}
     
-    long double area() const { 
-//        double asq = double(getX(m_axis)) * getX(m_axis) + 
-//                     double(getY(m_axis)) * getY(m_axis);
-//        return double(m_bottom) * double(m_right) / asq;
-        return m_area;
+    inline long double area() const { 
+        long double asq = pl::magnsq<Pt, long double>(axis_);
+        return bottom_ * right_ / asq;
     }
     
-    Radians angleToX() const {
-        double ret = std::atan2(getY(m_axis), getX(m_axis));
+    inline long double width() const { 
+        return abs(bottom_) / std::sqrt(pl::magnsq<Pt, long double>(axis_));
+    }
+    
+    inline long double height() const { 
+        return abs(right_) / std::sqrt(pl::magnsq<Pt, long double>(axis_));
+    }
+    
+    inline Unit bottom_extent() const { return bottom_; }
+    inline Unit right_extent() const { return right_;  }
+    inline const Pt& axis() const { return axis_; }
+    
+    inline Radians angleToX() const {
+        double ret = std::atan2(getY(axis_), getX(axis_));
         auto s = std::signbit(ret);
         if(s) ret += Pi_2;
         return -ret;
@@ -534,7 +543,7 @@ RotatedBox<TPoint<RawShape>, Unit> minAreaBoundingBox(const RawShape& sh)
     
     Unit a = dot<Point, Unit>(w_min, *rect[1] - *rect[3]);
     Unit b = dot<Point, Unit>(-perp(w_min), *rect[2] - *rect[0]);
-    RotatedBox<Point, Unit> bb(w_min, a, b, cast<long double>(minarea));
+    RotatedBox<Point, Unit> bb(w_min, a, b);
     
     return bb;
 }

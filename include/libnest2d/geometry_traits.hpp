@@ -14,6 +14,17 @@
 
 namespace libnest2d {
 
+struct PointTag {};
+struct PolygonTag {};
+struct PathTag {};
+struct MultiPolygonTag {};
+struct BoxTag {};
+struct CircleTag {};
+
+/// Meta-functions to derive the tags
+template<class Shape> struct ShapeTag { using Type = typename Shape::Tag; };
+template<class S> using Tag = typename ShapeTag<remove_cvref_t<S>>::Type;
+
 template<class RawShape> struct ContourType { using Type = RawShape; };
 
 template<class RawShape>
@@ -48,7 +59,6 @@ template<class GeomClass> struct ComputeType {
 /// The shorthand for ComputeType::Type
 template<class GeomClass> using TCompute = typename ComputeType<remove_cvref_t<GeomClass>>::Type;
 
-
 template<class RawShape>
 struct HolesContainer { using Type = std::vector<TContour<RawShape>>;  };
 
@@ -82,20 +92,9 @@ struct PointPair {
     RawPoint p2;
 };
 
-struct PointTag {};
-struct PolygonTag {};
-struct PathTag {};
-struct MultiPolygonTag {};
-struct BoxTag {};
-struct CircleTag {};
-
-/// Meta-functions to derive the tags
-template<class Shape> struct ShapeTag { using Type = typename Shape::Tag; };
-template<class S> using Tag = typename ShapeTag<remove_cvref_t<S>>::Type;
-
 template<class S> struct MultiShape { using Type = std::vector<S>; };
 template<class S>
-using TMultiShape =typename MultiShape<remove_cvref_t<S>>::Type;
+using TMultiShape = typename MultiShape<remove_cvref_t<S>>::Type;
 
 /**
  * \brief An abstraction of a box;
@@ -133,6 +132,10 @@ public:
     }
 };
 
+template<class S> struct PointType<_Box<S>> { 
+    using Type = typename _Box<S>::PointType; 
+};
+
 template<class RawPoint, class Unit = TCompute<RawPoint>>
 class _Circle {
     RawPoint center_;
@@ -155,6 +158,10 @@ public:
         auto r = cast<long double>(radius_);
         return cast<Unit>(Pi_2 * r * r);
     }
+};
+
+template<class S, class Unit> struct PointType<_Circle<S, Unit>> { 
+    using Type = typename _Circle<S, Unit>::PointType; 
 };
 
 /**
@@ -201,6 +208,10 @@ public:
     /// The length of the segment in the measure of the coordinate system.
     template<class Unit = TCompute<RawPoint>> inline Unit sqlength() const;
     
+};
+
+template<class S> struct PointType<_Segment<S>> { 
+    using Type = typename _Circle<S>::PointType; 
 };
 
 // This struct serves almost as a namespace. The only difference is that is can

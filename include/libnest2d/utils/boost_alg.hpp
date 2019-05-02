@@ -311,19 +311,19 @@ struct range_value<bp2d::Shapes> {
 
 namespace libnest2d { // Now the algorithms that boost can provide...
 
-namespace pointlike {
-template<>
-inline double distance(const PointImpl& p1, const PointImpl& p2 )
-{
-    return boost::geometry::distance(p1, p2);
-}
+//namespace pointlike {
+//template<>
+//inline double distance(const PointImpl& p1, const PointImpl& p2 )
+//{
+//    return boost::geometry::distance(p1, p2);
+//}
 
-template<>
-inline double distance(const PointImpl& p, const bp2d::Segment& seg )
-{
-    return boost::geometry::distance(p, seg);
-}
-}
+//template<>
+//inline double distance(const PointImpl& p, const bp2d::Segment& seg )
+//{
+//    return boost::geometry::distance(p, seg);
+//}
+//}
 
 namespace shapelike {
 // Tell libnest2d how to make string out of a ClipperPolygon object
@@ -403,9 +403,9 @@ inline bp2d::Box boundingBox<bp2d::Shapes>(const bp2d::Shapes& shapes,
 
 #ifndef DISABLE_BOOST_CONVEX_HULL
 template<>
-inline PolygonImpl convexHull(const PolygonImpl& sh, const PolygonTag&)
+inline PathImpl convexHull(const PathImpl& sh, const PathTag&)
 {
-    PolygonImpl ret;
+    PathImpl ret;
     boost::geometry::convex_hull(sh, ret);
     return ret;
 }

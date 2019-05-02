@@ -3,39 +3,28 @@
 
 #include <numeric>
 
-#include <libnest2d/libnest2d.hpp>
+#include <libnest2d/geometry_traits.hpp>
 #include <libnest2d/utils/rational.hpp>
 #include <libnest2d/utils/bigint.hpp>
 
-#include <boost/rational.hpp>
-#include <boost/multiprecision/integer.hpp>
-
 #include <cmath>
-namespace std {
-boost::multiprecision::int512_t abs(const boost::multiprecision::int512_t& i) { return boost::multiprecision::abs(i); };
-}
 
 namespace libnest2d {
 
-template<> struct Epsilon<boost::multiprecision::int512_t> {
-    constexpr static const boost::multiprecision::int512_t Value = boost::multiprecision::int512_t(0);
-};
-
-template <class RawShape>
+template <class RawShape, class Unit = TCompute<RawShape>>
 std::vector<_Segment<TPoint<RawShape>>> _antipodals(
         const std::vector<TPoint<RawShape>> &U, 
         const std::vector<TPoint<RawShape>> &L) 
 {
     using Point = TPoint<RawShape>;
-    using Coord = TCoord<Point>;
     using Line = _Segment<TPoint<RawShape>>;
     
     std::vector<Line> lines; lines.reserve(2*U.size() + 2*L.size());
     
-    std::function<bool(Coord)> predict;
+    std::function<bool(Unit)> predict;
     
-    if(is_clockwise<RawShape>()) predict = [](Coord v) { return v < 0; };
-    else predict = [](Coord v) { return v > 0; };
+    if(is_clockwise<RawShape>()) predict = [](Unit v) { return v < 0; };
+    else predict = [](Unit v) { return v > 0; };
     
     auto yield = [&lines](const Point& pi, const Point& pj) {
         lines.emplace_back(pi, pj);
@@ -52,11 +41,14 @@ std::vector<_Segment<TPoint<RawShape>>> _antipodals(
         else if(j == 0) 
             ++i;
         else {
-            auto pr = (getY(U[i+1]) - getY(U[i])) * (getX(L[j]) - getX(L[j-1])) - 
-                      (getX(U[i+1]) - getX(U[i])) * (getY(L[j]) - getY(L[j-1]));
+            auto pr = 
+                    (Unit(getY(U[i+1])) - getY(U[i])) * 
+                    (Unit(getX(L[j])) - getX(L[j-1])) - 
+                    (Unit(getX(U[i+1])) - getX(U[i])) * 
+                    (Unit(getY(L[j])) - getY(L[j-1]));
             
             // This is not part of the original algorithm but it's necessary
-            if(abs(pr) <= Epsilon<Coord>::Value) 
+            if(pr == 0) 
                 yield(U[i+1], L[j]);
             
             if(predict(pr)) ++i;
@@ -67,11 +59,10 @@ std::vector<_Segment<TPoint<RawShape>>> _antipodals(
     return lines;
 }
 
-template <class RawShape>
+template <class RawShape, class Unit = TCompute<RawShape>>
 std::vector<_Segment<TPoint<RawShape>>> antipodals_concave(const RawShape& poly)
 {
     using Point = TPoint<RawShape>;
-    using Coord = TCoord<Point>;
     
     size_t edges = sl::contourVertexCount(poly);
     if(edges <= 3) return {};
@@ -83,18 +74,13 @@ std::vector<_Segment<TPoint<RawShape>>> antipodals_concave(const RawShape& poly)
     std::sort(sl::begin(sortedpoly), sl::end(sortedpoly), 
               [](const Point& v1, const Point& v2)
     {
-        Coord x1 = getX(v1), x2 = getX(v2), y1 = getY(v1), y2 = getY(v2);
-        auto diff = x1 - x2;
-        
-        if(abs(diff) <= Epsilon<Coord>::Value)
-            return y1 < y2;
-    
-        return diff < 0;    
+        Unit x1 = getX(v1), x2 = getX(v2), y1 = getY(v1), y2 = getY(v2);
+        return x1 == x2 ? y1 < y2 : x1 < x2;
     });
     
     auto dir = [](const Point& p, const Point& q, const Point& r) {
-        return (getY(q) - getY(p)) * (getX(r) - getX(p)) -
-               (getX(q) - getX(p)) * (getY(r) - getY(p));
+        return (Unit(getY(q)) - getY(p)) * (Unit(getX(r)) - getX(p)) -
+               (Unit(getX(q)) - getX(p)) * (Unit(getY(r)) - getY(p));
     };
     
     auto ik = sl::begin(sortedpoly);
@@ -115,22 +101,17 @@ std::vector<_Segment<TPoint<RawShape>>> antipodals_concave(const RawShape& poly)
     return _antipodals<RawShape>(U, L);
 }
 
-template <class RawShape>
+template <class RawShape, class Unit = TCompute<RawShape>>
 std::vector<_Segment<TPoint<RawShape>>> antipodals_convex(const RawShape& poly)
 {
     using Point = TPoint<RawShape>;
-    using Coord = TCoord<Point>;
     
     size_t edges = sl::contourVertexCount(poly);
     if(edges <= 3) return {};
     
     auto cmp = [](const Point& v1, const Point& v2) {
-        Coord x1 = getX(v1), x2 = getX(v2), y1 = getY(v1), y2 = getY(v2);
-        auto diff = x1 - x2;
-        
-        if(abs(diff) <= Epsilon<Coord>::Value) return y1 < y2;
-    
-        return diff < 0;    
+        Unit x1 = getX(v1), x2 = getX(v2), y1 = getY(v1), y2 = getY(v2);
+        return x1 == x2 ? y1 < y2 : x1 < x2;   
     };
     
     auto min_it = std::min_element(sl::cbegin(poly), sl::cend(poly), cmp);
@@ -156,11 +137,10 @@ std::vector<_Segment<TPoint<RawShape>>> antipodals_convex(const RawShape& poly)
     return _antipodals<RawShape>(U, L);
 }
 
-template <class RawShape> 
+template <class RawShape, class Unit = TCompute<RawShape>> 
 std::vector<_Segment<TPoint<RawShape>>> myantipodals(const RawShape& sh) 
 {
-    using Point = TPoint<RawShape>;
-    using Coord = TCoord<Point>;
+    using Pt = TPoint<RawShape>;
     using Iterator = typename TContour<RawShape>::const_iterator;
     using Line = _Segment<TPoint<RawShape>>;
     
@@ -168,12 +148,10 @@ std::vector<_Segment<TPoint<RawShape>>> myantipodals(const RawShape& sh)
     if(vcount <= 3) return {};
     
     // compare function for vertex extreme search
-    auto xcmp = [](const Point& v1, const Point& v2)
+    auto xcmp = [](const Pt& v1, const Pt& v2)
     {
-        auto diff = getX(v1) - getX(v2);
-        if(abs(diff) <= Epsilon<Coord>::Value) return getY(v1) < getY(v2);
-    
-        return diff < 0;    
+        Unit x1 = getX(v1), x2 = getX(v2), y1 = getY(v1), y2 = getY(v2);
+        return x1 == x2 ? y1 < y2 : x1 < x2;
     };
     
     // We shall find the bottom-most left and top-most right vertex as the 
@@ -214,16 +192,6 @@ std::vector<_Segment<TPoint<RawShape>>> myantipodals(const RawShape& sh)
         lines.emplace_back(*a, *b);
     };
     
-    // dot product
-    auto dotp = [](const Point& a, const Point& b) {
-        return getX(a) * getX(b) + getY(a) * getY(b);
-    };
-    
-    // squared vector magnitude
-    auto magnsq = [](const Point& p) {
-        return getX(p) * getX(p) + getY(p) * getY(p);
-    };
-    
     // A numericly robust angle measuring function. The measured edges are
     // the edges 'a' = (A - prev(A)) to 'b' = (B - prev(B)) and 'a' to 
     // 'c' = (C - prev(C)). Instead of calculating the angle with an arcus 
@@ -238,25 +206,21 @@ std::vector<_Segment<TPoint<RawShape>>> myantipodals(const RawShape& sh)
     // Source is: 
     // https://www.geometrictools.com/Documentation/MinimumAreaRectangle.pdf
     auto anglecmp = 
-            [&sh, &prev, &dotp, &magnsq](Iterator A, Iterator B, Iterator C) 
+            [&sh, &prev](Iterator A, Iterator B, Iterator C) 
     {
         Iterator Ap = prev(A);
         Iterator Bp = prev(B);
         Iterator Cp = prev(C);
         
-        Point a = *A - *Ap, b = *B - *Bp, c = *C - *Cp;
-        Point pb(getY(b), -getX(b)), pc(getY(c), -getX(c));
+        Pt a = *A - *Ap, b = *B - *Bp, c = *C - *Cp;
+        Pt pb(getY(b), -getX(b)), pc(getY(c), -getX(c));
         
-        double dotapb = dotp(a, pb), dotapc = dotp(a, pc);
+        Unit dotapb = pl::dot<Pt, Unit>(a, pb), dotapc = pl::dot<Pt, Unit>(a, pc);
         
-        double ra = dotapb * dotapb / magnsq(b);
-        double rc = dotapc * dotapc / magnsq(c);
-        double diff = ra - rc;
+        Unit ra = dotapb * dotapb / pl::magnsq<Pt, Unit>(b);
+        Unit rc = dotapc * dotapc / pl::magnsq<Pt, Unit>(c);
         
-        if(abs(diff) < magnsq(a) * std::numeric_limits<double>::epsilon())
-            return 0;
-        
-        return diff < 0 ? -1 : 1;
+        return ra == rc? 0 : ra < rc ? -1 : 1;
     };
     
     // Go around the polygon, do the rotating calipers.
@@ -274,24 +238,25 @@ std::vector<_Segment<TPoint<RawShape>>> myantipodals(const RawShape& sh)
     return lines;
 }
 
-template <class RawShape> inline
+template <class RawShape, class Unit = TCompute<RawShape>> inline
 std::vector<_Segment<TPoint<RawShape>>> antipodals(const RawShape& poly)
 {
 //    return antipodals_concave(poly);
 //    return antipodals_convex(poly);
-    return myantipodals(poly);
+    return myantipodals<RawShape, Unit>(poly);
 }
 
-template <class RawShape> double diameter(const RawShape& poly)
+template <class RawShape, class Unit = TCompute<RawShape>> 
+long double diameter(const RawShape& poly)
 {
     using Line = _Segment<TPoint<RawShape>>;
     
     std::vector<Line> antip = antipodals(poly);
     
-    double l = 0.0;
-    for(const Line& line : antip) l = std::max(l, line.length());
+    Unit l = 0.0;
+    for(const Line& line : antip) l = std::max(l, line.sqlength());
 
-    return l;
+    return std::sqrt(cast<long double>(l));
 }
 
 template <class RawShape> 
@@ -317,7 +282,7 @@ std::pair<TPoint<RawShape>, double> enclosingCircle(const RawShape& poly)
 }
 
 //template<class C> using TRational = boost::rational<C>;
-template<class C> using TRational = Rational<C>;
+//template<class C> using TRational = Rational<C>;
 
 template<class Pt, class Unit = TCoord<Pt>> class RotatedBox {
     Pt m_axis;
@@ -344,48 +309,7 @@ public:
     }
 };
 
-// create perpendicular vector
-template<class Pt> inline Pt perp(const Pt& p) 
-{ 
-    return Pt(getY(p), -getX(p));
-};
-
-template<class Pt, class Unit = TCoord<Pt>> 
-inline Unit dotperp(const Pt& a, const Pt& b) 
-{ 
-    return Unit(getX(a)) * Unit(getY(b)) - Unit(getY(a)) * Unit(getX(b)); 
-};
-
-// dot product
-template<class Pt, class Unit = TCoord<Pt>> 
-inline Unit dot(const Pt& a, const Pt& b) 
-{
-    Unit x = Unit(getX(a)) * getX(b), y = Unit(getY(a)) * getY(b);
-    assert(getX(a) == 0 || x / getX(a) == getX(b));
-    assert(getY(a) == 0 || y / getY(a) == getY(b));
-    
-    Unit ret = x + y;
-    
-    assert(!((x >= 0 && y >= 0 && ret < 0) || (x <= 0 && y <= 0 && ret > 0)));
-    return ret;
-};
-
-// squared vector magnitude
-template<class Pt, class Unit = TCoord<Pt>> inline Unit magnsq(const Pt& p) 
-{
-    Unit xx = Unit(getX(p)) * getX(p);
-    assert(getX(p) == 0 || xx / getX(p) == getX(p));
-    
-    Unit yy = Unit(getY(p)) * getY(p);
-    assert(getY(p) == 0 || yy / getY(p) == getY(p));
-    
-    Unit ret = xx + yy;
-    assert(!(xx >= 0 && yy >= 0 && ret < 0)||(xx <= 0 && yy <= 0 && ret > 0));
-    
-    return ret;
-};
-
-template <class Poly, class Pt = TPoint<Poly>, class Unit = TCoord<Pt>> 
+template <class Poly, class Pt = TPoint<Poly>, class Unit = TCompute<Pt>> 
 Poly removeCollinearPoints(const Poly& sh, Unit eps = Unit(0))
 {
     Poly ret; sl::reserve(ret, sl::contourVertexCount(sh));
@@ -398,7 +322,7 @@ Poly removeCollinearPoints(const Poly& sh, Unit eps = Unit(0))
     {
         Pt enext = *itx - *it;
 
-        auto dp = dotperp<Pt, Unit>(eprev, enext);
+        auto dp = pl::dotperp<Pt, Unit>(eprev, enext);
         if(abs(dp) > eps) sl::addVertex(ret, *it);
         
         eprev = enext;
@@ -409,56 +333,41 @@ Poly removeCollinearPoints(const Poly& sh, Unit eps = Unit(0))
     return ret;
 }
 
-// So I want to determine the extreme points of the polygon given a certain
-// unnormalized axis vector as the positive x axis directon.
-//template <class Poly, 
-//          class Pt   = TPoint<Poly>,
-//          class Unit = TCoord<Pt>,
-//          class It = typename TContour<Poly>::const_iterator> 
-//std::array<It, 4> minRect(const Poly& p, const Pt& x_axis)
-//{
-//    std::array<It, 4> ret;
-    
-//    Pt y_axis = -perp(x_axis);
-    
-    
-//    return ret;
-//}
-
 // The area of the bounding rectangle with the axis dir and support vertices
-template<class Pt, class Unit = TCoord<Pt>> 
-inline TRational<Unit> rectarea(const Pt& w, // the axis
-                                const Pt& vb, const Pt& vr, 
-                                const Pt& vt, const Pt& vl) 
+template<class Pt, class Unit = TCompute<Pt>, class R = Rational<Unit>> 
+inline R rectarea(const Pt& w, // the axis
+                  const Pt& vb, const Pt& vr, 
+                  const Pt& vt, const Pt& vl) 
 {
-    Unit a = dot<Pt, Unit>(w, vr - vl); 
-    Unit b = dot<Pt, Unit>(-perp(w), vt - vb);
-    TRational<Unit> m(a, magnsq<Pt, Unit>(w));
+    Unit a = pl::dot<Pt, Unit>(w, vr - vl); 
+    Unit b = pl::dot<Pt, Unit>(-pl::perp(w), vt - vb);
+    R m = R(a) / pl::magnsq<Pt, Unit>(w);
     m = m * b;
     return m;
 };
 
 template<class Pt> 
-inline double frectarea(const Pt& w, // the axis
+inline long double frectarea(const Pt& w, // the axis
                         const Pt& vb, const Pt& vr, 
                         const Pt& vt, const Pt& vl) 
 {
-    double a = dot<Pt, double>(w, vr - vl); 
-    double b = dot<Pt, double>(-perp(w), vt - vb);
-    double d = a / magnsq<Pt, double>(w);
+    long double a = pl::dot<Pt, long double>(w, vr - vl); 
+    long double b = pl::dot<Pt, long double>(-perp(w), vt - vb);
+    long double d = a / pl::magnsq<Pt, long double>(w);
     return d * b;
 };
 
 template<class Pt, 
-         class Unit = TCoord<Pt>, 
+         class Unit = TCompute<Pt>,
+         class R = Rational<Unit>,
          class It = typename std::vector<Pt>::const_iterator>
-inline TRational<Unit> rectarea(const Pt& w, const std::array<It, 4>& rect)
+inline R rectarea(const Pt& w, const std::array<It, 4>& rect)
 {
-    return rectarea<Pt, Unit>(w, *rect[0], *rect[1], *rect[2], *rect[3]);
+    return rectarea<Pt, Unit, R>(w, *rect[0], *rect[1], *rect[2], *rect[3]);
 }
 
 template<class Pt, class It = typename std::vector<Pt>::const_iterator> 
-inline double frectarea(const Pt& w, const std::array<It, 4>& rect) 
+inline long double frectarea(const Pt& w, const std::array<It, 4>& rect) 
 {
     return frectarea(w, *rect[0], *rect[1], *rect[2], *rect[3]);
 };
@@ -466,12 +375,13 @@ inline double frectarea(const Pt& w, const std::array<It, 4>& rect)
 // This function is only applicable to counter-clockwise oriented convex
 // polygons where only two points can be collinear witch each other.
 template <class RawShape, 
-          class Point = TPoint<RawShape>, 
-          class Unit = BigInt<Bits<512>>>/*boost::multiprecision::int512_t>*/ 
-RotatedBox<Point, Unit> minAreaBoundingBox(const RawShape& sh) 
+          class Unit = TCompute<RawShape>, 
+          class Ratio = Rational<Unit>> 
+RotatedBox<TPoint<RawShape>, Unit> minAreaBoundingBox(const RawShape& sh) 
 {
-    using Coord = TCoord<Point>;
+    using Point = TPoint<RawShape>;
     using Iterator = typename TContour<RawShape>::const_iterator;
+    using pointlike::dot; using pointlike::magnsq; using pointlike::perp;
 
     // Get the first and the last vertex iterator
     auto first = sl::cbegin(sh);
@@ -481,6 +391,23 @@ RotatedBox<Point, Unit> minAreaBoundingBox(const RawShape& sh)
     if(last == first) return {};
     if(getX(*first) == getX(*last) && getY(*first) == getY(*last)) --last;
     if(last - first < 2) return {};
+    
+    RawShape shcpy; // empty at this point
+    {   
+        Point p = *first, q = *std::next(first), r = *last;
+        
+        // Determine orientation from first 3 vertex (should be consistent)
+        Unit d = (Unit(getY(q)) - getY(p)) * (Unit(getX(r)) - getX(p)) -
+                 (Unit(getX(q)) - getX(p)) * (Unit(getY(r)) - getY(p));
+        
+        if(d > 0) { 
+            // The polygon is clockwise. A flip is needed (for now)
+            sl::reserve(shcpy, last - first);
+            auto it = last; while(it != first) sl::addVertex(shcpy, *it--);
+            sl::addVertex(shcpy, *first);
+            first = sl::cbegin(shcpy); last = std::prev(sl::cend(shcpy));
+        }
+    }
     
     // Cyclic iterator increment
     auto inc = [&first, &last](Iterator& it) {
@@ -500,32 +427,29 @@ RotatedBox<Point, Unit> minAreaBoundingBox(const RawShape& sh)
     // Establish initial (axis aligned) rectangle support verices by determining 
     // polygon extremes:
     
-    auto it = sl::cbegin(sh);
+    auto it = first;
     Iterator minX = it, maxX = it, minY = it, maxY = it;
-    Coord eps = Epsilon<Coord>::Value;
     
     do { // Linear walk through the vertices and save the extreme positions
         
         Point v = *it, d = v - *minX;
-        if(getX(d) < 0 || (abs(getX(d)) <= eps && getY(d) < 0)) minX = it;
+        if(getX(d) < 0 || (getX(d) == 0 && getY(d) < 0)) minX = it;
         
         d = v - *maxX;
-        if(getX(d) > 0 || (abs(getX(d)) <= eps && getY(d) > 0)) maxX = it;
+        if(getX(d) > 0 || (getX(d) == 0 && getY(d) > 0)) maxX = it;
         
         d = v - *minY;
-        if(getY(d) < 0 || (abs(getY(d)) <= eps && getX(d) > 0)) minY = it;
+        if(getY(d) < 0 || (getY(d) == 0 && getX(d) > 0)) minY = it;
         
         d = v - *maxY;
-        if(getY(d) > 0 || (abs(getY(d)) <= eps && getX(d) < 0)) maxY = it;
+        if(getY(d) > 0 || (getY(d) == 0 && getX(d) < 0)) maxY = it;
         
-    } while(++it != sl::cend(sh));
-    
-    using Rational = TRational<Unit>;
+    } while(++it != std::next(last));
     
     // Update the vertices defining the bounding rectangle. The rectangle with
     // the smallest rotation is selected and the supporting vertices are 
     // returned in the 'rect' argument.
-    auto update = [&sh, &next, &inc]
+    auto update = [&next, &inc]
             (const Point& w, std::array<Iterator, 4>& rect) 
     {
         Iterator B = rect[0], Bn = next(B);
@@ -535,18 +459,19 @@ RotatedBox<Point, Unit> minAreaBoundingBox(const RawShape& sh)
         
         Point b = *Bn - *B, r = *Rn - *R, t = *Tn - *T, l = *Ln - *L;
         Point pw = perp(w);
+        using Pt = Point;
         
-        Unit dotwpb = dot<Point, Unit>(w, b),  dotwpr = dot<Point, Unit>(-pw, r);
-        Unit dotwpt = dot<Point, Unit>(-w, t), dotwpl = dot<Point, Unit>(pw, l);
-        Unit dw = magnsq<Point, Unit>(w);
+        Unit dotwpb = dot<Pt, Unit>( w, b), dotwpr = dot<Pt, Unit>(-pw, r);
+        Unit dotwpt = dot<Pt, Unit>(-w, t), dotwpl = dot<Pt, Unit>( pw, l);
+        Unit dw     = magnsq<Pt, Unit>(w);
         
-        std::array<Rational, 4> angles;
-        angles[0] = Rational(dotwpb, magnsq<Point, Unit>(b)) * dotwpb;
-        angles[1] = Rational(dotwpr, magnsq<Point, Unit>(r)) * dotwpr;
-        angles[2] = Rational(dotwpt, magnsq<Point, Unit>(t)) * dotwpt;
-        angles[3] = Rational(dotwpl, magnsq<Point, Unit>(l)) * dotwpl;
+        std::array<Ratio, 4> angles;
+        angles[0] = (Ratio(dotwpb) / magnsq<Pt, Unit>(b)) * dotwpb;
+        angles[1] = (Ratio(dotwpr) / magnsq<Pt, Unit>(r)) * dotwpr;
+        angles[2] = (Ratio(dotwpt) / magnsq<Pt, Unit>(t)) * dotwpt;
+        angles[3] = (Ratio(dotwpl) / magnsq<Pt, Unit>(l)) * dotwpl;
         
-        using AngleIndex = std::pair<Rational, size_t>;
+        using AngleIndex = std::pair<Ratio, size_t>;
         std::vector<AngleIndex> A; A.reserve(4);
 
         for (size_t i = 3, j = 0; j < 4; i = j++) {
@@ -577,14 +502,14 @@ RotatedBox<Point, Unit> minAreaBoundingBox(const RawShape& sh)
     
     Point w(1, 0);
     Point w_min = w;
-    //Rational minarea((getX(*maxX) - getX(*minX)) * (getY(*maxY) - getY(*minY)));
-    Rational minarea(Unit(getX(*maxX) - getX(*minX)) * (getY(*maxY) - getY(*minY)));
+    Ratio minarea((Unit(getX(*maxX)) - getX(*minX)) * 
+                  (Unit(getY(*maxY)) - getY(*minY)));
     
     std::array<Iterator, 4> rect = {minY, maxX, maxY, minX};
     
     // We will examine edge count + 1 bounding boxes. The one additional is 
     // the initial axis aligned bounding box
-    size_t c = 0, count = sl::contourVertexCount(sh);
+    size_t c = 0, count = last - first;
     std::vector<bool> edgemask(count, false);
     
     while(c++ < count) 
@@ -592,7 +517,7 @@ RotatedBox<Point, Unit> minAreaBoundingBox(const RawShape& sh)
         // Update the support vertices, if cannot be updated, break the cycle.
         if(! update(w, rect)) break;
         
-        size_t eidx = size_t(rect[0] - sl::cbegin(sh));
+        size_t eidx = size_t(rect[0] - first);
         
         if(edgemask[eidx]) break;
         edgemask[eidx] = true;
@@ -601,18 +526,11 @@ RotatedBox<Point, Unit> minAreaBoundingBox(const RawShape& sh)
         w = *rect[0] - *prev(rect[0]);
         
         // get the area of the rotated rectangle
-        Rational rarea = rectarea<Point, Unit>(w, rect);
-        double areacheck = frectarea(w, rect);
+        Ratio rarea = rectarea<Point, Unit, Ratio>(w, rect);
         
         // Update min area and the direction of the min bounding box;
         if(rarea <= minarea) { w_min = w; minarea = rarea; }
     }
-    
-//    c = 0;
-//    for(bool em : edgemask) {
-//        if(!em) std::cout << "Unvisited edge: " << c << std::endl;
-//        c++;
-//    }
     
     Unit a = dot<Point, Unit>(w_min, *rect[1] - *rect[3]);
     Unit b = dot<Point, Unit>(-perp(w_min), *rect[2] - *rect[0]);

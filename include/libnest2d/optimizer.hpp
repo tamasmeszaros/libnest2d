@@ -4,7 +4,8 @@
 #include <tuple>
 #include <functional>
 #include <limits>
-#include "common.hpp"
+
+#include <libnest2d/common.hpp>
 
 namespace libnest2d { namespace opt {
 

@@ -9,6 +9,7 @@
 #include <string>
 #include <cmath>
 #include <type_traits>
+#include <limits>
 
 #if defined(_MSC_VER) &&  _MSC_VER <= 1800 || __cplusplus < 201103L
     #define BP2D_NOEXCEPT
@@ -203,8 +204,7 @@ struct RationalTag {};
 
 template<class T> struct _NumTag { 
     using Type = 
-        typename std::enable_if<std::is_arithmetic<T>::value, ScalarTag>::type; 
-//    ScalarTag;
+        enable_if_t<std::is_arithmetic<T>::value, ScalarTag>; 
 };
 
 template<class T> using NumTag = typename _NumTag<remove_cvref_t<T>>::Type;
@@ -216,6 +216,12 @@ template <class T> inline T abs(const T& v, ScalarTag)
 }
 
 template<class T> inline T abs(const T& v) { return abs(v, NumTag<T>()); }
+
+template<class T2, class T1> inline T2 cast(const T1& v, ScalarTag, ScalarTag) 
+{
+    return static_cast<T2>(v);    
+}
+
 template<class T2, class T1> inline T2 cast(const T1& v) { 
     return cast<T2, T1>(v, NumTag<T1>(), NumTag<T2>());
 }

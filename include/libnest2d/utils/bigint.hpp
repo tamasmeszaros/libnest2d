@@ -21,28 +21,18 @@ template<class Bits, class I = std::intmax_t> class BigInt {
     int sign_ = 1;
 public:
     
-    BigInt& operator=(I v) 
-    {
-        std::fill(v_.begin(), v_.end(), I(0));
-        sign_ = 1;
-        
-	if (v < 0) sign_ = -1, v = -v;
-	for (size_t i; v > 0; ++i, v = v >> IBase) v_[i] = (v % IBase);
-        return *this;
-    }
+    BigInt() = default;
     
-    explicit inline BigInt(I v) 
+    explicit constexpr inline BigInt(I v) : 
+        v_({v < 0 ? -v : v}), sign_(v < 0 ? -1 : 1)
     {
         static_assert(std::is_integral<I>::value, 
                       "Only integral types are allowed for BigInt!");
-        *this = v;
     }
     
-//    template<class Integral> explicit inline BigInt(Integral v) {
-//        *this = static_cast<I>(v);
-//    }
-    
-    BigInt& operator+=(const BigInt& /*o*/) { return *this; }
+    BigInt& operator+=(const BigInt& /*o*/) { 
+        return *this; 
+    }
     BigInt& operator*=(const BigInt& /*o*/) { return *this; }
     BigInt& operator-=(const BigInt& /*o*/) { return *this; }
     BigInt& operator/=(const BigInt& /*o*/) { return *this; }
@@ -62,7 +52,7 @@ public:
     BigInt operator-(I /*o*/) const { return *this; }
     BigInt operator/(I /*o*/) const { return *this; }
     
-    BigInt operator-() { 
+    BigInt operator-() const { 
         auto cpy = *this; sign_ > 0 ? cpy.sign_ = -1 : 1; return cpy; 
     }
     
@@ -88,6 +78,10 @@ public:
     
 };
 
+template<int N> using BigInt128 = BigInt<Bits<128>>;
+template<int N> using BigInt256 = BigInt<Bits<128>>;
+template<int N> using BigInt512 = BigInt<Bits<512>>;
+
 template<class Bits, class I> 
 struct _NumTag<BigInt<Bits, I>> { using Type = BigIntTag; };
 
@@ -96,6 +90,11 @@ template<class T, class Bi> T cast(const Bi& r, BigIntTag, ScalarTag)
     static_assert(std::is_floating_point<T>::value, 
                   "BigInt should only be casted to floating point type");
     return static_cast<T>(r.to_floating());
+}
+
+template<class Bi> inline Bi abs(const Bi& v, BigIntTag) 
+{
+    return v < Bi(0) ? -v : v;
 }
 
 }

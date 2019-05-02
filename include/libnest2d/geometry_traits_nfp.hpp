@@ -1,26 +1,22 @@
 #ifndef GEOMETRIES_NOFITPOLYGON_HPP
 #define GEOMETRIES_NOFITPOLYGON_HPP
 
-#include "geometry_traits.hpp"
 #include <algorithm>
 #include <functional>
 #include <vector>
 #include <iterator>
 
+#include <libnest2d/geometry_traits.hpp>
+
 namespace libnest2d {
 
 namespace __nfp {
 // Do not specialize this...
-template<class RawShape>
+template<class RawShape, class Unit = TCompute<RawShape>>
 inline bool _vsort(const TPoint<RawShape>& v1, const TPoint<RawShape>& v2)
 {
-    using Coord = TCoord<TPoint<RawShape>>;
-    Coord &&x1 = getX(v1), &&x2 = getX(v2), &&y1 = getY(v1), &&y2 = getY(v2);
-    auto diff = y1 - y2;
-    if(std::abs(diff) <= Epsilon<Coord>::Value)
-        return x1 < x2;
-
-    return diff < 0;
+    Unit x1 = getX(v1), x2 = getX(v2), y1 = getY(v1), y2 = getY(v2);
+    return y1 == y2 ? x1 < x2 : y1 < y2;
 }
 
 template<class EdgeList, class RawShape, class Vertex = TPoint<RawShape>>

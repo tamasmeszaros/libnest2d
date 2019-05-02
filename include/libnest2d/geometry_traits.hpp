@@ -7,34 +7,46 @@
 #include <array>
 #include <vector>
 #include <numeric>
-#include <limits>
 #include <iterator>
 #include <cmath>
 
-#include "common.hpp"
+#include <libnest2d/common.hpp>
 
 namespace libnest2d {
 
+template<class RawShape> struct ContourType { using Type = RawShape; };
+
+template<class RawShape>
+using TContour = typename ContourType<remove_cvref_t<RawShape>>::Type;
+
+/// Getting the type of point structure used by a shape.
+template<class Sh> struct PointType { 
+    using Type = typename PointType<TContour<Sh>>::Type; 
+};
+
+/// TPoint<ShapeClass> as shorthand for `typename PointType<ShapeClass>::Type`.
+template<class Shape>
+using TPoint = typename PointType<remove_cvref_t<Shape>>::Type;
+
 /// Getting the coordinate data type for a geometry class.
-template<class GeomClass> struct CoordType { using Type = long; };
+template<class GeomClass> struct CoordType { 
+    using Type = typename CoordType<TPoint<GeomClass>>::Type; 
+};
 
 /// TCoord<GeomType> as shorthand for typename `CoordType<GeomType>::Type`.
 template<class GeomType>
 using TCoord = typename CoordType<remove_cvref_t<GeomType>>::Type;
 
 
-/// Getting the type of point structure used by a shape.
-template<class Sh> struct PointType { using Type = typename Sh::PointType; };
+/// Getting the computation type for a certain geometry type.
+/// It is the coordinate type by default but it is advised that a type with
+/// larger precision and (or) range is specified.
+template<class GeomClass> struct ComputeType { 
+    using Type = typename ComputeType<TCoord<GeomClass>>::Type; 
+};
 
-/// TPoint<ShapeClass> as shorthand for `typename PointType<ShapeClass>::Type`.
-template<class Shape>
-using TPoint = typename PointType<remove_cvref_t<Shape>>::Type;
-
-
-template<class RawShape> struct ContourType { using Type = RawShape; };
-
-template<class RawShape>
-using TContour = typename ContourType<remove_cvref_t<RawShape>>::Type;
+/// The shorthand for ComputeType::Type
+template<class GeomClass> using TCompute = typename ComputeType<remove_cvref_t<GeomClass>>::Type;
 
 
 template<class RawShape>
@@ -43,9 +55,6 @@ struct HolesContainer { using Type = std::vector<TContour<RawShape>>;  };
 template<class RawShape>
 using THolesContainer = typename HolesContainer<remove_cvref_t<RawShape>>::Type;
 
-
-template<class RawShape>
-struct LastPointIsFirst { static const bool Value = true; };
 
 enum class Orientation {
     CLOCKWISE,
@@ -59,13 +68,7 @@ struct OrientationType {
     static const Orientation Value = Orientation::CLOCKWISE;
 };
 
-template <class Coord> struct Epsilon { 
-    static const Coord Value = std::numeric_limits<Coord>::epsilon();
-};
-
-// template<class T> const constexpr PathOrientation = OrientationType<T>::Value;
-
-template<class T> inline bool is_clockwise() { 
+template<class T> inline /*constexpr*/ bool is_clockwise() { 
     return OrientationType<T>::Value == Orientation::CLOCKWISE; 
 }
 
@@ -124,32 +127,33 @@ public:
 
     inline RawPoint center() const BP2D_NOEXCEPT;
 
-    inline double area() const BP2D_NOEXCEPT {
-        return double(width()*height());
+    template<class Unit = TCompute<RawPoint>> 
+    inline Unit area() const BP2D_NOEXCEPT {
+        return Unit(width())*height();
     }
 };
 
-template<class RawPoint>
+template<class RawPoint, class Unit = TCompute<RawPoint>>
 class _Circle {
     RawPoint center_;
-    double radius_ = 0;
+    Unit radius_ = 0;
 public:
 
     using Tag = CircleTag;
     using PointType = RawPoint;
 
     _Circle() = default;
-
     _Circle(const RawPoint& center, double r): center_(center), radius_(r) {}
 
     inline const RawPoint& center() const BP2D_NOEXCEPT { return center_; }
     inline void center(const RawPoint& c) { center_ = c; }
 
-    inline double radius() const BP2D_NOEXCEPT { return radius_; }
-    inline void radius(double r) { radius_ = r; }
-
-    inline double area() const BP2D_NOEXCEPT {
-        return 2.0*Pi*radius_*radius_;
+    inline Unit radius() const BP2D_NOEXCEPT { return radius_; }
+    inline void radius(Unit r) { radius_ = r; }
+    
+    inline Unit area() const BP2D_NOEXCEPT {
+        auto r = cast<long double>(radius_);
+        return cast<Unit>(Pi_2 * r * r);
     }
 };
 
@@ -195,7 +199,8 @@ public:
     inline Radians angleToXaxis() const;
 
     /// The length of the segment in the measure of the coordinate system.
-    inline double length() const;
+    template<class Unit = TCompute<RawPoint>> inline Unit sqlength() const;
+    
 };
 
 // This struct serves almost as a namespace. The only difference is that is can
@@ -226,33 +231,56 @@ inline TCoord<RawPoint>& y(RawPoint& p)
     return p.y();
 }
 
-template<class RawPoint>
-inline double distance(const RawPoint& /*p1*/, const RawPoint& /*p2*/)
+template<class RawPoint, class Unit = TCompute<RawPoint>>
+inline Unit squaredDistance(const RawPoint& p1, const RawPoint& p2)
 {
-    static_assert(always_false<RawPoint>::value,
-                  "PointLike::distance(point, point) unimplemented!");
-    return 0;
+    Unit x1(x(p1)), y1(y(p1)), x2(x(p2)), y2(y(p2));
+    Unit a = (x2 - x1), b = (y2 - y1);
+    return a * a + b * b;
 }
 
 template<class RawPoint>
-inline double distance(const RawPoint& /*p1*/,
-                       const _Segment<RawPoint>& /*s*/)
+inline double distance(const RawPoint& p1, const RawPoint& p2)
 {
-    static_assert(always_false<RawPoint>::value,
-                  "PointLike::distance(point, segment) unimplemented!");
-    return 0;
+    return std::sqrt(squaredDistance<RawPoint, double>(p1, p2));
 }
 
-template<class RawPoint>
-inline std::pair<TCoord<RawPoint>, bool> horizontalDistance(
+// create perpendicular vector
+template<class Pt> inline Pt perp(const Pt& p) 
+{ 
+    return Pt(y(p), -x(p));
+};
+
+template<class Pt, class Unit = TCompute<Pt>> 
+inline Unit dotperp(const Pt& a, const Pt& b) 
+{ 
+    return Unit(x(a)) * Unit(y(b)) - Unit(y(a)) * Unit(x(b)); 
+};
+
+// dot product
+template<class Pt, class Unit = TCompute<Pt>> 
+inline Unit dot(const Pt& a, const Pt& b) 
+{
+    return Unit(x(a)) * x(b) + Unit(y(a)) * y(b);
+};
+
+// squared vector magnitude
+template<class Pt, class Unit = TCompute<Pt>> 
+inline Unit magnsq(const Pt& p) 
+{
+    return  Unit(x(p)) * x(p) + Unit(y(p)) * y(p);
+};
+
+template<class RawPoint, class Unit = TCompute<RawPoint>>
+inline std::pair<Unit, bool> horizontalDistance(
         const RawPoint& p, const _Segment<RawPoint>& s)
 {
-    using Unit = TCoord<RawPoint>;
-    auto x = pointlike::x(p), y = pointlike::y(p);
-    auto x1 = pointlike::x(s.first()), y1 = pointlike::y(s.first());
-    auto x2 = pointlike::x(s.second()), y2 = pointlike::y(s.second());
+    namespace pl = pointlike;
+    auto x = Unit(pl::x(p)), y = Unit(pl::y(p));
+    auto x1 = Unit(pl::x(s.first())), y1 = Unit(pl::y(s.first()));
+    auto x2 = Unit(pl::x(s.second())), y2 = Unit(pl::y(s.second()));
 
-    TCoord<RawPoint> ret;
+    Unit ret;
 
     if( (y < y1 && y < y2) || (y > y1 && y > y2) )
         return {0, false};
@@ -260,8 +288,7 @@ inline std::pair<TCoord<RawPoint>, bool> horizontalDistance(
         ret = std::min( x-x1, x -x2);
     else if( (y == y1 && y == y2) && (x < x1 && x < x2))
         ret = -std::min(x1 - x, x2 - x);
-    else if(std::abs(y - y1) <= Epsilon<Unit>::Value &&
-            std::abs(y - y2) <= Epsilon<Unit>::Value)
+    else if(y == y1 && y == y2)
         ret = 0;
     else
         ret = x - x1 + (x1 - x2)*(y1 - y)/(y1 - y2);
@@ -269,16 +296,16 @@ inline std::pair<TCoord<RawPoint>, bool> horizontalDistance(
     return {ret, true};
 }
 
-template<class RawPoint>
-inline std::pair<TCoord<RawPoint>, bool> verticalDistance(
+template<class RawPoint, class Unit = TCompute<RawPoint>>
+inline std::pair<Unit, bool> verticalDistance(
         const RawPoint& p, const _Segment<RawPoint>& s)
 {
-    using Unit = TCoord<RawPoint>;
-    auto x = pointlike::x(p), y = pointlike::y(p);
-    auto x1 = pointlike::x(s.first()), y1 = pointlike::y(s.first());
-    auto x2 = pointlike::x(s.second()), y2 = pointlike::y(s.second());
+    namespace pl = pointlike;
+    auto x = Unit(pl::x(p)), y = Unit(pl::y(p));
+    auto x1 = Unit(pl::x(s.first())), y1 = Unit(pl::y(s.first()));
+    auto x2 = Unit(pl::x(s.second())), y2 = Unit(pl::y(s.second()));
 
-    TCoord<RawPoint> ret;
+    Unit ret;
 
     if( (x < x1 && x < x2) || (x > x1 && x > x2) )
         return {0, false};
@@ -286,8 +313,7 @@ inline std::pair<TCoord<RawPoint>, bool> verticalDistance(
         ret = std::min( y-y1, y -y2);
     else if( (x == x1 && x == x2) && (y < y1 && y < y2))
         ret = -std::min(y1 - y, y2 - y);
-    else if(std::abs(x - x1) <= Epsilon<Unit>::Value &&
-            std::abs(x - x2) <= Epsilon<Unit>::Value)
+    else if(x == x1 && x == x2)
         ret = 0;
     else
         ret = y - y1 + (y1 - y2)*(x1 - x)/(x1 - x2);
@@ -343,9 +369,10 @@ inline Radians _Segment<RawPoint>::angleToXaxis() const
 }
 
 template<class RawPoint>
-inline double _Segment<RawPoint>::length() const
+template<class Unit>
+inline Unit _Segment<RawPoint>::sqlength() const
 {
-    return pointlike::distance(first(), second());
+    return pointlike::squaredDistance<RawPoint, Unit>(first(), second());
 }
 
 template<class RawPoint>
@@ -356,8 +383,8 @@ inline RawPoint _Box<RawPoint>::center() const BP2D_NOEXCEPT {
     using Coord = TCoord<RawPoint>;
 
     RawPoint ret =  { // No rounding here, we dont know if these are int coords
-        static_cast<Coord>( (getX(minc) + getX(maxc))/2.0 ),
-        static_cast<Coord>( (getY(minc) + getY(maxc))/2.0 )
+        Coord( (getX(minc) + getX(maxc)) / Coord(2) ),
+        Coord( (getY(minc) + getY(maxc)) / Coord(2) )
     };
 
     return ret;
@@ -581,10 +608,10 @@ boundingBox(const RawShapes& /*sh*/, const MultiPolygonTag&)
 }
 
 template<class RawShape>
-inline RawShape convexHull(const RawShape& /*sh*/, const PolygonTag&)
+inline RawShape convexHull(const RawShape& /*sh*/, const PathTag&)
 {
     static_assert(always_false<RawShape>::value,
-                  "shapelike::convexHull(shape) unimplemented!");
+                  "shapelike::convexHull(path) unimplemented!");
     return RawShape();
 }
 
@@ -828,6 +855,12 @@ inline double area(const RawShapes& shapes, const MultiPolygonTag&)
 }
 
 template<class RawShape>
+inline RawShape convexHull(const RawShape& sh, const PolygonTag&)
+{
+    return create<RawShape>(convexHull(contour(sh), PathTag()));
+}
+
+template<class RawShape>
 inline auto convexHull(const RawShape& sh)
     -> decltype(convexHull(sh, Tag<RawShape>())) // TODO: C++14 could deduce
 {
@@ -838,7 +871,8 @@ template<class TP, class TC>
 inline bool isInside(const TP& point, const TC& circ,
                      const PointTag&, const CircleTag&)
 {
-    return pointlike::distance(point, circ.center()) < circ.radius();
+    auto r = circ.radius();
+    return pointlike::squaredDistance(point, circ.center()) < r * r;
 }
 
 template<class TP, class TB>
@@ -987,6 +1021,9 @@ template<class RawShape> inline bool isConvex(const RawShape& sh) // dispatch
     using Circle  = _Circle<Point>;  \
     using Segment = _Segment<Point>; \
     using Polygons = TMultiShape<T>
+
+namespace sl = shapelike;
+namespace pl = pointlike;
 
 }
 

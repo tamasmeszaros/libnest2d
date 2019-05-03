@@ -75,38 +75,39 @@ template<> inline TCoord<PointImpl>& y(PointImpl& p)
 
 }
 
+// Using the libnest2d default area implementation
 #define DISABLE_BOOST_AREA
 
-namespace _smartarea {
+//namespace _smartarea {
 
-template<Orientation o>
-inline double area(const PolygonImpl& /*sh*/) {
-    return std::nan("");
-}
+//template<Orientation o>
+//inline double area(const PolygonImpl& /*sh*/) {
+//    return std::nan("");
+//}
 
-template<>
-inline double area<Orientation::COUNTER_CLOCKWISE>(const PolygonImpl& sh) {
-    return std::accumulate(sh.Holes.begin(), sh.Holes.end(),
-                           ClipperLib::Area(sh.Contour),
-                           [](double a, const ClipperLib::Path& pt){
-        return a + ClipperLib::Area(pt);
-    });
-}
+//template<>
+//inline double area<Orientation::COUNTER_CLOCKWISE>(const PolygonImpl& sh) {
+//    return std::accumulate(sh.Holes.begin(), sh.Holes.end(),
+//                           ClipperLib::Area(sh.Contour),
+//                           [](double a, const ClipperLib::Path& pt){
+//        return a + ClipperLib::Area(pt);
+//    });
+//}
 
-template<>
-inline double area<Orientation::CLOCKWISE>(const PolygonImpl& sh) {
-    return -area<Orientation::COUNTER_CLOCKWISE>(sh);
-}
+//template<>
+//inline double area<Orientation::CLOCKWISE>(const PolygonImpl& sh) {
+//    return -area<Orientation::COUNTER_CLOCKWISE>(sh);
+//}
 
-}
+//}
 
 namespace shapelike {
 
-// Tell libnest2d how to make string out of a ClipperPolygon object
-template<> inline double area(const PolygonImpl& sh, const PolygonTag&)
-{
-    return _smartarea::area<OrientationType<PolygonImpl>::Value>(sh);
-}
+//// Tell libnest2d how to make string out of a ClipperPolygon object
+//template<> inline double area(const PolygonImpl& sh, const PolygonTag&)
+//{
+//    return _smartarea::area<OrientationType<PolygonImpl>::Value>(sh);
+//}
 
 template<> inline void offset(PolygonImpl& sh, TCoord<PointImpl> distance)
 {
@@ -200,7 +201,8 @@ inline PolygonImpl create(const PathImpl& path, const HoleStore& holes)
 //        ClipperLib::ReversePath(p.Contour);
 //    }
 
-//    p.Holes = holes;
+    p.Holes = holes;
+    
 //    for(auto& h : p.Holes) {
 //        if(!ClipperLib::Orientation(h)) {
 //            ClipperLib::ReversePath(h);
@@ -224,7 +226,7 @@ template<> inline PolygonImpl create( PathImpl&& path, HoleStore&& holes) {
 //        ClipperLib::ReversePath(p.Contour);
 //    }
 
-//    p.Holes.swap(holes);
+    p.Holes.swap(holes);
 
 //    for(auto& h : p.Holes) {
 //        if(!ClipperLib::Orientation(h)) {

@@ -576,13 +576,8 @@ inline void unserialize(RawShape& /*sh*/, const std::string& /*str*/)
                   "shapelike::unserialize() unimplemented!");
 }
 
-template<class RawShape>
-inline double area(const RawShape& /*sh*/, const PolygonTag&)
-{
-    static_assert(always_false<RawShape>::value,
-                  "shapelike::area() unimplemented!");
-    return 0;
-}
+template<class Cntr, class Unit = double>
+inline Unit area(const Cntr& poly, const PathTag& );
 
 template<class RawShape>
 inline bool intersects(const RawShape& /*sh*/, const RawShape& /*sh*/)
@@ -864,13 +859,38 @@ inline _Box<TPoint<S>> boundingBox(const S& sh)
 template<class Box>
 inline double area(const Box& box, const BoxTag& )
 {
-    return box.area<double>();
+    return box.template area<double>();
 }
 
 template<class Circle>
 inline double area(const Circle& circ, const CircleTag& )
 {
     return circ.area();
+}
+
+template<class Cntr, class Unit>
+inline Unit area(const Cntr& poly, const PathTag& )
+{
+    if (cend(poly) - cbegin(poly) < 3) return 0.0;
+  
+    Unit a = 0;
+    for (auto i = cbegin(poly), j = std::prev(cend(poly)); i < cend(poly); ++i)
+    {
+      a += (Unit(getX(*j)) + Unit(getX(*i))) * (Unit(getY(*j)) - Unit(getY(*i)));
+      j = i;
+    }
+    a /= 2;
+    return is_clockwise<Cntr>() ? a : -a;
+}
+
+template<class S> inline double area(const S& poly, const PolygonTag& )
+{
+    auto hls = holes(poly);
+    return std::accumulate(hls.begin(), hls.end(), 
+                           area(contour(poly), PathTag()),
+                           [](double a, const TContour<S> &h){
+        return a + area(h, PathTag());    
+    });
 }
 
 template<class RawShape> // Dispatching function

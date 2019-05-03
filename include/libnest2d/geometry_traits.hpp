@@ -25,7 +25,9 @@ struct CircleTag {};
 template<class Shape> struct ShapeTag { using Type = typename Shape::Tag; };
 template<class S> using Tag = typename ShapeTag<remove_cvref_t<S>>::Type;
 
-template<class RawShape> struct ContourType { using Type = RawShape; };
+template<class RawShape> struct ContourType { 
+    using Type = RawShape; 
+};
 
 template<class RawShape>
 using TContour = typename ContourType<remove_cvref_t<RawShape>>::Type;
@@ -57,7 +59,8 @@ template<class GeomClass> struct ComputeType {
 };
 
 /// The shorthand for ComputeType::Type
-template<class GeomClass> using TCompute = typename ComputeType<remove_cvref_t<GeomClass>>::Type;
+template<class GeomClass> 
+using TCompute = typename ComputeType<remove_cvref_t<GeomClass>>::Type;
 
 template<class RawShape>
 struct HolesContainer { using Type = std::vector<TContour<RawShape>>;  };

@@ -537,6 +537,14 @@ TEST(GeometryAlgorithms, BottomLeftStressTest) {
     }
 }
 
+TEST(GeometryAlgorithms, NestTest) {
+    std::vector<Item> input = prusaParts();
+    auto result = libnest2d::nest(input, Box(250000000, 210000000),
+                                  [](unsigned cnt) {
+        std::cout << "parts left: " << cnt << std::endl;
+    });
+}
+
 namespace {
 
 struct ItemPair {

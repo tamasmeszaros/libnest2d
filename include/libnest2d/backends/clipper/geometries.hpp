@@ -20,6 +20,14 @@ using PathImpl  = ClipperLib::Path;
 using HoleStore = ClipperLib::Paths;
 using PolygonImpl = ClipperLib::Polygon;
 
+template<> struct ShapeTag<PolygonImpl> { using Type = PolygonTag; };
+template<> struct ShapeTag<PathImpl>    { using Type = PathTag; };
+template<> struct ShapeTag<PointImpl>   { using Type = PointTag; };
+
+template<> struct ShapeTag<TMultiShape<PolygonImpl>> {
+    using Type = MultiPolygonTag;
+};
+
 // Type of coordinate units used by Clipper
 template<> struct CoordType<PointImpl> {
     using Type = ClipperLib::cInt;
@@ -37,13 +45,6 @@ template<> struct ContourType<PolygonImpl> {
     using Type = PathImpl;
 };
 
-template<> struct ShapeTag<PolygonImpl> { using Type = PolygonTag; };
-template<> struct ShapeTag<PathImpl> { using Type = PathTag; };
-template<> struct ShapeTag<PointImpl> { using Type = PointTag; };
-
-template<> struct ShapeTag<TMultiShape<PolygonImpl>> {
-    using Type = MultiPolygonTag;
-};
 
 // Get the Contour type when working with a multipshape. This will also make
 // TPoint, TCoord and TCompute work with multishapes

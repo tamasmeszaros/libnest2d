@@ -66,6 +66,7 @@ template<> struct DoublePrecision<int8_t> { using Type = int16_t; };
 template<> struct DoublePrecision<int16_t> { using Type = int32_t; };
 template<> struct DoublePrecision<int32_t> { using Type = int64_t; };
 template<> struct DoublePrecision<float> { using Type = double; };
+template<> struct DoublePrecision<double> { using Type = long double; };
 template<class I> struct ComputeType<I, true> {
     using Type = typename DoublePrecision<I>::Type;
 };
@@ -871,10 +872,12 @@ inline double area(const Circle& circ, const CircleTag& )
 template<class Cntr, class Unit>
 inline Unit area(const Cntr& poly, const PathTag& )
 {
-    if (cend(poly) - cbegin(poly) < 3) return 0.0;
+    namespace sl = shapelike;
+    if (sl::cend(poly) - sl::cbegin(poly) < 3) return 0.0;
   
     Unit a = 0;
-    for (auto i = cbegin(poly), j = std::prev(cend(poly)); i < cend(poly); ++i)
+    for (auto i = sl::cbegin(poly), j = std::prev(sl::cend(poly)); 
+         i < sl::cend(poly); ++i)
     {
       a += (Unit(getX(*j)) + Unit(getX(*i))) * (Unit(getY(*j)) - Unit(getY(*i)));
       j = i;

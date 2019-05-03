@@ -295,7 +295,7 @@ public:
     
     inline long double area() const { 
         long double asq = pl::magnsq<Pt, long double>(axis_);
-        return bottom_ * right_ / asq;
+        return cast<long double>(bottom_ * right_) / asq;
     }
     
     inline long double width() const { 

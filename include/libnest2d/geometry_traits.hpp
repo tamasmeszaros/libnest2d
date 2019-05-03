@@ -9,6 +9,7 @@
 #include <numeric>
 #include <iterator>
 #include <cmath>
+#include <cstdint>
 
 #include <libnest2d/common.hpp>
 
@@ -54,13 +55,23 @@ using TCoord = typename CoordType<remove_cvref_t<GeomType>>::Type;
 /// Getting the computation type for a certain geometry type.
 /// It is the coordinate type by default but it is advised that a type with
 /// larger precision and (or) range is specified.
-template<class GeomClass> struct ComputeType { 
-    using Type = typename ComputeType<TCoord<GeomClass>>::Type; 
+template<class T, bool = std::is_arithmetic<T>::value> struct ComputeType {};
+
+template<class GeomClass> struct ComputeType<GeomClass, false> {
+    using Type = typename ComputeType<TCoord<GeomClass>>::Type;
+};
+
+template<class T> struct DoublePrecision { using Type = T; };
+template<> struct DoublePrecision<int8_t> { using Type = int16_t; };
+template<> struct DoublePrecision<int16_t> { using Type = int32_t; };
+template<> struct DoublePrecision<int32_t> { using Type = int64_t; };
+template<> struct DoublePrecision<float> { using Type = double; };
+template<class I> struct ComputeType<I, true> {
+    using Type = typename DoublePrecision<I>::Type;
 };
 
 /// The shorthand for ComputeType::Type
-template<class GeomClass> 
-using TCompute = typename ComputeType<remove_cvref_t<GeomClass>>::Type;
+template<class T> using TCompute = typename ComputeType<remove_cvref_t<T>>::Type;
 
 template<class RawShape>
 struct HolesContainer { using Type = std::vector<TContour<RawShape>>;  };
@@ -68,6 +79,20 @@ struct HolesContainer { using Type = std::vector<TContour<RawShape>>;  };
 template<class RawShape>
 using THolesContainer = typename HolesContainer<remove_cvref_t<RawShape>>::Type;
 
+template<class S> struct DefaultMultiShape: public std::vector<S> {
+    using Tag = MultiPolygonTag;
+    template<class...Args> DefaultMultiShape(Args&&...args):
+        std::vector<S>(std::forward<Args>(args)...) {}
+};
+
+template<class S> struct MultiShape { using Type = DefaultMultiShape<S>; };
+
+template<class S>
+using TMultiShape = typename MultiShape<remove_cvref_t<S>>::Type;
+
+template<class S> struct ContourType<DefaultMultiShape<S>> {
+    using Type = typename ContourType<S>::Type;
+};
 
 enum class Orientation {
     CLOCKWISE,
@@ -85,6 +110,7 @@ template<class T> inline /*constexpr*/ bool is_clockwise() {
     return OrientationType<T>::Value == Orientation::CLOCKWISE; 
 }
 
+
 /**
  * \brief A point pair base class for other point pairs (segment, box, ...).
  * \tparam RawPoint The actual point type to use.
@@ -94,10 +120,6 @@ struct PointPair {
     RawPoint p1;
     RawPoint p2;
 };
-
-template<class S> struct MultiShape { using Type = std::vector<S>; };
-template<class S>
-using TMultiShape = typename MultiShape<remove_cvref_t<S>>::Type;
 
 /**
  * \brief An abstraction of a box;
@@ -139,10 +161,10 @@ template<class S> struct PointType<_Box<S>> {
     using Type = typename _Box<S>::PointType; 
 };
 
-template<class RawPoint, class Unit = TCompute<RawPoint>>
+template<class RawPoint>
 class _Circle {
     RawPoint center_;
-    Unit radius_ = 0;
+    double radius_ = 0;
 public:
 
     using Tag = CircleTag;
@@ -154,17 +176,16 @@ public:
     inline const RawPoint& center() const BP2D_NOEXCEPT { return center_; }
     inline void center(const RawPoint& c) { center_ = c; }
 
-    inline Unit radius() const BP2D_NOEXCEPT { return radius_; }
-    inline void radius(Unit r) { radius_ = r; }
+    inline double radius() const BP2D_NOEXCEPT { return radius_; }
+    inline void radius(double r) { radius_ = r; }
     
-    inline Unit area() const BP2D_NOEXCEPT {
-        auto r = cast<long double>(radius_);
-        return cast<Unit>(Pi_2 * r * r);
+    inline double area() const BP2D_NOEXCEPT {
+        return Pi_2 * radius_ * radius_;
     }
 };
 
-template<class S, class Unit> struct PointType<_Circle<S, Unit>> { 
-    using Type = typename _Circle<S, Unit>::PointType; 
+template<class S> struct PointType<_Circle<S>> {
+    using Type = typename _Circle<S>::PointType;
 };
 
 /**
@@ -248,7 +269,7 @@ inline TCoord<RawPoint>& y(RawPoint& p)
 template<class RawPoint, class Unit = TCompute<RawPoint>>
 inline Unit squaredDistance(const RawPoint& p1, const RawPoint& p2)
 {
-    Unit x1(x(p1)), y1(y(p1)), x2(x(p2)), y2(y(p2));
+    auto x1 = Unit(x(p1)), y1 = Unit(y(p1)), x2 = Unit(x(p2)), y2 = Unit(y(p2));
     Unit a = (x2 - x1), b = (y2 - y1);
     return a * a + b * b;
 }
@@ -263,27 +284,27 @@ inline double distance(const RawPoint& p1, const RawPoint& p2)
 template<class Pt> inline Pt perp(const Pt& p) 
 { 
     return Pt(y(p), -x(p));
-};
+}
 
 template<class Pt, class Unit = TCompute<Pt>> 
 inline Unit dotperp(const Pt& a, const Pt& b) 
 { 
     return Unit(x(a)) * Unit(y(b)) - Unit(y(a)) * Unit(x(b)); 
-};
+}
 
 // dot product
 template<class Pt, class Unit = TCompute<Pt>> 
 inline Unit dot(const Pt& a, const Pt& b) 
 {
     return Unit(x(a)) * x(b) + Unit(y(a)) * y(b);
-};
+}
 
 // squared vector magnitude
 template<class Pt, class Unit = TCompute<Pt>> 
 inline Unit magnsq(const Pt& p) 
 {
     return  Unit(x(p)) * x(p) + Unit(y(p)) * y(p);
-};
+}
 
 template<class RawPoint, class Unit = TCompute<RawPoint>>
 inline std::pair<Unit, bool> horizontalDistance(
@@ -614,7 +635,7 @@ inline _Box<TPoint<RawShape>> boundingBox(const RawShape& /*sh*/,
 }
 
 template<class RawShapes>
-inline _Box<TPoint<typename RawShapes::value_type>>
+inline _Box<TPoint<RawShapes>>
 boundingBox(const RawShapes& /*sh*/, const MultiPolygonTag&)
 {
     static_assert(always_false<RawShapes>::value,
@@ -843,7 +864,7 @@ inline _Box<TPoint<S>> boundingBox(const S& sh)
 template<class Box>
 inline double area(const Box& box, const BoxTag& )
 {
-    return box.area();
+    return box.area<double>();
 }
 
 template<class Circle>

@@ -301,87 +301,87 @@ public:
 
 namespace libnest2d {
 
-template<> class BigInt<Bits<128>, Int128>: public Int128 {
-public:
-    BigInt(const Int128& v): Int128(v) {}
+//template<> class BigInt<Bits<128>, Int128>: public Int128 {
+//public:
+//    BigInt(const Int128& v): Int128(v) {}
     
-    long double to_floating() const { 
-        return static_cast<long double>(Int128::value); 
-    }
-};
+//    long double to_floating() const {
+//        return static_cast<long double>(Int128::value);
+//    }
+//};
 
-template <> class Rational<int64_t, Int128> {
-    int64_t num, den;
-    inline void normsign() { if(den < 0) { den = -den; num = -num; } }
-public:
+//template <> class Rational<int64_t, Int128> {
+//    int64_t num, den;
+//    inline void normsign() { if(den < 0) { den = -den; num = -num; } }
+//public:
     
-    using BaseType = int64_t;
-    using DoubleType = Int128;
+//    using BaseType = int64_t;
+//    using DoubleType = Int128;
     
-    inline Rational(): num(int64_t(0)), den(int64_t(1)) {}
+//    inline Rational(): num(int64_t(0)), den(int64_t(1)) {}
     
-    inline explicit Rational(const int64_t& n, const int64_t& d = int64_t(1)): 
-        num(n), den(d) 
-    {    
-    }
+//    inline explicit Rational(const int64_t& n, const int64_t& d = int64_t(1)):
+//        num(n), den(d)
+//    {
+//    }
 
-    inline bool operator>(const Rational& o) const { 
-        return Int128::compare_rationals(num, den, o.num, o.den) > 0;
-    }
+//    inline bool operator>(const Rational& o) const {
+//        return Int128::compare_rationals(num, den, o.num, o.den) > 0;
+//    }
     
-    inline bool operator<(const Rational& o) const { 
-        return Int128::compare_rationals(num, den, o.num, o.den) < 0; 
-    }
+//    inline bool operator<(const Rational& o) const {
+//        return Int128::compare_rationals(num, den, o.num, o.den) < 0;
+//    }
 
-    inline bool operator==(const Rational& o) const {
-        return Int128::compare_rationals(num, den, o.num, o.den) == 0;
-    }
+//    inline bool operator==(const Rational& o) const {
+//        return Int128::compare_rationals(num, den, o.num, o.den) == 0;
+//    }
     
-    inline bool operator!=(const Rational& o) const { return !(*this == o); }
+//    inline bool operator!=(const Rational& o) const { return !(*this == o); }
     
-    inline bool operator<=(const Rational& o) const { 
-        return Int128::compare_rationals(num, den, o.num, o.den) <= 0;
-    }
+//    inline bool operator<=(const Rational& o) const {
+//        return Int128::compare_rationals(num, den, o.num, o.den) <= 0;
+//    }
     
-    inline bool operator>=(const Rational& o) const {
-        return Int128::compare_rationals(num, den, o.num, o.den) >= 0;
-    }
+//    inline bool operator>=(const Rational& o) const {
+//        return Int128::compare_rationals(num, den, o.num, o.den) >= 0;
+//    }
     
-    inline bool operator< (const int64_t& v) const { return num <  Int128::multiply(v, den); }
-    inline bool operator> (const int64_t& v) const { return num >  Int128::multiply(v, den); }
-    inline bool operator<=(const int64_t& v) const { return num <= Int128::multiply(v, den); }
-    inline bool operator>=(const int64_t& v) const { return num >= Int128::multiply(v, den); }
+//    inline bool operator< (const int64_t& v) const { return num <  Int128::multiply(v, den); }
+//    inline bool operator> (const int64_t& v) const { return num >  Int128::multiply(v, den); }
+//    inline bool operator<=(const int64_t& v) const { return num <= Int128::multiply(v, den); }
+//    inline bool operator>=(const int64_t& v) const { return num >= Int128::multiply(v, den); }
     
-    inline Rational& operator*=(const Rational& o) {
-        num *= o.num; den *= o.den; return *this;
-    }
+//    inline Rational& operator*=(const Rational& o) {
+//        num *= o.num; den *= o.den; return *this;
+//    }
 
-    inline Rational& operator/=(const Rational& o) {
-        num *= o.den; den *= o.num; return *this;
-    }
+//    inline Rational& operator/=(const Rational& o) {
+//        num *= o.den; den *= o.num; return *this;
+//    }
     
-    inline Rational& operator+=(const Rational& o) {
-        den *= o.den; num = o.den * num + o.num * den; return *this;
-    }
+//    inline Rational& operator+=(const Rational& o) {
+//        den *= o.den; num = o.den * num + o.num * den; return *this;
+//    }
     
-    inline Rational& operator-=(const Rational& o) {
-        den *= o.den; num = o.den * num - o.num * den; return *this;
-    }
+//    inline Rational& operator-=(const Rational& o) {
+//        den *= o.den; num = o.den * num - o.num * den; return *this;
+//    }
     
-    inline Rational& operator*=(const int64_t& v) { num *= v; return *this; }
-    inline Rational& operator/=(const int64_t& v) { den *= v; normsign(); return *this; }
-    inline Rational& operator+=(const int64_t& v) { num += v * den; return *this; }
-    inline Rational& operator-=(const int64_t& v) { num -= v * den; return *this; }
+//    inline Rational& operator*=(const int64_t& v) { num *= v; return *this; }
+//    inline Rational& operator/=(const int64_t& v) { den *= v; normsign(); return *this; }
+//    inline Rational& operator+=(const int64_t& v) { num += v * den; return *this; }
+//    inline Rational& operator-=(const int64_t& v) { num -= v * den; return *this; }
     
-    inline Rational operator*(const int64_t& v) const { auto tmp = *this; tmp *= v; return tmp; }
-    inline Rational operator/(const int64_t& v) const { auto tmp = *this; tmp /= v; return tmp; }
-    inline Rational operator+(const int64_t& v) const { auto tmp = *this; tmp += v; return tmp; }
-    inline Rational operator-(const int64_t& v) const { auto tmp = *this; tmp -= v; return tmp; }
-    inline Rational operator-() const { auto tmp = *this; tmp.num = -num; return tmp; }
+//    inline Rational operator*(const int64_t& v) const { auto tmp = *this; tmp *= v; return tmp; }
+//    inline Rational operator/(const int64_t& v) const { auto tmp = *this; tmp /= v; return tmp; }
+//    inline Rational operator+(const int64_t& v) const { auto tmp = *this; tmp += v; return tmp; }
+//    inline Rational operator-(const int64_t& v) const { auto tmp = *this; tmp -= v; return tmp; }
+//    inline Rational operator-() const { auto tmp = *this; tmp.num = -num; return tmp; }
     
-    inline int64_t numerator() const { return num; }
-    inline int64_t denominator() const { return den; }
-};
+//    inline int64_t numerator() const { return num; }
+//    inline int64_t denominator() const { return den; }
+//};
 
 }
 

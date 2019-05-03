@@ -538,11 +538,11 @@ TEST(GeometryAlgorithms, BottomLeftStressTest) {
 }
 
 TEST(GeometryAlgorithms, NestTest) {
-    std::vector<Item> input = prusaParts();
-    auto result = libnest2d::nest(input, Box(250000000, 210000000),
-                                  [](unsigned cnt) {
-        std::cout << "parts left: " << cnt << std::endl;
-    });
+//    std::vector<Item> input = prusaParts();
+//    auto result = libnest2d::nest(input, Box(250000000, 210000000),
+//                                  [](unsigned cnt) {
+//        std::cout << "parts left: " << cnt << std::endl;
+//    });
 }
 
 namespace {
@@ -1013,8 +1013,8 @@ double refMinAreaBox(const PolygonImpl& p) {
 //using Unit = __int128;
 //using Ratio = Rational<Unit, Unit>;
 template<class T> struct BoostGCD { T operator()(const T &a, const T &b) { return boost::gcd(a, b); }}; 
-using Unit = __int128;
-using Ratio = boost::rational<__int128>;//Rational<boost::multiprecision::int512_t, BoostGCD<boost::multiprecision::int512_t>>;
+using Unit = boost::multiprecision::int128_t;
+using Ratio = boost::rational<Unit>;//Rational<boost::multiprecision::int512_t, BoostGCD<boost::multiprecision::int512_t>>;
 
 //double gteMinAreaBox(const PolygonImpl& p) {    
     

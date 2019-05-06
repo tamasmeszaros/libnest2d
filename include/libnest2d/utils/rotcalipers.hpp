@@ -515,6 +515,7 @@ RotatedBox<TPoint<RawShape>, Unit> minAreaBoundingBox(const RawShape& sh)
                   (Unit(getY(*maxY)) - getY(*minY)));
     
     std::array<Iterator, 4> rect = {minY, maxX, maxY, minX};
+    std::array<Iterator, 4> minrect = rect;
     
     // We will examine edge count + 1 bounding boxes. The one additional is 
     // the initial axis aligned bounding box
@@ -538,11 +539,11 @@ RotatedBox<TPoint<RawShape>, Unit> minAreaBoundingBox(const RawShape& sh)
         Ratio rarea = rectarea<Point, Unit, Ratio>(w, rect);
         
         // Update min area and the direction of the min bounding box;
-        if(rarea <= minarea) { w_min = w; minarea = rarea; }
+        if(rarea <= minarea) { w_min = w; minarea = rarea; minrect = rect; }
     }
     
-    Unit a = dot<Point, Unit>(w_min, *rect[1] - *rect[3]);
-    Unit b = dot<Point, Unit>(-perp(w_min), *rect[2] - *rect[0]);
+    Unit a = dot<Point, Unit>(w_min, *minrect[1] - *minrect[3]);
+    Unit b = dot<Point, Unit>(-perp(w_min), *minrect[2] - *minrect[0]);
     RotatedBox<Point, Unit> bb(w_min, a, b);
     
     return bb;

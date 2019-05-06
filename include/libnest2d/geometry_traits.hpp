@@ -15,6 +15,7 @@
 
 namespace libnest2d {
 
+// Meta tags for different geometry concepts. 
 struct PointTag {};
 struct PolygonTag {};
 struct PathTag {};
@@ -22,14 +23,16 @@ struct MultiPolygonTag {};
 struct BoxTag {};
 struct CircleTag {};
 
-/// Meta-functions to derive the tags
+/// Meta-function to derive the tag of a shape type.
 template<class Shape> struct ShapeTag { using Type = typename Shape::Tag; };
+
+/// Tag<S> will be used instead of `typename ShapeTag<S>::Type`
 template<class S> using Tag = typename ShapeTag<remove_cvref_t<S>>::Type;
 
-template<class RawShape> struct ContourType { 
-    using Type = RawShape; 
-};
+/// Meta function to derive the contour type for a polygon which could be itself
+template<class RawShape> struct ContourType {  using Type = RawShape;  };
 
+/// TContour<RawShape> instead of `typename ContourType<RawShape>::type`
 template<class RawShape>
 using TContour = typename ContourType<remove_cvref_t<RawShape>>::Type;
 
@@ -57,10 +60,15 @@ using TCoord = typename CoordType<remove_cvref_t<GeomType>>::Type;
 /// larger precision and (or) range is specified.
 template<class T, bool = std::is_arithmetic<T>::value> struct ComputeType {};
 
+/// A compute type is introduced to hold the results of computations on
+/// coordinates and points. It should be larger in range than the coordinate 
+/// type or the range of coordinates should be limited to not loose precision.
 template<class GeomClass> struct ComputeType<GeomClass, false> {
     using Type = typename ComputeType<TCoord<GeomClass>>::Type;
 };
 
+/// libnest2d will choose a default compute type for various coordinate types
+/// if the backend has not specified anything.
 template<class T> struct DoublePrecision { using Type = T; };
 template<> struct DoublePrecision<int8_t> { using Type = int16_t; };
 template<> struct DoublePrecision<int16_t> { using Type = int32_t; };
@@ -71,26 +79,50 @@ template<class I> struct ComputeType<I, true> {
     using Type = typename DoublePrecision<I>::Type;
 };
 
-/// The shorthand for ComputeType::Type
+/// TCompute<T> shorthand for `typename ComputeType<T>::Type`
 template<class T> using TCompute = typename ComputeType<remove_cvref_t<T>>::Type;
 
+/// A meta function to derive a container type for holes in a polygon
 template<class RawShape>
 struct HolesContainer { using Type = std::vector<TContour<RawShape>>;  };
 
+/// Shorthand for `typename HolesContainer<RawShape>::Type`
 template<class RawShape>
 using THolesContainer = typename HolesContainer<remove_cvref_t<RawShape>>::Type;
 
+/*
+ * TContour, TPoint, TCoord and TCompute should be usable for any type for which
+ * it makes sense. For example, the point type could be derived from the contour,
+ * the polygon and (or) the multishape as well. The coordinate type also and
+ * including the point type. TCoord<Polygon>, TCoord<Path>, TCoord<Point> are
+ * all valid types and derives the coordinate type of template argument Polygon,
+ * Path and Point. This is also true for TCompute, but it can also take the 
+ * coordinate type as argument.
+ */
+
+/*
+ * A Multi shape concept is also introduced. A multi shape is something that
+ * can contain the result of an operation where the input is one polygon and 
+ * the result could be many polygons or path -> paths. The MultiShape should be
+ * a container type. If the backend does not specialize the MultiShape template,
+ * a default multi shape container will be used.
+ */
+
+/// The default multi shape container.
 template<class S> struct DefaultMultiShape: public std::vector<S> {
     using Tag = MultiPolygonTag;
     template<class...Args> DefaultMultiShape(Args&&...args):
         std::vector<S>(std::forward<Args>(args)...) {}
 };
 
+/// The MultiShape Type trait which gets the container type for a geometry type.
 template<class S> struct MultiShape { using Type = DefaultMultiShape<S>; };
 
-template<class S>
+/// use TMultiShape<S> instead of `typename MultiShape<S>::Type`
+template<class S> 
 using TMultiShape = typename MultiShape<remove_cvref_t<S>>::Type;
 
+// A specialization of ContourType to work with the default multishape type
 template<class S> struct ContourType<DefaultMultiShape<S>> {
     using Type = typename ContourType<S>::Type;
 };

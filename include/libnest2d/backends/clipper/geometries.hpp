@@ -41,8 +41,6 @@ template<> struct ComputeType<ClipperLib::cInt> {
     using Type = int64_t;
 };
 
-
-
 template<> struct HolesContainer<PolygonImpl> {
     using Type = ClipperLib::Paths;
 };
@@ -78,36 +76,7 @@ template<> inline TCoord<PointImpl>& y(PointImpl& p)
 // Using the libnest2d default area implementation
 #define DISABLE_BOOST_AREA
 
-//namespace _smartarea {
-
-//template<Orientation o>
-//inline double area(const PolygonImpl& /*sh*/) {
-//    return std::nan("");
-//}
-
-//template<>
-//inline double area<Orientation::COUNTER_CLOCKWISE>(const PolygonImpl& sh) {
-//    return std::accumulate(sh.Holes.begin(), sh.Holes.end(),
-//                           ClipperLib::Area(sh.Contour),
-//                           [](double a, const ClipperLib::Path& pt){
-//        return a + ClipperLib::Area(pt);
-//    });
-//}
-
-//template<>
-//inline double area<Orientation::CLOCKWISE>(const PolygonImpl& sh) {
-//    return -area<Orientation::COUNTER_CLOCKWISE>(sh);
-//}
-
-//}
-
 namespace shapelike {
-
-//// Tell libnest2d how to make string out of a ClipperPolygon object
-//template<> inline double area(const PolygonImpl& sh, const PolygonTag&)
-//{
-//    return _smartarea::area<OrientationType<PolygonImpl>::Value>(sh);
-//}
 
 template<> inline void offset(PolygonImpl& sh, TCoord<PointImpl> distance)
 {
@@ -190,50 +159,16 @@ inline PolygonImpl create(const PathImpl& path, const HoleStore& holes)
 {
     PolygonImpl p;
     p.Contour = path;
-    
-//    static_assert(OrientationType<PolygonImpl>::Value == Orientation::CLOCKWISE, 
-//                  "Libnest2D is ready only for clockwise oriented geometries.");
-
-//    // Expecting that the coordinate system Y axis is positive in upwards
-//    // direction
-//    if(ClipperLib::Orientation(p.Contour)) {
-//        // Not clockwise then reverse the b*tch
-//        ClipperLib::ReversePath(p.Contour);
-//    }
-
     p.Holes = holes;
-    
-//    for(auto& h : p.Holes) {
-//        if(!ClipperLib::Orientation(h)) {
-//            ClipperLib::ReversePath(h);
-//        }
-//    }
-
+   
     return p;
 }
 
 template<> inline PolygonImpl create( PathImpl&& path, HoleStore&& holes) {
     PolygonImpl p;
     p.Contour.swap(path);
-    
-//    static_assert(OrientationType<PolygonImpl>::Value == Orientation::CLOCKWISE, 
-//                  "Libnest2D is ready only for clockwise oriented geometries.");
-
-//    // Expecting that the coordinate system Y axis is positive in upwards
-//    // direction
-//    if(ClipperLib::Orientation(p.Contour)) {
-//        // Not clockwise then reverse the b*tch
-//        ClipperLib::ReversePath(p.Contour);
-//    }
-
     p.Holes.swap(holes);
-
-//    for(auto& h : p.Holes) {
-//        if(!ClipperLib::Orientation(h)) {
-//            ClipperLib::ReversePath(h);
-//        }
-//    }
-
+    
     return p;
 }
 

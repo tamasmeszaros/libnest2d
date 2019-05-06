@@ -30,7 +30,7 @@ template<class Shape> struct ShapeTag { using Type = typename Shape::Tag; };
 template<class S> using Tag = typename ShapeTag<remove_cvref_t<S>>::Type;
 
 /// Meta function to derive the contour type for a polygon which could be itself
-template<class RawShape> struct ContourType {  using Type = RawShape;  };
+template<class RawShape> struct ContourType { using Type = RawShape; };
 
 /// TContour<RawShape> instead of `typename ContourType<RawShape>::type`
 template<class RawShape>
@@ -466,9 +466,6 @@ enum class Formats {
 // This struct serves as a namespace. The only difference is that it can be
 // used in friend declarations and can be aliased at class scope.
 namespace shapelike {
-
-template<class RawShape>
-using Shapes = TMultiShape<RawShape>;
 
 template<class RawShape>
 inline RawShape create(const TContour<RawShape>& contour,

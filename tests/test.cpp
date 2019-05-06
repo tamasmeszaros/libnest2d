@@ -865,7 +865,7 @@ TEST(GeometryAlgorithms, mergePileWithPolygon) {
     rect2.translate({10, 0});
     rect3.translate({25, 0});
 
-    shapelike::Shapes<PolygonImpl> pile;
+    TMultiShape<PolygonImpl> pile;
     pile.push_back(rect1.transformedShape());
     pile.push_back(rect2.transformedShape());
 
@@ -1013,8 +1013,8 @@ double refMinAreaBox(const PolygonImpl& p) {
 //using Unit = __int128;
 //using Ratio = Rational<Unit, Unit>;
 template<class T> struct BoostGCD { T operator()(const T &a, const T &b) { return boost::gcd(a, b); }}; 
-using Unit = boost::multiprecision::int128_t;
-using Ratio = boost::rational<Unit>;//Rational<boost::multiprecision::int512_t, BoostGCD<boost::multiprecision::int512_t>>;
+using Unit = int64_t;
+using Ratio = boost::rational<__int128>;//Rational<boost::multiprecision::int512_t, BoostGCD<boost::multiprecision::int512_t>>;
 
 //double gteMinAreaBox(const PolygonImpl& p) {    
     
@@ -1057,6 +1057,8 @@ TEST(RotatingCalipers, MinAreaBBCClk) {
 
 TEST(RotatingCalipers, AllPrusaMinBB) {
     size_t idx = 0;
+    double err_epsilon = 500e6;
+    
     for(ClipperLib::Path rinput : PRINTER_PART_POLYGONS) {
 //        ClipperLib::Path rinput = PRINTER_PART_POLYGONS[idx];
 //        rinput.pop_back();
@@ -1070,10 +1072,11 @@ TEST(RotatingCalipers, AllPrusaMinBB) {
         double area = bb.area();
 //        double area = gteMinAreaBox(poly);
         
-        bool succ = std::abs(arearef - area) < 500e6;
-        std::cout << "part " << idx++ << " " << (succ ? "ok" : "fail") << std::endl;
+        bool succ = std::abs(arearef - area) < err_epsilon;
+        std::cout << idx++ << " " << (succ? "ok" : "failed") << " ref: " 
+                  << arearef << " actual: " << area << std::endl;
         
-//        ASSERT_DOUBLE_EQ(area, arearef);
+        ASSERT_TRUE(succ);
     }
     
     for(ClipperLib::Path rinput : STEGOSAUR_POLYGONS) {
@@ -1088,8 +1091,11 @@ TEST(RotatingCalipers, AllPrusaMinBB) {
         double area = bb.area();
 //        double area = gteMinAreaBox(poly);
         
-        bool succ = std::abs(arearef - area) < 500e6;
-        std::cout << "part " << idx++ << " " << (succ ? "ok" : "fail") << std::endl;
+        bool succ = std::abs(arearef - area) < err_epsilon;
+        std::cout << idx++ << " " << (succ? "ok" : "failed") << " ref: " 
+                  << arearef << " actual: " << area << std::endl;
+        
+        ASSERT_TRUE(succ);
     }
 }
 

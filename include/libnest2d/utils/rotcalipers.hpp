@@ -295,7 +295,7 @@ public:
     
     inline long double area() const { 
         long double asq = pl::magnsq<Pt, long double>(axis_);
-        return cast<long double>(bottom_ * right_) / asq;
+        return cast<long double>(bottom_) * cast<long double>(right_) / asq;
     }
     
     inline long double width() const { 
@@ -517,9 +517,8 @@ RotatedBox<TPoint<RawShape>, Unit> minAreaBoundingBox(const RawShape& sh)
     std::array<Iterator, 4> rect = {minY, maxX, maxY, minX};
     std::array<Iterator, 4> minrect = rect;
     
-    // We will examine edge count + 1 bounding boxes. The one additional is 
-    // the initial axis aligned bounding box
-    size_t c = 0, count = last - first;
+    // An edge might be examined twice in which case the algorithm terminates.
+    size_t c = 0, count = last - first + 1;
     std::vector<bool> edgemask(count, false);
     
     while(c++ < count) 

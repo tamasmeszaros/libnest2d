@@ -24,26 +24,19 @@ template<> struct ShapeTag<PolygonImpl> { using Type = PolygonTag; };
 template<> struct ShapeTag<PathImpl>    { using Type = PathTag; };
 template<> struct ShapeTag<PointImpl>   { using Type = PointTag; };
 
-// Type of coordinate units used by Clipper
-template<> struct CoordType<PointImpl> {
-    using Type = ClipperLib::cInt;
-};
+// Type of coordinate units used by Clipper. Enough to specialize for point,
+// the rest of the types will work (Path, Polygon)
+template<> struct CoordType<PointImpl> { using Type = ClipperLib::cInt; };
 
-template<> struct PointType<PathImpl> {
-    using Type = PointImpl;
-};
+// Enough to specialize for path, it will work for multishape and Polygon
+template<> struct PointType<PathImpl> { using Type = PointImpl; };
 
-template<> struct ContourType<PolygonImpl> {
-    using Type = PathImpl;
-};
+// This is crucial. CountourType refers to itself by default, so we don't have
+// to secialize for clipper Path. ContourType<PathImpl>::Type is PathImpl.
+template<> struct ContourType<PolygonImpl> { using Type = PathImpl; };
 
-template<> struct ComputeType<ClipperLib::cInt> {
-    using Type = int64_t;
-};
-
-template<> struct HolesContainer<PolygonImpl> {
-    using Type = ClipperLib::Paths;
-};
+// The holes are contained in Clipper::Paths
+template<> struct HolesContainer<PolygonImpl> { using Type = ClipperLib::Paths; };
 
 namespace pointlike {
 
@@ -246,13 +239,13 @@ inline void rotate(PolygonImpl& sh, const Radians& rads)
 } // namespace shapelike
 
 #define DISABLE_BOOST_NFP_MERGE
-inline std::vector<PolygonImpl> clipper_execute(
+inline TMultiShape<PolygonImpl> clipper_execute(
         ClipperLib::Clipper& clipper,
         ClipperLib::ClipType clipType,
         ClipperLib::PolyFillType subjFillType = ClipperLib::pftEvenOdd,
         ClipperLib::PolyFillType clipFillType = ClipperLib::pftEvenOdd)
 {
-    shapelike::Shapes<PolygonImpl> retv;
+    TMultiShape<PolygonImpl> retv;
 
     ClipperLib::PolyTree result;
     clipper.Execute(clipType, result, subjFillType, clipFillType);

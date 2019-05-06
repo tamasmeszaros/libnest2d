@@ -319,6 +319,8 @@ merge(const TMultiShape<PolygonImpl>& shapes)
 
 }
 
+#define DISABLE_BOOST_CONVEX_HULL
+
 //#define DISABLE_BOOST_SERIALIZE
 //#define DISABLE_BOOST_UNSERIALIZE
 

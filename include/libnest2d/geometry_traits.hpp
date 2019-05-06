@@ -140,7 +140,7 @@ struct OrientationType {
 };
 
 template<class T> inline /*constexpr*/ bool is_clockwise() { 
-    return OrientationType<T>::Value == Orientation::CLOCKWISE; 
+    return OrientationType<TContour<T>>::Value == Orientation::CLOCKWISE; 
 }
 
 
@@ -668,21 +668,10 @@ boundingBox(const RawShapes& /*sh*/, const MultiPolygonTag&)
 }
 
 template<class RawShape>
-inline RawShape convexHull(const RawShape& /*sh*/, const PathTag&)
-{
-    static_assert(always_false<RawShape>::value,
-                  "shapelike::convexHull(path) unimplemented!");
-    return RawShape();
-}
+inline RawShape convexHull(const RawShape& sh, const PathTag&);
 
-template<class RawShapes>
-inline typename RawShapes::value_type
-convexHull(const RawShapes& /*sh*/, const MultiPolygonTag&)
-{
-    static_assert(always_false<RawShapes>::value,
-                  "shapelike::convexHull(shapes) unimplemented!");
-    return typename RawShapes::value_type();
-}
+template<class RawShapes, class S = typename RawShapes::value_type>
+inline S convexHull(const RawShapes& sh, const MultiPolygonTag&);
 
 template<class RawShape>
 inline void rotate(RawShape& /*sh*/, const Radians& /*rads*/)
@@ -908,8 +897,9 @@ inline Unit area(const Cntr& poly, const PathTag& )
     for (auto i = sl::cbegin(poly), j = std::prev(sl::cend(poly)); 
          i < sl::cend(poly); ++i)
     {
-      a += (Unit(getX(*j)) + Unit(getX(*i))) * (Unit(getY(*j)) - Unit(getY(*i)));
-      j = i;
+        Unit xj(getX(*j)), yj(getY(*j)), xi(getX(*i)), yi(getY(*i));
+        a += (xj + xi) *  (yj - yi);
+        j = i;
     }
     a /= 2;
     return is_clockwise<Cntr>() ? a : -a;
@@ -952,6 +942,85 @@ inline auto convexHull(const RawShape& sh)
     -> decltype(convexHull(sh, Tag<RawShape>())) // TODO: C++14 could deduce
 {
     return convexHull(sh, Tag<RawShape>());
+}
+
+template<class RawShape>
+inline RawShape convexHull(const RawShape& sh, const PathTag&)
+{
+    using Unit = TCompute<RawShape>;
+    using Point = TPoint<RawShape>;
+    namespace sl = shapelike;
+    
+    size_t edges = sl::cend(sh) - sl::cbegin(sh);
+    if(edges <= 3) return {};
+    
+    bool closed = false;
+    std::vector<Point> U, L;
+    U.reserve(1 + edges / 2); L.reserve(1 + edges / 2);
+    
+    std::vector<Point> pts; pts.reserve(edges);
+    std::copy(sl::cbegin(sh), sl::cend(sh), std::back_inserter(pts));
+    
+    auto fpt = pts.front(), lpt = pts.back();
+    if(getX(fpt) == getX(lpt) && getY(fpt) == getY(lpt)) { 
+        closed = true; pts.pop_back();
+    }
+    
+    std::sort(pts.begin(), pts.end(), 
+              [](const Point& v1, const Point& v2)
+    {
+        Unit x1 = getX(v1), x2 = getX(v2), y1 = getY(v1), y2 = getY(v2);
+        return x1 == x2 ? y1 < y2 : x1 < x2;
+    });
+    
+    auto dir = [](const Point& p, const Point& q, const Point& r) {
+        return (Unit(getY(q)) - getY(p)) * (Unit(getX(r)) - getX(p)) -
+               (Unit(getX(q)) - getX(p)) * (Unit(getY(r)) - getY(p));
+    };
+    
+    auto ik = pts.begin();
+    
+    while(ik != pts.end()) {
+        
+        while(U.size() > 1 && dir(U[U.size() - 2], U.back(), *ik) <= 0) 
+            U.pop_back();
+        while(L.size() > 1 && dir(L[L.size() - 2], L.back(), *ik) >= 0) 
+            L.pop_back();
+        
+        U.emplace_back(*ik);
+        L.emplace_back(*ik);
+        
+        ++ik;
+    }
+    
+    RawShape ret; reserve(ret, U.size() + L.size());
+    if(is_clockwise<RawShape>()) {
+        for(auto it = U.begin(); it != std::prev(U.end()); ++it) 
+            addVertex(ret, *it);  
+        for(auto it = L.rbegin(); it != std::prev(L.rend()); ++it) 
+            addVertex(ret, *it);
+        if(closed) addVertex(ret, *std::prev(L.rend()));
+    } else {
+        for(auto it = L.begin(); it != std::prev(L.end()); ++it) 
+            addVertex(ret, *it);  
+        for(auto it = U.rbegin(); it != std::prev(U.rend()); ++it) 
+            addVertex(ret, *it);  
+        if(closed) addVertex(ret, *std::prev(U.rend()));
+    }
+    
+    return ret;
+}
+
+template<class RawShapes, class S>
+inline S convexHull(const RawShapes& sh, const MultiPolygonTag&)
+{
+    namespace sl = shapelike;
+    S cntr;
+    for(auto& poly : sh) 
+        for(auto it = sl::cbegin(poly); it != sl::cend(poly); ++it) 
+            addVertex(cntr, *it);
+    
+    return convexHull(cntr, Tag<S>());
 }
 
 template<class TP, class TC>

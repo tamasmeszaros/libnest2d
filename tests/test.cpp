@@ -537,6 +537,17 @@ TEST(GeometryAlgorithms, BottomLeftStressTest) {
     }
 }
 
+TEST(GeometryAlgorithms, convexHull) {
+    using namespace libnest2d;
+
+    ClipperLib::Path poly = PRINTER_PART_POLYGONS[0];
+
+    auto chull = sl::convexHull(poly);
+    
+    ASSERT_EQ(chull.size(), poly.size());
+}
+
+
 TEST(GeometryAlgorithms, NestTest) {
 //    std::vector<Item> input = prusaParts();
 //    auto result = libnest2d::nest(input, Box(250000000, 210000000),

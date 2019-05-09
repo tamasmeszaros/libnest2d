@@ -15,7 +15,11 @@ template <class T, class GCD = NoGCD<T>, class TD = T> class Rational {
     T num; T den;
     
     inline void normsign() { if(den < 0) { den = -den; num = -num; } }
-    inline void normalize() { T n = GCD()(num, den); num /= n, den /= n; }
+    inline void normalize() { 
+        T n = GCD()(num, den); 
+        num /= n;
+        den /= n; 
+    }
 public:
     
     using BaseType = T;
@@ -25,8 +29,8 @@ public:
     
     inline explicit Rational(const T& n, const T& d = T(1)): num(n), den(d) 
     {
-        normalize();
         normsign();    
+        normalize();
     }
 
     inline bool operator>(const Rational& o) const { 
@@ -62,7 +66,7 @@ public:
     }
 
     inline Rational& operator/=(const Rational& o) {
-        num *= o.den; den *= o.num; normalize(); normsign(); return *this;
+        num *= o.den; den *= o.num; normsign(); normalize(); return *this;
     }
     
     inline Rational& operator+=(const Rational& o) {
@@ -78,7 +82,7 @@ public:
     }
     
     inline Rational& operator/=(const T& v) { 
-        den *= v; normalize(); normsign(); return *this; 
+        den *= v; normsign(); normalize(); return *this; 
     }
     
     inline Rational& operator+=(const T& v) { 

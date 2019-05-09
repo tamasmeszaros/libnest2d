@@ -8,19 +8,9 @@
 #include <libnest2d/utils/rotcalipers.hpp>
 
 #include "boost/multiprecision/integer.hpp"
-#include "boost/rational.hpp"
+//#include "boost/rational.hpp"
 
-#include "../tools/Int128.hpp"
-
-//using BoostRational = boost::rational<boost::multiprecision::int512_t>;
-
-//namespace std {
-//BoostRational abs(const BoostRational& r) { return boost::abs(r); }
-//boost::multiprecision::int512_t sqrt(const boost::multiprecision::int512_t& n)
-//{
-//    return boost::multiprecision::sqrt(n);
-//}
-//}
+//#include "../tools/Int128.hpp"
 
 //#include "gte/Mathematics/GteMinimumAreaBox2.h"
 
@@ -28,21 +18,10 @@
 //#include "../tools/nfp_svgnest_glue.hpp"
 
 namespace libnest2d {
-//template<> struct Epsilon<boost::multiprecision::int512_t> {
-//    static const constexpr boost::multiprecision::int512_t Value = 0;
-//};
-
-//template<> struct Epsilon<boost::multiprecision::int256_t> {
-//    static const constexpr boost::multiprecision::int256_t Value = 0;
-//};
-//template<> struct Epsilon<boost::multiprecision::int128_t> {
-//    static const constexpr boost::multiprecision::int128_t Value = 0;
-//};
-
-template<> struct _NumTag<boost::multiprecision::int512_t> { using Type = ScalarTag; };
+//template<> struct _NumTag<boost::multiprecision::int512_t> { using Type = ScalarTag; };
 template<> struct _NumTag<boost::multiprecision::int256_t> { using Type = ScalarTag; };
-template<> struct _NumTag<boost::multiprecision::int128_t> { using Type = ScalarTag; };
-template<class T> struct _NumTag<boost::rational<T>> { using Type = RationalTag; };
+//template<> struct _NumTag<boost::multiprecision::int128_t> { using Type = ScalarTag; };
+//template<class T> struct _NumTag<boost::rational<T>> { using Type = RationalTag; };
 }
 
 std::vector<libnest2d::Item>& prusaParts() {
@@ -452,7 +431,7 @@ TEST(GeometryAlgorithms, ArrangeRectanglesLoose)
 namespace {
 using namespace libnest2d;
 
-template<unsigned long SCALE = 1, class Bin>
+template<long long SCALE = 1, class Bin>
 void exportSVG(std::vector<std::reference_wrapper<Item>>& result, const Bin& bin, int idx = 0) {
 
 
@@ -769,7 +748,7 @@ void testNfp(const std::vector<ItemPair>& testdata) {
 
     auto& exportfun = exportSVG<SCALE, Box>;
 
-    auto onetest = [&](Item& orbiter, Item& stationary, unsigned testidx){
+    auto onetest = [&](Item& orbiter, Item& stationary, unsigned /*testidx*/){
         testcase++;
 
         orbiter.translate({210*SCALE, 0});
@@ -889,115 +868,13 @@ TEST(GeometryAlgorithms, mergePileWithPolygon) {
     ASSERT_EQ(shapelike::area(result.front()), ref.area());
 }
 
-namespace  {
-bool eq(const PointImpl& p1, const PointImpl& p2) {
-    return getX(p1) == getX(p2) && getY(p1) == getY(p2);
-};
-
-bool checkRotcal(const libnest2d::PolygonImpl& poly, 
-                 const std::vector<libnest2d::Segment>& antip, 
-                 const std::vector<Segment>& excl = {}) 
-{
-    using namespace libnest2d;
-    
-    size_t vcount = poly.Contour.size();
-    
-    std::vector<bool> perms(vcount, false);
-    perms[0] = true; perms[1] = true;
-    
-    bool foundall = true;
-    
-    do {
-        std::array<size_t, 2> indx = {0, 0};
-        for(size_t i = 0, j = 0; i < vcount; ++i) if(perms[i]) indx[j++] = i;
-        
-        Segment sq(poly.Contour[indx[0]], poly.Contour[indx[1]]);
-        bool in_excl = false;
-        for(auto ex : excl) {
-            if((eq(sq.first(), ex.first()) && eq(sq.second(), ex.second())) || 
-               (eq(sq.first(), ex.second()) && eq(sq.second(), ex.first()))) { in_excl = true; break; }
-        }
-        
-        bool found = in_excl;
-        if(!found) for(const Segment& s : antip) {
-            
-            bool f = (eq(s.first(), sq.first()) && eq(s.second(), sq.second())) || 
-                     (eq(s.first(), sq.second()) && eq(s.second(), sq.first()));
-            
-            // No duplicates allowed and cannot be in excludes
-            if((found && f ) || (in_excl && f)) return false;
-            
-            found = found || f;
-        }
-        
-        if(!found) std::cout << "not found point antipodal pair: " << sq.first() << " " << sq.second() << std::endl;
-        
-        foundall = foundall && found;
-        
-    } while(std::prev_permutation(perms.begin(), perms.end()));
-    
-    return foundall;
-}
-
-}
-
-TEST(RotatingCalipers, SquareClk) {
-    using namespace libnest2d;
-    
-    PolygonImpl square({{-50, 50}, {-50, -50}, {50, -50}, {50, 50}});
-    std::reverse(square.Contour.begin(), square.Contour.end());
-    auto antip = antipodals(square);
-    
-    ASSERT_TRUE(checkRotcal(square, antip));
-}
-
-TEST(RotatingCalipers, BrokensquareClk) {
-    using namespace libnest2d;
-    
-    PolygonImpl brokensquare({{-50, 30}, {-50, -50}, {50, -50}, {50, 50}, {-40, 50}});
-    std::reverse(brokensquare.Contour.begin(), brokensquare.Contour.end());
-    auto antip = antipodals(brokensquare);
-    
-    std::vector<Segment> excludes = { 
-        { {-40, 50}, {-50, 30}  }, 
-        { {-50, 30}, {-50, -50} },
-        { {-40, 50}, {50, 50}   }  
-    };
-    
-    ASSERT_TRUE(checkRotcal(brokensquare, antip,  excludes));
-}
-
-TEST(RotatingCalipers, SquareCClk) {
-    using namespace libnest2d;
-    
-    PolygonImpl square({{-50, 50}, {-50, -50}, {50, -50}, {50, 50}});
-    auto antip = antipodals(square);
-    
-    ASSERT_TRUE(checkRotcal(square, antip));
-}
-
-TEST(RotatingCalipers, BrokensquareCClk) {
-    using namespace libnest2d;
-    
-    PolygonImpl brokensquare({{-50, 30}, {-50, -50}, {50, -50}, {50, 50}, {-40, 50}});
-    auto antip = antipodals(brokensquare);
-    
-    std::vector<Segment> excludes = { 
-        { {-40, 50}, {-50, 30}  }, 
-        { {-50, 30}, {-50, -50} },
-        { {-40, 50}, {50, 50}   }  
-    };
-    
-    ASSERT_TRUE(checkRotcal(brokensquare, antip,  excludes));
-}
-
 namespace {
 
-double refMinAreaBox(const PolygonImpl& p) {    
+long double refMinAreaBox(const PolygonImpl& p) {    
     
     auto it = sl::cbegin(p), itx = std::next(it);
     
-    double min_area = std::numeric_limits<double>::max();
+    long double min_area = std::numeric_limits<long double>::max();
     
  
     auto update_min = [&min_area, &it, &itx, &p]() {
@@ -1006,7 +883,7 @@ double refMinAreaBox(const PolygonImpl& p) {
         PolygonImpl rotated = p;
         sl::rotate(rotated, -s.angleToXaxis());
         auto bb = sl::boundingBox(rotated);
-        double area = sl::area(bb);
+        auto area = cast<long double>(sl::area(bb));
         if(min_area > area) min_area = area;
     };
     
@@ -1021,11 +898,12 @@ double refMinAreaBox(const PolygonImpl& p) {
     return min_area;
 }
 
-//using Unit = __int128;
-//using Ratio = Rational<Unit, Unit>;
-template<class T> struct BoostGCD { T operator()(const T &a, const T &b) { return boost::gcd(a, b); }}; 
+template<class T> struct BoostGCD { 
+    T operator()(const T &a, const T &b) { return boost::gcd(a, b); }
+};
+
 using Unit = int64_t;
-using Ratio = boost::rational<__int128>;//Rational<boost::multiprecision::int512_t, BoostGCD<boost::multiprecision::int512_t>>;
+using Ratio = Rational<boost::multiprecision::int256_t>;
 
 //double gteMinAreaBox(const PolygonImpl& p) {    
     
@@ -1057,8 +935,8 @@ TEST(RotatingCalipers, MinAreaBBCClk) {
     PolygonImpl poly({ {u(0), u(0)}, {u(4), u(1)}, {u(2), u(4)}});
     
     
-    double arearef = refMinAreaBox(poly);
-    double area = minAreaBoundingBox<PolygonImpl, Unit, Ratio>(poly).area();
+    long double arearef = refMinAreaBox(poly);
+    long double area = minAreaBoundingBox<PolygonImpl, Unit, Ratio>(poly).area();
 //    double gtearea = gteMinAreaBox(poly);
     
     ASSERT_LE(std::abs(area - arearef), 500e6 );
@@ -1068,7 +946,7 @@ TEST(RotatingCalipers, MinAreaBBCClk) {
 
 TEST(RotatingCalipers, AllPrusaMinBB) {
     size_t idx = 0;
-    double err_epsilon = 500e6;
+    long double err_epsilon = 500e6l;
     
     for(ClipperLib::Path rinput : PRINTER_PART_POLYGONS) {
 //        ClipperLib::Path rinput = PRINTER_PART_POLYGONS[idx];
@@ -1078,9 +956,9 @@ TEST(RotatingCalipers, AllPrusaMinBB) {
 //        PolygonImpl poly(removeCollinearPoints<PathImpl, PointImpl, Unit>(rinput, 1000000));
         PolygonImpl poly(rinput);
         
-        double arearef = refMinAreaBox(poly);
+        long double arearef = refMinAreaBox(poly);
         auto bb = minAreaBoundingBox<PathImpl, Unit, Ratio>(rinput);
-        double area = bb.area();
+        long double area = cast<long double>(bb.area());
 //        double area = gteMinAreaBox(poly);
         
         bool succ = std::abs(arearef - area) < err_epsilon;
@@ -1097,9 +975,9 @@ TEST(RotatingCalipers, AllPrusaMinBB) {
         PolygonImpl poly(removeCollinearPoints<PathImpl, PointImpl, Unit>(rinput, 1000000));
         
         
-        double arearef = refMinAreaBox(poly);
+        long double arearef = refMinAreaBox(poly);
         auto bb = minAreaBoundingBox<PolygonImpl, Unit, Ratio>(poly);
-        double area = bb.area();
+        long double area = cast<long double>(bb.area());
 //        double area = gteMinAreaBox(poly);
         
         bool succ = std::abs(arearef - area) < err_epsilon;

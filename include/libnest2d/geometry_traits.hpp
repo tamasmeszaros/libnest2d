@@ -897,7 +897,8 @@ inline Unit area(const Cntr& poly, const PathTag& )
     for (auto i = sl::cbegin(poly), j = std::prev(sl::cend(poly)); 
          i < sl::cend(poly); ++i)
     {
-        Unit xj(getX(*j)), yj(getY(*j)), xi(getX(*i)), yi(getY(*i));
+        auto xj = Unit(getX(*j)), yj = Unit(getY(*j));
+        auto xi = Unit(getX(*i)), yi = Unit(getY(*i));
         a += (xj + xi) *  (yj - yi);
         j = i;
     }

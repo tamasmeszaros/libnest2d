@@ -47,6 +47,17 @@ using NfpPlacer = _NfpPlacer<Box>;
 // This supports only box shaped bins
 using BottomLeftPlacer = placers::_BottomLeftPlacer<PolygonImpl>;
 
+#ifdef LIBNEST2D_STATIC
+
+extern template class Nester<NfpPlacer, FirstFitSelection>;
+extern template class Nester<BottomLeftPlacer, FirstFitSelection>;
+extern template PackGroup Nester<NfpPlacer, FirstFitSelection>::execute(
+        std::vector<Item>::iterator, std::vector<Item>::iterator);
+extern template PackGroup Nester<BottomLeftPlacer, FirstFitSelection>::execute(
+        std::vector<Item>::iterator, std::vector<Item>::iterator);
+
+#endif
+
 template<class Placer = NfpPlacer,
          class Selector = FirstFitSelection,
          class Iterator = std::vector<Item>::iterator>

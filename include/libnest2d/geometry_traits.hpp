@@ -551,7 +551,7 @@ inline void reserve(RawPath& p, size_t vertex_capacity, const PathTag&)
 template<class RawShape, class...Args>
 inline void addVertex(RawShape& sh, const PathTag&, Args...args)
 {
-    return sh.emplace_back(std::forward<Args>(args)...);
+    sh.emplace_back(std::forward<Args>(args)...);
 }
 
 template<class RawShape, class Fn>
@@ -831,13 +831,13 @@ inline void reserve(T& sh, size_t vertex_capacity) {
 template<class RawShape, class...Args>
 inline void addVertex(RawShape& sh, const PolygonTag&, Args...args)
 {
-    return addVertex(contour(sh), PathTag(), std::forward<Args>(args)...);
+    addVertex(contour(sh), PathTag(), std::forward<Args>(args)...);
 }
 
 template<class RawShape, class...Args> // Tag dispatcher
 inline void addVertex(RawShape& sh, Args...args)
 {
-    return addVertex(sh, Tag<RawShape>(), std::forward<Args>(args)...);
+    addVertex(sh, Tag<RawShape>(), std::forward<Args>(args)...);
 }
 
 template<class RawShape>

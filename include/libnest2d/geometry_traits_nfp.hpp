@@ -198,7 +198,7 @@ inline TPoint<RawShape> referenceVertex(const RawShape& sh)
  * convex as well in this case.
  *
  */
-template<class RawShape>
+template<class RawShape, class Ratio = double>
 inline NfpResult<RawShape> nfpConvexOnly(const RawShape& sh,
                                          const RawShape& other)
 {
@@ -236,99 +236,60 @@ inline NfpResult<RawShape> nfpConvexOnly(const RawShape& sh,
     }
     
     auto anglcmpfn = [](const Edge& e1, const Edge& e2) {
-        // the X axis:
-        Vertex ax(1, 0);
+        Vertex ax(1, 0); // Unit vector for the X axis
         
+        // get cectors from the edges
         Vertex p1 = e1.second() - e1.first();
         Vertex p2 = e2.second() - e2.first();
-        
-        std::array<TCompute<Vertex>, 2> lcos {
-            pl::dot(p1, ax), pl::dot(p2, ax)
-        };
-        std::array<TCompute<Vertex>, 2> lsin {
-            -pl::dotperp(p1, ax), -pl::dotperp(p2, ax)
-        };
-        
-        std::array<int, 2> q {0, 0};
+
+        // Quadrant mapping array. The quadrant of a vector can be determined
+        // from the dot product of the vector and its perpendicular pair
+        // with the unit vector X axis. The products will carry the values
+        // lcos = dot(p, ax) = l * cos(phi) and
+        // lsin = -dotperp(p, ax) = l * sin(phi) where
+        // l is the length of vector p. From the signs of these values we can
+        // construct an index which has the sign of lcos as MSB and the
+        // sign of lsin as LSB. This index can be used to retrieve the actual
+        // quadrant where vector p resides using the following map:
+        // (+ is 0, - is 1)
+        // cos | sin | decimal | quadrant
+        //  +  |  +  |    0    |    0
+        //  +  |  -  |    1    |    3
+        //  -  |  +  |    2    |    1
+        //  -  |  -  |    3    |    2
         std::array<int, 4> quadrants {0, 3, 1, 2 };
-        
+
+        std::array<int, 2> q {0, 0}; // Quadrant indices for p1 and p2
+
+        using TDots = std::array<TCompute<Vertex>, 2>;
+        TDots lcos { pl::dot(p1, ax), pl::dot(p2, ax) };
+        TDots lsin { -pl::dotperp(p1, ax), -pl::dotperp(p2, ax) };
+
+        // Construct the quadrant indices for p1 and p2
         for(size_t i = 0; i < 2; ++i)
             if(lcos[i] == 0) q[i] = lsin[i] > 0 ? 1 : 3;
             else if(lsin[i] == 0) q[i] = lcos[i] > 0 ? 0 : 2;
             else q[i] = quadrants[((lcos[i] < 0) << 1) + (lsin[i] < 0)];
             
-        if(q[0] == q[1]) {            
-            auto lsq1 = pl::magnsq(p1);
-            auto lsq2 = pl::magnsq(p2);
+        if(q[0] == q[1]) { // only bother if p1 and p2 are in the same quadrant
+            auto lsq1 = pl::magnsq(p1);     // squared magnitudes, avoid sqrt
+            auto lsq2 = pl::magnsq(p2);     // squared magnitudes, avoid sqrt
+
+            // We will actually compare l^2 * cos^2(phi) which saturates the
+            // cos function. But with the quadrant info we can get the sign back
             int sign = q[0] == 1 || q[0] == 2 ? -1 : 1;
             
-            // TODO: use rational arithmetic
-            double pcos1 = sign * double(lcos[0]) * lcos[0] / lsq1;
-            double pcos2 = sign * double(lcos[1]) * lcos[1] / lsq2;
+            // If Ratio is an actual rational type, there is no precision loss
+            auto pcos1 = Ratio(lcos[0]) / lsq1 * sign * lcos[0];
+            auto pcos2 = Ratio(lcos[1]) / lsq2 * sign * lcos[1];
             
             return q[0] < 2 ? pcos1 < pcos2 : pcos1 > pcos2;
         }
         
+        // If in different quadrants, compare the quadrant indices only.
         return q[0] > q[1];
-        
-//        auto lcos1 = pl::dot(p1, ax);
-//        auto lsin1 = -pl::dotperp(p1, ax);
-        
-        
-//        auto lcos2 = pl::dot(p2, ax);
-//        auto lsin2 = -pl::dotperp(p2, ax);
-        
-//        std::array<int, 4> quadrants = {0, 3, 1, 2 };
-        
-//        int quadr1 = 0;
-//        int quadr2 = 0;
-        
-//        if(lcos1 == 0) quadr1 = lsin1 > 0 ? 1 : 3;
-//        else if(lsin1 == 0) quadr1 = lcos1 > 0 ? 0 : 2;
-//        else quadr1 = quadrants[((lcos1 < 0) << 1) + (lsin1 < 0)];
-         
-//        if(lcos2 == 0) quadr2 = lsin2 > 0 ? 1 : 3;
-//        else if(lsin2 == 0) quadr2 = lcos2 > 0 ? 0 : 2;
-//        else quadr2 = quadrants[((lcos2 < 0) << 1) + (lsin2 < 0)];
-        
-//        switch(quadr1) {
-//        case 0: assert(e1.angleToXaxis() < Pi/2); break;
-//        case 1: assert(e1.angleToXaxis() < Pi); break;
-//        case 2: assert(e1.angleToXaxis() < 3*Pi/2); break;
-//        case 3: assert(e1.angleToXaxis() < 2*Pi); break;
-//        }
-        
-//        switch(quadr2) {
-//        case 0: assert(e2.angleToXaxis() < Pi/2); break;
-//        case 1: assert(e2.angleToXaxis() < Pi); break;
-//        case 2: assert(e2.angleToXaxis() < 3*Pi/2); break;
-//        case 3: assert(e2.angleToXaxis() < 2*Pi); break;
-//        }
-        
-//        if(quadr1 == quadr2) {            
-//            auto lsq1 = pl::magnsq(p1);
-//            auto lsq2 = pl::magnsq(p2);
-//            int sign = quadr1 == 1 || quadr1 == 2 ? -1 : 1;
-            
-//            double pcos1 = sign * double(lcos1) * lcos1 / lsq1;
-//            double pcos2 = sign * double(lcos2) * lcos2 / lsq2;
-            
-//            return quadr1 < 2 ? pcos1 < pcos2 : pcos1 > pcos2;
-//        }
-        
-//        return quadr1 > quadr2;
     };
-    
-//    auto edgelist2 = edgelist;
 
-//    // Sort the edges by angle to X axis.
-//    std::sort(edgelist.begin(), edgelist.end(),
-//              [](const Edge& e1, const Edge& e2)
-//    {
-//        return e1.angleToXaxis() > e2.angleToXaxis();
-//    });
-    
-//    std::sort(edgelist2.begin(), edgelist2.end(), anglcmpfn);
     std::sort(edgelist.begin(), edgelist.end(), anglcmpfn);
 
     __nfp::buildPolygon(edgelist, rsh, top_nfp);

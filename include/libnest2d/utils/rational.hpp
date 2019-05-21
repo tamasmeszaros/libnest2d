@@ -78,20 +78,27 @@ public:
     }
     
     inline Rational& operator*=(const T& v) { 
-        num *= v; normalize(); return *this; 
+        const T gcd = GCD()(v, den); num *= v / gcd; den /= gcd; return *this;
     }
     
-    inline Rational& operator/=(const T& v) { 
-        den *= v; normsign(); normalize(); return *this; 
+    inline Rational& operator/=(const T& v) {
+        if(num == T{}) return *this;
+
+        // Avoid overflow and preserve normalization
+        const T gcd = GCD()(num, v);
+        num /= gcd;
+        den *= v / gcd;
+
+        if(den < T{}) {
+           num = -num;
+           den = -den;
+        }
+
+        den *= v; return *this;
     }
     
-    inline Rational& operator+=(const T& v) { 
-        num += v * den; normalize(); return *this; 
-    }
-    
-    inline Rational& operator-=(const T& v) { 
-        num -= v * den; normalize(); return *this; 
-    }
+    inline Rational& operator+=(const T& v) { num += v * den; return *this; }
+    inline Rational& operator-=(const T& v) { num -= v * den; return *this; }
     
     inline Rational operator*(const T& v) const { auto tmp = *this; tmp *= v; return tmp; }
     inline Rational operator/(const T& v) const { auto tmp = *this; tmp /= v; return tmp; }

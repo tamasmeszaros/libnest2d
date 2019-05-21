@@ -234,13 +234,102 @@ inline NfpResult<RawShape> nfpConvexOnly(const RawShape& sh,
             ++first; ++next;
         }
     }
+    
+    auto anglcmpfn = [](const Edge& e1, const Edge& e2) {
+        // the X axis:
+        Vertex ax(1, 0);
+        
+        Vertex p1 = e1.second() - e1.first();
+        Vertex p2 = e2.second() - e2.first();
+        
+        std::array<TCompute<Vertex>, 2> lcos {
+            pl::dot(p1, ax), pl::dot(p2, ax)
+        };
+        std::array<TCompute<Vertex>, 2> lsin {
+            -pl::dotperp(p1, ax), -pl::dotperp(p2, ax)
+        };
+        
+        std::array<int, 2> q {0, 0};
+        std::array<int, 4> quadrants {0, 3, 1, 2 };
+        
+        for(size_t i = 0; i < 2; ++i)
+            if(lcos[i] == 0) q[i] = lsin[i] > 0 ? 1 : 3;
+            else if(lsin[i] == 0) q[i] = lcos[i] > 0 ? 0 : 2;
+            else q[i] = quadrants[((lcos[i] < 0) << 1) + (lsin[i] < 0)];
+            
+        if(q[0] == q[1]) {            
+            auto lsq1 = pl::magnsq(p1);
+            auto lsq2 = pl::magnsq(p2);
+            int sign = q[0] == 1 || q[0] == 2 ? -1 : 1;
+            
+            // TODO: use rational arithmetic
+            double pcos1 = sign * double(lcos[0]) * lcos[0] / lsq1;
+            double pcos2 = sign * double(lcos[1]) * lcos[1] / lsq2;
+            
+            return q[0] < 2 ? pcos1 < pcos2 : pcos1 > pcos2;
+        }
+        
+        return q[0] > q[1];
+        
+//        auto lcos1 = pl::dot(p1, ax);
+//        auto lsin1 = -pl::dotperp(p1, ax);
+        
+        
+//        auto lcos2 = pl::dot(p2, ax);
+//        auto lsin2 = -pl::dotperp(p2, ax);
+        
+//        std::array<int, 4> quadrants = {0, 3, 1, 2 };
+        
+//        int quadr1 = 0;
+//        int quadr2 = 0;
+        
+//        if(lcos1 == 0) quadr1 = lsin1 > 0 ? 1 : 3;
+//        else if(lsin1 == 0) quadr1 = lcos1 > 0 ? 0 : 2;
+//        else quadr1 = quadrants[((lcos1 < 0) << 1) + (lsin1 < 0)];
+         
+//        if(lcos2 == 0) quadr2 = lsin2 > 0 ? 1 : 3;
+//        else if(lsin2 == 0) quadr2 = lcos2 > 0 ? 0 : 2;
+//        else quadr2 = quadrants[((lcos2 < 0) << 1) + (lsin2 < 0)];
+        
+//        switch(quadr1) {
+//        case 0: assert(e1.angleToXaxis() < Pi/2); break;
+//        case 1: assert(e1.angleToXaxis() < Pi); break;
+//        case 2: assert(e1.angleToXaxis() < 3*Pi/2); break;
+//        case 3: assert(e1.angleToXaxis() < 2*Pi); break;
+//        }
+        
+//        switch(quadr2) {
+//        case 0: assert(e2.angleToXaxis() < Pi/2); break;
+//        case 1: assert(e2.angleToXaxis() < Pi); break;
+//        case 2: assert(e2.angleToXaxis() < 3*Pi/2); break;
+//        case 3: assert(e2.angleToXaxis() < 2*Pi); break;
+//        }
+        
+//        if(quadr1 == quadr2) {            
+//            auto lsq1 = pl::magnsq(p1);
+//            auto lsq2 = pl::magnsq(p2);
+//            int sign = quadr1 == 1 || quadr1 == 2 ? -1 : 1;
+            
+//            double pcos1 = sign * double(lcos1) * lcos1 / lsq1;
+//            double pcos2 = sign * double(lcos2) * lcos2 / lsq2;
+            
+//            return quadr1 < 2 ? pcos1 < pcos2 : pcos1 > pcos2;
+//        }
+        
+//        return quadr1 > quadr2;
+    };
+    
+//    auto edgelist2 = edgelist;
 
-    // Sort the edges by angle to X axis.
-    std::sort(edgelist.begin(), edgelist.end(),
-              [](const Edge& e1, const Edge& e2)
-    {
-        return e1.angleToXaxis() > e2.angleToXaxis();
-    });
+//    // Sort the edges by angle to X axis.
+//    std::sort(edgelist.begin(), edgelist.end(),
+//              [](const Edge& e1, const Edge& e2)
+//    {
+//        return e1.angleToXaxis() > e2.angleToXaxis();
+//    });
+    
+//    std::sort(edgelist2.begin(), edgelist2.end(), anglcmpfn);
+    std::sort(edgelist.begin(), edgelist.end(), anglcmpfn);
 
     __nfp::buildPolygon(edgelist, rsh, top_nfp);
 

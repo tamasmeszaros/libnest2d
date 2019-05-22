@@ -22,6 +22,18 @@ namespace libnest2d {
 template<> struct _NumTag<boost::multiprecision::int256_t> { using Type = ScalarTag; };
 //template<> struct _NumTag<boost::multiprecision::int128_t> { using Type = ScalarTag; };
 //template<class T> struct _NumTag<boost::rational<T>> { using Type = RationalTag; };
+
+#if ! defined(_MSC_VER) && defined(__SIZEOF_INT128__)
+namespace nfp {
+template<class RawShape>
+struct NfpImpl<RawShape, NfpLevel::CONVEX_ONLY> {
+    NfpResult<RawShape> operator()(const RawShape& sh, const RawShape& other)
+    {
+        return nfpConvexOnly<RawShape, boost::rational<__int128>>(sh, other);
+    }
+};
+}
+#endif
 }
 
 std::vector<libnest2d::Item>& prusaParts() {

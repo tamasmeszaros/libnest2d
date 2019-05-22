@@ -903,7 +903,7 @@ template<class T> struct BoostGCD {
 };
 
 using Unit = int64_t;
-using Ratio = Rational<boost::multiprecision::int256_t>;
+using Ratio = boost::rational<boost::multiprecision::int128_t>;// Rational<boost::multiprecision::int256_t>;
 
 //double gteMinAreaBox(const PolygonImpl& p) {    
     

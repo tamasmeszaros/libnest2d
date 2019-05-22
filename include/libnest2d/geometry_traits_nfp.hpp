@@ -234,8 +234,10 @@ inline NfpResult<RawShape> nfpConvexOnly(const RawShape& sh,
             ++first; ++next;
         }
     }
-    
-    auto anglcmpfn = [](const Edge& e1, const Edge& e2) {
+   
+    std::sort(edgelist.begin(), edgelist.end(), 
+              [](const Edge& e1, const Edge& e2) 
+    {
         Vertex ax(1, 0); // Unit vector for the X axis
         
         // get cectors from the edges
@@ -288,9 +290,7 @@ inline NfpResult<RawShape> nfpConvexOnly(const RawShape& sh,
         
         // If in different quadrants, compare the quadrant indices only.
         return q[0] > q[1];
-    };
-
-    std::sort(edgelist.begin(), edgelist.end(), anglcmpfn);
+    });
 
     __nfp::buildPolygon(edgelist, rsh, top_nfp);
 

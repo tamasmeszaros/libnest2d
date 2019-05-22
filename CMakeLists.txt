@@ -60,7 +60,7 @@ set(LIBNEST2D_SRCFILES
     ${SRC_DIR}/libnest2d/selections/djd_heuristic.hpp
     )
 
-set(TBB_STATIC ON)
+#set(TBB_STATIC ON)
 find_package(TBB QUIET)
 if(TBB_FOUND)
     message(STATUS "Parallelization with Intel TBB")
@@ -82,7 +82,7 @@ else()
 
    if(OpenMP_CXX_FOUND)
        message(STATUS "Parallelization with OpenMP")
-       target_include_directories(libnest2d INTERFACE OpenMP::OpenMP_CXX)
+#       target_include_directories(libnest2d INTERFACE OpenMP::OpenMP_CXX)
        target_link_libraries(libnest2d INTERFACE OpenMP::OpenMP_CXX)
    else()
        message("Parallelization with C++11 threads")

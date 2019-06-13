@@ -21,7 +21,7 @@ concavities.
 
 Holes and non-convex polygons will be usable in the near future as well. The 
 no fit polygon based placer module combined with the first fit selection 
-strategy is now used in the [Slic3r](https://github.com/prusa3d/Slic3r) 
+strategy is now used in the [PrusaSlicer](https://github.com/prusa3d/PrusaSlicer) 
 application's arrangement feature. It uses local optimization techniques to find
 the best placement of each new item based on some features of the arrangement.
 
@@ -119,7 +119,9 @@ Of course it is possible to configure the nesting in every possible way. The
 
 ![Alt text](doc/img/example.svg)
 
-## Screenshot from Slic3r 
+## Screenshot from Slic3r PE 
+
+For the record, **Slic3r PE** version 2.0 is now known as **PrusaSlicer 2.0**.
 
 ![Alt text](doc/img/slic3r_screenshot.png)
 

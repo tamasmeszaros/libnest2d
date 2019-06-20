@@ -87,7 +87,7 @@ target_link_libraries(libnest2d INTERFACE ${LIBNEST2D_OPTIMIZER}Optimizer)
 target_compile_definitions(libnest2d INTERFACE LIBNEST2D_OPTIMIZER_${LIBNEST2D_OPTIMIZER})
 
 # target_sources(libnest2d INTERFACE ${LIBNEST2D_SRCFILES})
-# target_include_directories(libnest2d INTERFACE ${SRC_DIR})
+target_include_directories(libnest2d INTERFACE ${SRC_DIR})
 
 if(NOT LIBNEST2D_HEADER_ONLY)
     set(LIBNAME libnest2d_${LIBNEST2D_GEOMETRIES}_${LIBNEST2D_OPTIMIZER})

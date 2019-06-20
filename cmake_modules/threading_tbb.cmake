@@ -7,7 +7,9 @@ if(NOT TBB_FOUND)
     message(STATUS  "TBB requested but not found so downloading "
                     "and automatic build is performed...")
 
-    include(${PROJECT_SOURCE_DIR}/external/tbb/DownloadTBB.cmake)
+    include(RequirePackage)
+
+    require_package(tbb)
 
     # Now the library is downloaded, configured, built and installed and the find
     # command should not have any problem to find it. 

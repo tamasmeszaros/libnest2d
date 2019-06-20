@@ -6,7 +6,9 @@ if(NOT NLopt_FOUND)
     message(STATUS  "NLopt not found so downloading "
                     "and automatic build is performed...")
 
-    include(${PROJECT_SOURCE_DIR}/external/nlopt/DownloadNLopt.cmake)
+    include(RequirePackage)
+
+    require_package(nlopt)
 
     # Now the library is downloaded, configured, built and installed and the find
     # command should not have any problem to find it. 

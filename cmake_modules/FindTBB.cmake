@@ -280,12 +280,12 @@ if(NOT TBB_FOUND)
   ##################################
 
   if(NOT CMAKE_VERSION VERSION_LESS 3.0 AND TBB_FOUND)
-    add_library(tbb SHARED IMPORTED)
-    set_target_properties(tbb PROPERTIES
+    add_library(TBB::tbb SHARED IMPORTED)
+    set_target_properties(TBB::tbb PROPERTIES
           INTERFACE_INCLUDE_DIRECTORIES  ${TBB_INCLUDE_DIRS}
           IMPORTED_LOCATION              ${TBB_LIBRARIES})
     if(TBB_LIBRARIES_RELEASE AND TBB_LIBRARIES_DEBUG)
-      set_target_properties(tbb PROPERTIES
+      set_target_properties(TBB::tbb PROPERTIES
           INTERFACE_COMPILE_DEFINITIONS "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:TBB_USE_DEBUG=1>"
           IMPORTED_LOCATION_DEBUG          ${TBB_LIBRARIES_DEBUG}
           IMPORTED_LOCATION_RELWITHDEBINFO ${TBB_LIBRARIES_DEBUG}
@@ -293,9 +293,9 @@ if(NOT TBB_FOUND)
           IMPORTED_LOCATION_MINSIZEREL     ${TBB_LIBRARIES_RELEASE}
           )
     elseif(TBB_LIBRARIES_RELEASE)
-      set_target_properties(tbb PROPERTIES IMPORTED_LOCATION ${TBB_LIBRARIES_RELEASE})
+      set_target_properties(TBB::tbb PROPERTIES IMPORTED_LOCATION ${TBB_LIBRARIES_RELEASE})
     else()
-      set_target_properties(tbb PROPERTIES
+      set_target_properties(TBB::tbb PROPERTIES
           INTERFACE_COMPILE_DEFINITIONS "${TBB_DEFINITIONS_DEBUG}"
           IMPORTED_LOCATION              ${TBB_LIBRARIES_DEBUG}
           )

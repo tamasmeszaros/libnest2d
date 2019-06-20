@@ -2,10 +2,10 @@ cmake_minimum_required(VERSION 3.0)
 
 project(Libnest2D)
 
-if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-    # Update if necessary
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long ")
-endif()
+# if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+#     # Update if necessary
+#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long ")
+# endif()
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED)
@@ -19,6 +19,10 @@ option(LIBNEST2D_UNITTESTS "If enabled, googletest framework will be downloaded
 option(LIBNEST2D_BUILD_EXAMPLES "If enabled, examples will be built." OFF)
 
 option(LIBNEST2D_HEADER_ONLY "If enabled static library will not be built." ON)
+
+set(LIBNEST2D_DEP_DIR ${CMAKE_BINARY_DIR}/dependencies CACHE STRING "Dependencies location")
+
+list(APPEND CMAKE_PREFIX_PATH ${LIBNEST2D_DEP_DIR})
 
 set(GEOMETRY_BACKENDS clipper boost eigen)
 set(LIBNEST2D_GEOMETRIES clipper CACHE STRING "Geometry backend")
@@ -34,6 +38,14 @@ set_property(CACHE LIBNEST2D_OPTIMIZER PROPERTY STRINGS ${OPTIMIZERS})
 list(FIND OPTIMIZERS ${LIBNEST2D_OPTIMIZER} OPTIMIZER_TYPE)
 if(${OPTIMIZER_TYPE} EQUAL -1)
     message(FATAL_ERROR "Option ${LIBNEST2D_OPTIMIZER} not supported, valid entries are ${OPTIMIZERS}")
+endif()
+
+set(THREADING std tbb omp none)
+set(LIBNEST2D_THREADING std CACHE STRING "Multithreading")
+set_property(CACHE LIBNEST2D_THREADING PROPERTY STRINGS ${THREADING})
+list(FIND THREADING ${LIBNEST2D_THREADING} THREADING_TYPE)
+if(${THREADING_TYPE} EQUAL -1)
+    message(FATAL_ERROR "Option ${LIBNEST2D_THREADING} not supported, valid entries are ${THREADING}")
 endif()
 
 add_library(libnest2d INTERFACE)
@@ -60,70 +72,33 @@ set(LIBNEST2D_SRCFILES
     ${SRC_DIR}/libnest2d/selections/djd_heuristic.hpp
     )
 
-#set(TBB_STATIC ON)
-find_package(TBB QUIET)
-if(TBB_FOUND)
-    message(STATUS "Parallelization with Intel TBB")
-    target_include_directories(libnest2d INTERFACE ${TBB_INCLUDE_DIRS})
-    target_compile_definitions(libnest2d INTERFACE ${TBB_DEFINITIONS} -DUSE_TBB)
-    if(MSVC)
-       # Suppress implicit linking of the TBB libraries by the Visual Studio compiler.
-       target_compile_definitions(libnest2d INTERFACE -D__TBB_NO_IMPLICIT_LINKAGE)
-    endif()
-    # The Intel TBB library will use the std::exception_ptr feature of C++11.
-    target_compile_definitions(libnest2d INTERFACE -DTBB_USE_CAPTURED_EXCEPTION=0)
-
-    find_package(Threads REQUIRED)
-    target_link_libraries(libnest2d INTERFACE ${TBB_LIBRARIES} ${CMAKE_DL_LIBS}
-        Threads::Threads
-        )
-else()
-   find_package(OpenMP QUIET)
-
-   if(OpenMP_CXX_FOUND)
-       message(STATUS "Parallelization with OpenMP")
-#       target_include_directories(libnest2d INTERFACE OpenMP::OpenMP_CXX)
-       target_link_libraries(libnest2d INTERFACE OpenMP::OpenMP_CXX)
-   else()
-       message("Parallelization with C++11 threads")
-       find_package(Threads REQUIRED)
-       target_link_libraries(libnest2d INTERFACE Threads::Threads)
-   endif()
+if(NOT ${LIBNEST2D_THREADING} STREQUAL "none")
+    include(threading_${LIBNEST2D_THREADING})
+    target_link_libraries(libnest2d INTERFACE ${LIBNEST2D_THREADING}Threading)
+    target_compile_definitions(libnest2d INTERFACE LIBNEST2D_THREADING_${LIBNEST2D_THREADING})
 endif()
 
 add_subdirectory(${SRC_DIR}/libnest2d/backends/${LIBNEST2D_GEOMETRIES})
 target_link_libraries(libnest2d INTERFACE ${LIBNEST2D_GEOMETRIES}Backend)
+target_compile_definitions(libnest2d INTERFACE LIBNEST2D_GEOMETRIES_${LIBNEST2D_GEOMETRIES})
 
 add_subdirectory(${SRC_DIR}/libnest2d/optimizers/${LIBNEST2D_OPTIMIZER})
 target_link_libraries(libnest2d INTERFACE ${LIBNEST2D_OPTIMIZER}Optimizer)
+target_compile_definitions(libnest2d INTERFACE LIBNEST2D_OPTIMIZER_${LIBNEST2D_OPTIMIZER})
 
 # target_sources(libnest2d INTERFACE ${LIBNEST2D_SRCFILES})
-target_include_directories(libnest2d INTERFACE ${SRC_DIR})
+# target_include_directories(libnest2d INTERFACE ${SRC_DIR})
 
 if(NOT LIBNEST2D_HEADER_ONLY)
     set(LIBNAME libnest2d_${LIBNEST2D_GEOMETRIES}_${LIBNEST2D_OPTIMIZER})
     add_library(${LIBNAME} ${PROJECT_SOURCE_DIR}/src/libnest2d.cpp)
     target_link_libraries(${LIBNAME} PUBLIC libnest2d)
     target_compile_definitions(${LIBNAME} PUBLIC LIBNEST2D_STATIC)
+    target_sources(${LIBNAME} PRIVATE ${LIBNEST2D_SRCFILES})
 endif()
 
 if(LIBNEST2D_BUILD_EXAMPLES)
-
-    add_executable(example     examples/main.cpp
-    #                           tools/libnfpglue.hpp
-    #                           tools/libnfpglue.cpp
-                               tools/nfp_svgnest.hpp
-                               tools/nfp_svgnest_glue.hpp
-                               tools/svgtools.hpp
-                               tests/printer_parts.cpp
-                               tests/printer_parts.h
-                               )
-
-    if(NOT LIBNEST2D_HEADER_ONLY)
-        target_link_libraries(example ${LIBNAME})
-    else()
-        target_link_libraries(example libnest2d)
-    endif()
+    add_subdirectory(${PROJECT_SOURCE_DIR}/examples)
 endif()
 
 if(LIBNEST2D_UNITTESTS)

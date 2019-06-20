@@ -1,17 +1,19 @@
-# Distributed under the OSI-approved MIT License.  See accompanying
-# file LICENSE or https://github.com/Crascit/DownloadProject for details.
+cmake_minimum_required(VERSION 3.0)
 
-cmake_minimum_required(VERSION 2.8.2)
+project(${DL_ARGS_PROJ}-dep NONE)
 
-project(${DL_ARGS_PROJ}-download NONE)
+if (CMAKE_VERSION VERSION_LESS 3.2)
+    set(UPDATE_DISCONNECTED_IF_AVAILABLE "")
+else()
+    set(UPDATE_DISCONNECTED_IF_AVAILABLE "UPDATE_DISCONNECTED 1")
+endif()
 
 include(ExternalProject)
-ExternalProject_Add(${DL_ARGS_PROJ}-download
+ExternalProject_Add(dep_${DL_ARGS_PROJ}
+                    CONFIGURE_COMMAND   ${DL_ARGS_CONFIGURE_COMMAND}
+                    BUILD_COMMAND 	${DL_ARGS_BUILD_COMMAND}
+                    INSTALL_COMMAND 	${DL_ARGS_INSTALL_COMMAND}
+                    TEST_COMMAND 	${DL_ARGS_TEST_COMMAND}
                     ${DL_ARGS_UNPARSED_ARGUMENTS}
-                    SOURCE_DIR          "${DL_ARGS_SOURCE_DIR}"
-                    BINARY_DIR          "${DL_ARGS_BINARY_DIR}"
-                    CONFIGURE_COMMAND   ""
-                    BUILD_COMMAND       ""
-                    INSTALL_COMMAND     ""
-                    TEST_COMMAND        ""
+                    ${UPDATE_DISCONNECTED_IF_AVAILABLE}
 )

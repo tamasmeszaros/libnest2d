@@ -100,13 +100,12 @@ function(download_project)
         PROJ
         PREFIX
         DOWNLOAD_DIR
-        SOURCE_DIR
-        BINARY_DIR
         # Prevent the following from being passed through
         CONFIGURE_COMMAND
         BUILD_COMMAND
         INSTALL_COMMAND
         TEST_COMMAND
+        UPDATE_DISCONNECTED
     )
     set(multiValueArgs "")
 
@@ -133,16 +132,6 @@ function(download_project)
         set(DL_ARGS_DOWNLOAD_DIR "${DL_ARGS_PREFIX}/${DL_ARGS_PROJ}-download")
     endif()
 
-    # Ensure the caller can know where to find the source and build directories
-    if (NOT DL_ARGS_SOURCE_DIR)
-        set(DL_ARGS_SOURCE_DIR "${DL_ARGS_PREFIX}/${DL_ARGS_PROJ}-src")
-    endif()
-    if (NOT DL_ARGS_BINARY_DIR)
-        set(DL_ARGS_BINARY_DIR "${DL_ARGS_PREFIX}/${DL_ARGS_PROJ}-build")
-    endif()
-    set(${DL_ARGS_PROJ}_SOURCE_DIR "${DL_ARGS_SOURCE_DIR}" PARENT_SCOPE)
-    set(${DL_ARGS_PROJ}_BINARY_DIR "${DL_ARGS_BINARY_DIR}" PARENT_SCOPE)
-
     # The way that CLion manages multiple configurations, it causes a copy of
     # the CMakeCache.txt to be copied across due to it not expecting there to
     # be a project within a project.  This causes the hard-coded paths in the
@@ -163,20 +152,26 @@ function(download_project)
     execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}"
                         -D "CMAKE_MAKE_PROGRAM:FILE=${CMAKE_MAKE_PROGRAM}"
                         .
-                    RESULT_VARIABLE result
-                    ${OUTPUT_QUIET}
+                    #RESULT_VARIABLE result
+                    #OUTPUT_VARIABLE outp
+                    #${OUTPUT_QUIET}
                     WORKING_DIRECTORY "${DL_ARGS_DOWNLOAD_DIR}"
     )
-    if(result)
-        message(FATAL_ERROR "CMake step for ${DL_ARGS_PROJ} failed: ${result}")
-    endif()
+
+    # message(STATUS ${outp})
+    # if(result)
+    #     message(FATAL_ERROR "CMake step for ${DL_ARGS_PROJ} failed: ${result}")
+    # endif()
+
     execute_process(COMMAND ${CMAKE_COMMAND} --build .
-                    RESULT_VARIABLE result
-                    ${OUTPUT_QUIET}
+                    #RESULT_VARIABLE result
+                    #OUTPUT_VARIABLE outp
+                    #${OUTPUT_QUIET}
                     WORKING_DIRECTORY "${DL_ARGS_DOWNLOAD_DIR}"
     )
-    if(result)
-        message(FATAL_ERROR "Build step for ${DL_ARGS_PROJ} failed: ${result}")
-    endif()
+    # message(STATUS ${outp})
+    # if(result)
+    #     message(FATAL_ERROR "Build step for ${DL_ARGS_PROJ} failed: ${result}")
+    # endif()
 
 endfunction()

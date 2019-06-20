@@ -2,7 +2,7 @@ set(RP_URL_TBB "https://github.com/wjakob/tbb.git" CACHE STRING "Location of the
 
 include(ExternalProject)
 ExternalProject_Add(
-    rp_tbb
+    rp_TBB
     GIT_REPOSITORY      ${RP_URL_TBB}
     GIT_TAG             b066def
     INSTALL_DIR         ${RP_INSTALL_PREFIX}

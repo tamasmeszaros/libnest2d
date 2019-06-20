@@ -8,7 +8,7 @@ else()
 
     if(NOT CLIPPER_FOUND)
 
-       require_package(clipper)
+       require_package(Clipper INSTALL_PATH ${LIBNEST2D_DEP_DIR})
 
        find_package(Clipper 6.1 REQUIRED)
        
@@ -16,10 +16,12 @@ else()
     target_link_libraries(clipperBackend INTERFACE Clipper::Clipper)
 endif()
 
+find_package(Boost 1.58 QUIET)
+
 # Clipper backend is not enough on its own, it still needs some functions
 # from Boost geometry
-if(NOT TARGET Boost::boost AND NOT Boost_INCLUDE_DIRS_FOUND)
-    require_package(boost)
+if(NOT Boost_FOUND)
+    require_package(boost INSTALL_PATH ${LIBNEST2D_DEP_DIR})
     find_package(Boost 1.58 REQUIRED)
 endif()
 

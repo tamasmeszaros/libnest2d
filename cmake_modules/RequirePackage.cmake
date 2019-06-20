@@ -14,7 +14,7 @@ if(NOT RP_ARGS_PACKAGE)
     set(RP_ARGS_PACKAGE ${ARGV0})
 endif()
 
-set(DEP_BUILD_PATH ${CMAKE_CURRENT_BINARY_DIR}/dependencies-build)
+set(DEP_BUILD_PATH ${CMAKE_BINARY_DIR}/dependencies-build)
 
 file(MAKE_DIRECTORY ${DEP_BUILD_PATH})
 
@@ -59,6 +59,4 @@ if(BUILD_STEP_RESULT)
     message(FATAL_ERROR "Build step for ${RP_ARGS_PACKAGE} failed: ${BUILD_STEP_RESULT}")
 endif()
 
-
 endfunction()
-

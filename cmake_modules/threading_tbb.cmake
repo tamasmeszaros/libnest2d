@@ -9,7 +9,7 @@ if(NOT TBB_FOUND)
 
     include(RequirePackage)
 
-    require_package(tbb)
+    require_package(TBB INSTALL_DIR ${LIBNEST2D_DEP_DIR})
 
     # Now the library is downloaded, configured, built and installed and the find
     # command should not have any problem to find it. 

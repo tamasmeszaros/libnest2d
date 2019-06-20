@@ -5,7 +5,7 @@ CACHE STRING "Clipper source code repository location.")
 
 include(ExternalProject)
 ExternalProject_Add(
-    rp_clipper
+    rp_Clipper
     SVN_REPOSITORY      ${RP_URL_CLIPPER}
     SVN_REVISION        -r540
     INSTALL_DIR         ${RP_INSTALL_PREFIX}

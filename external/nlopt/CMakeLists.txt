@@ -3,7 +3,7 @@ CACHE STRING "Location of the nlopt git repository")
 
 include(ExternalProject)
 Externalproject_Add( 
-  rp_nlopt
+  rp_NLopt
   GIT_REPOSITORY      ${RP_URL_NLOPT}
   GIT_TAG             v2.5.0
   INSTALL_DIR         ${RP_INSTALL_PREFIX}

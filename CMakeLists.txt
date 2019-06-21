@@ -24,6 +24,9 @@ set(LIBNEST2D_DEP_DIR ${CMAKE_BINARY_DIR}/dependencies CACHE STRING "Dependencie
 
 list(APPEND CMAKE_PREFIX_PATH ${LIBNEST2D_DEP_DIR})
 
+# RP Package manager default install dir will be set globally
+set(RP_INSTALL_PREFIX ${LIBNEST2D_DEP_DIR})
+
 set(GEOMETRY_BACKENDS clipper boost eigen)
 set(LIBNEST2D_GEOMETRIES clipper CACHE STRING "Geometry backend")
 set_property(CACHE LIBNEST2D_GEOMETRIES PROPERTY STRINGS ${GEOMETRY_BACKENDS})

@@ -8,7 +8,7 @@ else()
 
     if(NOT CLIPPER_FOUND)
 
-       require_package(Clipper INSTALL_PATH ${LIBNEST2D_DEP_DIR})
+       require_package(Clipper)
 
        find_package(Clipper 6.1 REQUIRED)
        
@@ -21,7 +21,7 @@ find_package(Boost 1.58 QUIET)
 # Clipper backend is not enough on its own, it still needs some functions
 # from Boost geometry
 if(NOT Boost_FOUND)
-    require_package(boost INSTALL_PATH ${LIBNEST2D_DEP_DIR})
+    require_package(boost)
     find_package(Boost 1.58 REQUIRED)
 endif()
 

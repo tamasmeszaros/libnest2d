@@ -12,5 +12,6 @@ ExternalProject_Add(
     PATCH_COMMAND       ${Subversion_SVN_EXECUTABLE} cleanup && ${Subversion_SVN_EXECUTABLE} patch ${CMAKE_CURRENT_LIST_DIR}/clipper_fix.patch
     CMAKE_ARGS
      -DBUILD_SHARED_LIBS:BOOL=OFF
+     -DCMAKE_DEBUG_POSTFIX=${RP_DEBUG_POSTFIX}
      -DCMAKE_INSTALL_PREFIX:PATH=${RP_INSTALL_PREFIX}
 )

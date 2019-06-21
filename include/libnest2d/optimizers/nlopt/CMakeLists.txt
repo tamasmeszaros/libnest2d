@@ -8,7 +8,7 @@ if(NOT NLopt_FOUND)
 
     include(RequirePackage)
 
-    require_package(NLopt INSTALL_DIR ${LIBNEST2D_DEP_DIR})
+    require_package(NLopt)
 
     # Now the library is downloaded, configured, built and installed and the find
     # command should not have any problem to find it. 

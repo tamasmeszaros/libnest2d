@@ -1,24 +1,12 @@
-find_package(TBB QUIET)
-
 add_library(tbbThreading INTERFACE)
 
-if(NOT TBB_FOUND)
+include(RequirePackage)
 
-    message(STATUS  "TBB requested but not found so downloading "
-                    "and automatic build is performed...")
+# Now the library is downloaded, configured, built and installed and the find
+# command should not have any problem to find it. 
+set(TBB_STATIC ON)
 
-    include(RequirePackage)
-
-    require_package(TBB)
-
-    # Now the library is downloaded, configured, built and installed and the find
-    # command should not have any problem to find it. 
-    set(TBB_STATIC ON)
-    find_package(TBB REQUIRED)
-
-else()
-    message(STATUS "Intel TBB found: TRUE")
-endif()
+require_package(TBB REQUIRED)
 
 if(MSVC)
     # Suppress implicit linking of the TBB libraries by the Visual Studio compiler.

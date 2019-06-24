@@ -1,19 +1,6 @@
 add_library(nloptOptimizer INTERFACE)
 
-find_package(NLopt 1.4 QUIET)
-
-if(NOT NLopt_FOUND)
-    message(STATUS  "NLopt not found so downloading "
-                    "and automatic build is performed...")
-
-    include(RequirePackage)
-
-    require_package(NLopt)
-
-    # Now the library is downloaded, configured, built and installed and the find
-    # command should not have any problem to find it. 
-    find_package(NLopt 1.4 REQUIRED)
-endif()
+require_package(NLopt 1.4 REQUIRED)
 
 target_link_libraries(nloptOptimizer INTERFACE Nlopt::nlopt)
 

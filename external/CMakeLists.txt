@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(Dependencies)
+project(RequiredPackages)
 
-set(RP_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/dependencies CACHE STRING "Package install location")
+option(RP_DISABLE_DOWNLOADING "Disable downloading of packages effectively falling back to find_package functionality" OFF)
+set(RP_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/rp_packages CACHE STRING "Package install location")
 set(RP_REPOSITORY_DIR ${PROJECT_SOURCE_DIR}/external CACHE STRING "Package repository location")
 set(RP_DEBUG_POSTFIX "d" CACHE STRING "Preferred postfix for libraries built in Debug mode")
 
@@ -29,10 +30,10 @@ if(NOT hasParent)
    set(DEPS_ALL "ALL")
 endif()
 
-add_custom_target(deps ${DEPS_ALL})
+add_custom_target(rp ${DEPS_ALL})
 
 foreach(PACKAGE IN ITEMS ${RP_PACKAGES})
     option(RP_ENABLE_${PACKAGE} "Enable package ${PACKAGE}" ON)
     add_subdirectory("+${PACKAGE}" EXCLUDE_FROM_ALL)
-    add_dependencies(deps rp_${PACKAGE})
+    add_dependencies(rp rp_${PACKAGE})
 endforeach()

@@ -1,10 +1,7 @@
-set(RP_URL_NLOPT "https://github.com/stevengj/nlopt.git" 
-CACHE STRING "Location of the nlopt git repository")
-
 include(ExternalProject)
 Externalproject_Add( 
   rp_NLopt
-  GIT_REPOSITORY      ${RP_URL_NLOPT}
+  GIT_REPOSITORY      https://github.com/stevengj/nlopt.git
   GIT_TAG             v2.5.0
   INSTALL_DIR         ${RP_INSTALL_PREFIX}
   CMAKE_ARGS         
@@ -16,6 +13,5 @@ Externalproject_Add(
     -DNLOPT_MATLAB:BOOL=OFF
     -DNLOPT_GUILE:BOOL=OFF
     -DNLOPT_SWIG:BOOL=OFF 
-    -DNLOPT_LINK_PYTH:BOOL=OFF
-    -DCMAKE_DEBUG_POSTFIX=${RP_DEBUG_POSTFIX}
+    $<$<CONFIG:Debug>:-DCMAKE_DEBUG_POSTFIX=${RP_DEBUG_POSTFIX}>
 )

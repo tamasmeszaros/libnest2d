@@ -48,7 +48,7 @@ const std::vector<Item>& prusaParts() {
 int main(void /*int argc, char **argv*/) {
     
     std::vector<Item> input = prusaParts();
-    auto result = libnest2d::nest(input, Box(250000000, 210000000),
+    libnest2d::nest(input, Box(250000000, 210000000),
                                   [](unsigned cnt) {
         std::cout << "parts left: " << cnt << std::endl;
     });
@@ -58,7 +58,7 @@ int main(void /*int argc, char **argv*/) {
     conf.mm_in_coord_units = 1000000;
     SVGWriter svgw(conf);
     svgw.setSize(Box(250000000, 210000000));
-    svgw.writePackGroup(result);
+    svgw.writeItems(input.begin(), input.end());
     svgw.save("out");
 
     return EXIT_SUCCESS;

@@ -76,6 +76,18 @@ public:
             finishLayer();
         }
     }
+    
+    template<class ItemIt> void writeItems(ItemIt from, ItemIt to) {
+        auto it = from;
+        PackGroup pg;
+        while(it != to) {
+            if(it->binId() == BIN_ID_UNSET) continue;
+            while(pg.size() <= size_t(it->binId())) pg.emplace_back();
+            pg[it->binId()].emplace_back(*it);
+            ++it;
+        }
+        writePackGroup(pg);
+    }
 
     void addLayer() {
         svg_layers_.emplace_back(header());

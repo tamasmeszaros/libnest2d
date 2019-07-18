@@ -72,7 +72,7 @@ Poly removeCollinearPoints(const Poly& sh, Unit eps = Unit(0))
 }
 
 // The area of the bounding rectangle with the axis dir and support vertices
-template<class Pt, class Unit = TCompute<Pt>, class R = Rational<Unit>> 
+template<class Pt, class Unit = TCompute<Pt>, class R = TCompute<Pt>> 
 inline R rectarea(const Pt& w, // the axis
                   const Pt& vb, const Pt& vr, 
                   const Pt& vt, const Pt& vl) 
@@ -86,7 +86,7 @@ inline R rectarea(const Pt& w, // the axis
 
 template<class Pt, 
          class Unit = TCompute<Pt>,
-         class R = Rational<Unit>,
+         class R = TCompute<Pt>,
          class It = typename std::vector<Pt>::const_iterator>
 inline R rectarea(const Pt& w, const std::array<It, 4>& rect)
 {
@@ -97,7 +97,7 @@ inline R rectarea(const Pt& w, const std::array<It, 4>& rect)
 // polygons where only two points can be collinear witch each other.
 template <class RawShape, 
           class Unit = TCompute<RawShape>, 
-          class Ratio = Rational<Unit>> 
+          class Ratio = TCompute<RawShape>> 
 RotatedBox<TPoint<RawShape>, Unit> minAreaBoundingBox(const RawShape& sh) 
 {
     using Point = TPoint<RawShape>;

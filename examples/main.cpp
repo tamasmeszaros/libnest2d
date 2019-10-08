@@ -6,9 +6,10 @@
 
 #include <libnest2d.h>
 
-#include "../tests/printer_parts.h"
+#include "../tools/printer_parts.h"
 #include "../tools/benchmark.h"
 #include "../tools/svgtools.hpp"
+#include "../tools/measure.hpp"
 
 #include <boost/rational.hpp>
 
@@ -48,17 +49,17 @@ const std::vector<Item>& prusaParts() {
 int main(void /*int argc, char **argv*/) {
     
     std::vector<Item> input = prusaParts();
-    libnest2d::nest(input, Box(250000000, 210000000),
+    auto result = libnest2d::nest(input, Box(mm(250), mm(210)),
                                   [](unsigned cnt) {
         std::cout << "parts left: " << cnt << std::endl;
     });
 
     using SVGWriter = libnest2d::svg::SVGWriter<PolygonImpl>;
     SVGWriter::Config conf;
-    conf.mm_in_coord_units = 1000000;
+    conf.mm_in_coord_units = mm();
     SVGWriter svgw(conf);
-    svgw.setSize(Box(250000000, 210000000));
-    svgw.writeItems(input.begin(), input.end());
+    svgw.setSize(Box(mm(250), mm(210)));
+    svgw.writePackGroup(result);
     svgw.save("out");
 
     return EXIT_SUCCESS;

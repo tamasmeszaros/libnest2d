@@ -1,0 +1,14 @@
+Index: CMakeLists.txt
+===================================================================
+--- CMakeLists.txt	(revision 540)
++++ CMakeLists.txt	(working copy)
+@@ -15,7 +15,8 @@
+ CONFIGURE_FILE (polyclipping.pc.cmakein "${PCFILE}" @ONLY)
+ 
+ INSTALL (FILES clipper.hpp DESTINATION "${CMAKE_INSTALL_INCDIR}")
+-INSTALL (TARGETS polyclipping LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
++INSTALL (TARGETS polyclipping LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" 
++                              ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+ INSTALL (FILES "${PCFILE}" DESTINATION "${CMAKE_INSTALL_PKGCONFIGDIR}")
+ 
+ SET_TARGET_PROPERTIES(polyclipping PROPERTIES VERSION 22.0.0 SOVERSION 22 )

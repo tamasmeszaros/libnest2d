@@ -48,13 +48,13 @@ inline void enumerate(
     auto iN = to-from;
     TN N = iN < 0? 0 : TN(iN);
 
-#ifdef USE_TBB
+#ifdef LIBNEST2D_THREADING_tbb
     if((policy & std::launch::async) == std::launch::async) {
         tbb::parallel_for<TN>(0, N, [from, fn] (TN n) { fn(*(from + n), n); } );
     } else {
         for(TN n = 0; n < N; n++) fn(*(from + n), n);
     }
-#elif defined(_OPENMP)
+#elif defined(LIBNEST2D_THREADING_omp)
     if((policy & std::launch::async) == std::launch::async) {
         #pragma omp parallel for
         for(int n = 0; n < int(N); n++) fn(*(from + n), TN(n));

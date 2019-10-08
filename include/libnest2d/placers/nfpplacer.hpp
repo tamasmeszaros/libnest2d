@@ -3,9 +3,6 @@
 
 #include <cassert>
 
-// For caching nfps
-#include <unordered_map>
-
 // For parallel for
 #include <functional>
 #include <iterator>
@@ -48,13 +45,13 @@ inline void enumerate(
     auto iN = to-from;
     TN N = iN < 0? 0 : TN(iN);
 
-#ifdef LIBNEST2D_THREADING_tbb
+#ifdef USE_TBB
     if((policy & std::launch::async) == std::launch::async) {
         tbb::parallel_for<TN>(0, N, [from, fn] (TN n) { fn(*(from + n), n); } );
     } else {
         for(TN n = 0; n < N; n++) fn(*(from + n), n);
     }
-#elif defined(LIBNEST2D_THREADING_omp)
+#elif defined(_OPENMP)
     if((policy & std::launch::async) == std::launch::async) {
         #pragma omp parallel for
         for(int n = 0; n < int(N); n++) fn(*(from + n), TN(n));
@@ -73,55 +70,6 @@ inline void enumerate(
     for(TN fi = 0; fi < N; ++fi) rets[fi].wait();
 #endif
 }
-
-}
-
-namespace __itemhash {
-
-using Key = size_t;
-
-template<class S>
-Key hash(const _Item<S>& item) {
-    using Point = TPoint<S>;
-    using Segment = _Segment<Point>;
-
-    static const int N = 26;
-    static const int M = N*N - 1;
-
-    std::string ret;
-    auto& rhs = item.rawShape();
-    auto& ctr = sl::contour(rhs);
-    auto it = ctr.begin();
-    auto nx = std::next(it);
-
-    double circ = 0;
-    while(nx != ctr.end()) {
-        Segment seg(*it++, *nx++);
-        Radians a = seg.angleToXaxis();
-        double deg = Degrees(a);
-        int ms = 'A', ls = 'A';
-        while(deg > N) { ms++; deg -= N; }
-        ls += int(deg);
-        ret.push_back(char(ms)); ret.push_back(char(ls));
-        circ += std::sqrt(seg.template sqlength<double>());
-    }
-
-    it = ctr.begin(); nx = std::next(it);
-
-    while(nx != ctr.end()) {
-        Segment seg(*it++, *nx++);
-        auto l = int(M * std::sqrt(seg.template sqlength<double>()) / circ);
-        int ms = 'A', ls = 'A';
-        while(l > N) { ms++; l -= N; }
-        ls += l;
-        ret.push_back(char(ms)); ret.push_back(char(ls));
-    }
-
-    return std::hash<std::string>()(ret);
-}
-
-template<class S>
-using Hash = std::unordered_map<Key, nfp::NfpResult<S>>;
 
 }
 
@@ -529,16 +477,8 @@ class _NofitPolyPlacer: public PlacerBoilerplate<_NofitPolyPlacer<RawShape, TBin
 
     using MaxNfpLevel = nfp::MaxNfpLevel<RawShape>;
 
-    using ItemKeys = std::vector<__itemhash::Key>;
-
     // Norming factor for the optimization function
     const double norm_;
-
-    // Caching calculated nfps
-    __itemhash::Hash<RawShape> nfpcache_;
-
-    // Storing item hash keys
-    ItemKeys item_keys_;
 
 public:
 
@@ -546,7 +486,12 @@ public:
 
     inline explicit _NofitPolyPlacer(const BinType& bin):
         Base(bin),
-        norm_(std::sqrt(sl::area(bin))) {}
+        norm_(std::sqrt(sl::area(bin)))
+    {
+        // In order to not have items out of bin, it will be shrinked by an
+        // very little empiric offset value.
+        // sl::offset(bin_, 1e-5 * norm_);
+    }
 
     _NofitPolyPlacer(const _NofitPolyPlacer&) = default;
     _NofitPolyPlacer& operator=(const _NofitPolyPlacer&) = default;
@@ -581,8 +526,12 @@ public:
 
     static inline double overfit(const Box& bb, const Box& bin)
     {
-        auto wdiff = double(bb.width() - bin.width());
-        auto hdiff = double(bb.height() - bin.height());
+        auto Bw = bin.width();
+        auto Bh = bin.height();
+        auto mBw = -Bw;
+        auto mBh = -Bh;
+        auto wdiff = double(bb.width()) + mBw;
+        auto hdiff = double(bb.height()) + mBh;
         double diff = 0;
         if(wdiff > 0) diff += wdiff;
         if(hdiff > 0) diff += hdiff;
@@ -627,15 +576,12 @@ public:
 private:
 
     using Shapes = TMultiShape<RawShape>;
-    using ItemRef = std::reference_wrapper<Item>;
-    using ItemWithHash = const std::pair<ItemRef, __itemhash::Key>;
 
-    Shapes calcnfp(const ItemWithHash itsh, Lvl<nfp::NfpLevel::CONVEX_ONLY>)
+    Shapes calcnfp(const Item &trsh, Lvl<nfp::NfpLevel::CONVEX_ONLY>)
     {
         using namespace nfp;
 
         Shapes nfps(items_.size());
-        const Item& trsh = itsh.first;
 
         // /////////////////////////////////////////////////////////////////////
         // TODO: this is a workaround and should be solved in Item with mutexes
@@ -669,12 +615,11 @@ private:
 
 
     template<class Level>
-    Shapes calcnfp( const ItemWithHash itsh, Level)
+    Shapes calcnfp(const Item &trsh, Level)
     { // Function for arbitrary level of nfp implementation
         using namespace nfp;
 
         Shapes nfps;
-        const Item& trsh = itsh.first;
 
         auto& orb = trsh.transformedShape();
         bool orbconvex = trsh.isContourConvex();
@@ -801,7 +746,6 @@ private:
             // optimize
             config_.object_function = prev_func;
         }
-
     }
 
     struct Optimum {
@@ -841,8 +785,6 @@ private:
             remlist.insert(remlist.end(), remaining.from, remaining.to);
         }
 
-        size_t itemhash = __itemhash::hash(item);
-
         if(items_.empty()) {
             setInitialPosition(item);
             best_overfit = overfit(item.transformedShape(), bin_);
@@ -867,7 +809,7 @@ private:
                 // it is disjunct from the current merged pile
                 placeOutsideOfBin(item);
 
-                nfps = calcnfp({item, itemhash}, Lvl<MaxNfpLevel::value>());
+                nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
 
                 auto iv = item.referenceVertex();
 
@@ -1104,7 +1046,6 @@ private:
 
         if(can_pack) {
             ret = PackResult(item);
-            item_keys_.emplace_back(itemhash);
         } else {
             ret = PackResult(best_overfit);
         }
@@ -1176,7 +1117,12 @@ private:
     }
 
     void setInitialPosition(Item& item) {
-        Box&& bb = item.boundingBox();
+        auto sh = item.rawShape();
+        sl::translate(sh, item.translation());
+        sl::rotate(sh, item.rotation());
+        
+        Box bb = sl::boundingBox(sh);
+        
         Vertex ci, cb;
         auto bbin = sl::boundingBox(bin_);
 

@@ -20,9 +20,13 @@ option(LIBNEST2D_BUILD_EXAMPLES "If enabled, examples will be built." OFF)
 
 option(LIBNEST2D_HEADER_ONLY "If enabled static library will not be built." ON)
 
+option(RP_DISABLE_DOWNLOADING "Disable downloading of packages effectively falling back to find_package functionality" OFF)
+
 set(LIBNEST2D_DEP_DIR ${CMAKE_BINARY_DIR}/dependencies CACHE STRING "Dependencies location")
 
+message(STATUS "PREFIX_PATH=${CMAKE_PREFIX_PATH}")
 list(APPEND CMAKE_PREFIX_PATH ${LIBNEST2D_DEP_DIR})
+message(STATUS "PREFIX_PATH=${CMAKE_PREFIX_PATH}")
 
 # RP Package manager default install dir will be set globally
 set(RP_INSTALL_PREFIX ${LIBNEST2D_DEP_DIR})

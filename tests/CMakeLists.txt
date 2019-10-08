@@ -1,4 +1,4 @@
-require_package(GTest 1.7 REQUIRED)
+require_package(Catch2 2.9.1 REQUIRED)
 
 add_executable(tests_clipper_nlopt
     test.cpp
@@ -9,15 +9,7 @@ add_executable(tests_clipper_nlopt
     ../tools/printer_parts.cpp
 )
 
-target_link_libraries(tests_clipper_nlopt libnest2d GTest::GTest GTest::Main)
-
-if(NOT LIBNEST2D_HEADER_ONLY)
-    target_link_libraries(tests_clipper_nlopt ${LIBNAME})
-else()
-    target_link_libraries(tests_clipper_nlopt libnest2d)
-endif()
-
-target_include_directories(tests_clipper_nlopt BEFORE PRIVATE ${GTEST_INCLUDE_DIRS})
+target_link_libraries(tests_clipper_nlopt libnest2d Catch2::Catch2)
 
 if(NOT LIBNEST2D_HEADER_ONLY)
     target_link_libraries(tests_clipper_nlopt ${LIBNAME})

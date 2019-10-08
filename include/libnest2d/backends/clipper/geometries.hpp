@@ -71,7 +71,8 @@ template<> inline ClipperLib::cInt& y(PointImpl& p)
 
 namespace shapelike {
 
-template<> inline void offset(PolygonImpl& sh, TCoord<PointImpl> distance)
+template<>
+inline void offset(PolygonImpl& sh, TCoord<PointImpl> distance, const PolygonTag&)
 {
     #define DISABLE_BOOST_OFFSET
 
@@ -80,17 +81,16 @@ template<> inline void offset(PolygonImpl& sh, TCoord<PointImpl> distance)
     using ClipperLib::etClosedPolygon;
     using ClipperLib::Paths;
 
-    // If the input is not at least a triangle, we can not do this algorithm
-    if(sh.Contour.size() <= 3 ||
-       std::any_of(sh.Holes.begin(), sh.Holes.end(),
-                   [](const PathImpl& p) { return p.size() <= 3; })
-       ) throw GeometryException(GeomErr::OFFSET);
-
-    ClipperOffset offs;
     Paths result;
-    offs.AddPath(sh.Contour, jtMiter, etClosedPolygon);
-    offs.AddPaths(sh.Holes, jtMiter, etClosedPolygon);
-    offs.Execute(result, static_cast<double>(distance));
+    
+    try {
+        ClipperOffset offs;
+        offs.AddPath(sh.Contour, jtMiter, etClosedPolygon);
+        offs.AddPaths(sh.Holes, jtMiter, etClosedPolygon);
+        offs.Execute(result, static_cast<double>(distance));
+    } catch (ClipperLib::clipperException &) {
+        throw GeometryException(GeomErr::OFFSET);
+    }
 
     // Offsetting reverts the orientation and also removes the last vertex
     // so boost will not have a closed polygon.
@@ -121,6 +121,14 @@ template<> inline void offset(PolygonImpl& sh, TCoord<PointImpl> distance)
             sh.Holes.back().emplace_back(std::move(front_p));
         }
     }
+}
+
+template<>
+inline void offset(PathImpl& sh, TCoord<PointImpl> distance, const PathTag&)
+{
+    PolygonImpl p(std::move(sh));
+    offset(p, distance, PolygonTag());
+    sh = p.Contour;
 }
 
 // Tell libnest2d how to make string out of a ClipperPolygon object
@@ -328,7 +336,15 @@ merge(const TMultiShape<PolygonImpl>& shapes)
 //#define DISABLE_BOOST_SERIALIZE
 //#define DISABLE_BOOST_UNSERIALIZE
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4244)
+#pragma warning(disable: 4267)
+#endif
 // All other operators and algorithms are implemented with boost
 #include <libnest2d/utils/boost_alg.hpp>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #endif // CLIPPER_BACKEND_HPP

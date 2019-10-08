@@ -6,7 +6,7 @@
 
 #include <libnest2d.h>
 
-#include "../tools/printer_parts.h"
+#include "../tools/printer_parts.hpp"
 #include "../tools/benchmark.h"
 #include "../tools/svgtools.hpp"
 #include "../tools/measure.hpp"
@@ -25,10 +25,13 @@ struct NfpImpl<RawShape, NfpLevel::CONVEX_ONLY> {
         return nfpConvexOnly<RawShape, boost::rational<__int128>>(sh, other);
     }
 };
-}}
+} // namespace nfp
+} // namespace libnest2d
 #endif
 
 using namespace libnest2d;
+
+namespace  {
 
 const std::vector<Item>& _parts(std::vector<Item>& ret, const TestData& data)
 {
@@ -46,20 +49,29 @@ const std::vector<Item>& prusaParts() {
     return _parts(ret, PRINTER_PART_POLYGONS);
 }
 
+}
+
 int main(void /*int argc, char **argv*/) {
     
     std::vector<Item> input = prusaParts();
-    auto result = libnest2d::nest(input, Box(mm(250), mm(210)),
-                                  [](unsigned cnt) {
-        std::cout << "parts left: " << cnt << std::endl;
-    });
+    
+    size_t bins = libnest2d::nest(input, Box(mm(250), mm(210)), 0, {},
+                                  ProgressFunction{[](unsigned cnt) {
+          std::cout << "parts left: " << cnt << std::endl;
+        }});
+    
+    PackGroup pgrp(bins);
+    
+    for (Item &itm : input) {
+        if (itm.binId() >= 0) pgrp[size_t(itm.binId())].emplace_back(itm);
+    }
 
     using SVGWriter = libnest2d::svg::SVGWriter<PolygonImpl>;
     SVGWriter::Config conf;
     conf.mm_in_coord_units = mm();
     SVGWriter svgw(conf);
     svgw.setSize(Box(mm(250), mm(210)));
-    svgw.writePackGroup(result);
+    svgw.writePackGroup(pgrp);
     svgw.save("out");
 
     return EXIT_SUCCESS;

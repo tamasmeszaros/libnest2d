@@ -1,4 +1,4 @@
-#include "printer_parts.h"
+#include "printer_parts.hpp"
 
 const TestData PRINTER_PART_POLYGONS =
 {

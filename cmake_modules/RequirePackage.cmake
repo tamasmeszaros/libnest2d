@@ -103,14 +103,15 @@ macro(require_package RP_ARGS_PACKAGE RP_ARGS_VERSION)
         set(_QUIET "QUIET")
     endif ()
     
-    if(NOT ${RP_ARGS_PACKAGE}_FOUND AND NOT RP_DISABLE_DOWNLOADING)
-        download_package(${RP_ARGS_PACKAGE} ${RP_ARGS_VERSION} 
+    if(NOT ${RP_ARGS_PACKAGE}_FOUND )
+        if (NOT RP_DISABLE_DOWNLOADING)
+            download_package(${RP_ARGS_PACKAGE} ${RP_ARGS_VERSION} 
                          ${_QUIET}
                          ${RP_ARGS_UNPARSED_ARGUMENTS} )
+        endif()
 
         find_package(${RP_ARGS_PACKAGE} ${RP_ARGS_VERSION} 
             ${_QUIET} ${_REQUIRED} ${RP_ARGS_UNPARSED_ARGUMENTS})
     endif()
     
-
 endmacro()

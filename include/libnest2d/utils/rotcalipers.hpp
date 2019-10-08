@@ -4,12 +4,9 @@
 #include <numeric>
 #include <functional>
 #include <array>
+#include <cmath>
 
 #include <libnest2d/geometry_traits.hpp>
-#include <libnest2d/utils/rational.hpp>
-// #include <libnest2d/utils/bigint.hpp>
-
-#include <cmath>
 
 namespace libnest2d {
 

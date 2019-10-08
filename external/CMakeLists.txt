@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.0)
 
 project(RequiredPackages)
 
-option(RP_DISABLE_DOWNLOADING "Disable downloading of packages effectively falling back to find_package functionality" OFF)
 set(RP_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/rp_packages CACHE STRING "Package install location")
 set(RP_REPOSITORY_DIR ${PROJECT_SOURCE_DIR}/external CACHE STRING "Package repository location")
 set(RP_DEBUG_POSTFIX "d" CACHE STRING "Preferred postfix for libraries built in Debug mode")

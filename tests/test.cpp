@@ -2,7 +2,7 @@
 #include <fstream>
 
 #include <libnest2d.h>
-#include "printer_parts.h"
+#include "../tools/printer_parts.h"
 #include <libnest2d/geometry_traits_nfp.hpp>
 #include "../tools/svgtools.hpp"
 #include <libnest2d/utils/rotcalipers.hpp>

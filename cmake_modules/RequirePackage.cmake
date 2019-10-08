@@ -47,7 +47,7 @@ function(download_package)
             -D "RP_INSTALL_PREFIX:PATH=${RP_ARGS_INSTALL_PATH}"
             -D "RP_PACKAGE:STRING=${RP_ARGS_PACKAGE}"
             -D "RP_${RP_ARGS_PACKAGE}_COMPONENTS=\"${RP_ARGS_COMPONENTS}\""
-            -D "RP_${RP_ARGS_PACKAGE}_OPTIONAL_COMPONENTSS=\"${RP_ARGS_OPTIONAL_COMPONENTS}\"" 
+            -D "RP_${RP_ARGS_PACKAGE}_OPTIONAL_COMPONENTS=\"${RP_ARGS_OPTIONAL_COMPONENTS}\"" 
             -D "RP_${RP_ARGS_PACKAGE}_VERSION=\"${RP_ARGS_VERSION}\"" 
             ${RP_ARGS_REPOSITORY_PATH}
         
@@ -80,15 +80,12 @@ function(download_package)
 
 endfunction()
 
-macro(require_package)
+macro(require_package RP_ARGS_PACKAGE RP_ARGS_VERSION)    
+    set(options REQUIRED QUIET)
+    set(oneValueArgs "")
+    set(multiValueArgs "")
     cmake_parse_arguments(RP_ARGS 
-        "QUIET;REQUIRED" 
-        "VERSION;PACKAGE" 
-        "" ${ARGN})
-
-    if(NOT RP_ARGS_PACKAGE)
-        set(RP_ARGS_PACKAGE ${ARGV0})
-    endif()
+        "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if(NOT RP_ARGS_VERSION)
         set(RP_ARGS_VERSION ${ARGV1})
@@ -96,12 +93,24 @@ macro(require_package)
 
     find_package(${RP_ARGS_PACKAGE} ${RP_ARGS_VERSION} QUIET ${RP_ARGS_UNPARSED_ARGUMENTS})
 
+    set(_REQUIRED "")
+    if (RP_ARGS_REQUIRED) 
+        set(_REQUIRED "REQUIRED")
+    endif ()
+
+    set(_QUIET "")
+    if (RP_ARGS_QUIET) 
+        set(_QUIET "QUIET")
+    endif ()
+    
     if(NOT ${RP_ARGS_PACKAGE}_FOUND AND NOT RP_DISABLE_DOWNLOADING)
         download_package(${RP_ARGS_PACKAGE} ${RP_ARGS_VERSION} 
-                         $<RP_ARGS_QUIET:QUIET>
+                         ${_QUIET}
                          ${RP_ARGS_UNPARSED_ARGUMENTS} )
-    endif()
 
-    find_package(${RP_ARGS_PACKAGE} ${RP_ARGS_VERSION} 
-                 $<RP_ARGS_QUIET:QUIET> $<RP_ARGS_REQUIRED:REQUIRED> ${RP_ARGS_UNPARSED_ARGUMENTS})
+        find_package(${RP_ARGS_PACKAGE} ${RP_ARGS_VERSION} 
+            ${_QUIET} ${_REQUIRED} ${RP_ARGS_UNPARSED_ARGUMENTS})
+    endif()
+    
+
 endmacro()

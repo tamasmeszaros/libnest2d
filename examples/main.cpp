@@ -6,7 +6,7 @@
 
 #include <libnest2d.h>
 
-#include "../tests/printer_parts.h"
+#include "../tools/printer_parts.h"
 #include "../tools/benchmark.h"
 #include "../tools/svgtools.hpp"
 #include "../tools/measure.hpp"

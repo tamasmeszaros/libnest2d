@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED)
 # Add our own cmake module path.
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules/)
 
-option(LIBNEST2D_UNITTESTS "If enabled, googletest framework will be downloaded
+option(LIBNEST2D_BUILD_UNITTESTS "If enabled, googletest framework will be downloaded
     and the provided unit tests will be included in the build." OFF)
 
 option(LIBNEST2D_BUILD_EXAMPLES "If enabled, examples will be built." OFF)
@@ -104,6 +104,6 @@ if(LIBNEST2D_BUILD_EXAMPLES)
     add_subdirectory(${PROJECT_SOURCE_DIR}/examples)
 endif()
 
-if(LIBNEST2D_UNITTESTS)
+if(LIBNEST2D_BUILD_UNITTESTS)
     add_subdirectory(${PROJECT_SOURCE_DIR}/tests)
 endif()

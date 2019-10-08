@@ -109,5 +109,6 @@ if(LIBNEST2D_BUILD_EXAMPLES)
 endif()
 
 if(LIBNEST2D_BUILD_UNITTESTS)
+    enable_testing()
     add_subdirectory(${PROJECT_SOURCE_DIR}/tests)
 endif()

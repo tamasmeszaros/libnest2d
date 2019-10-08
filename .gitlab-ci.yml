@@ -1,0 +1,31 @@
+# use the official gcc image, based on debian
+# can use verions as well, like gcc:5.2
+# see https://hub.docker.com/_/gcc/
+image: gcc
+
+build:
+  stage: build
+  # instead of calling g++ directly you can also use some build toolkit like make
+  # install the necessary build tools when needed
+  before_script:
+    - apt update && apt -y install cmake ninja-build libpolyclipping-dev libnlopt-cxx-dev libboost-dev
+  script:
+    - mkdir -p build && cd build && cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DLIBNEST2D_BUILD_EXAMPLES=ON -DLIBNEST2D_BUILD_UNITTESTS=ON && cmake --build . --target all
+  artifacts:
+    paths:
+      - build/tests/tests_clipper_nlopt
+  # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
+  cache:
+    paths:
+      - "build/dependencies/*"
+
+# run tests using the binary built before
+test:
+  stage: test
+  before_script:
+    - apt update && apt -y install libpolyclipping22 libnlopt-cxx0 libnlopt0
+  script:
+    - cd build/tests && ./tests_clipper_nlopt -r "junit" --out report.xml
+  artifacts:
+    reports:
+      junit: build/tests/report.xml

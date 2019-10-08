@@ -5,7 +5,7 @@ add_executable(tests_clipper_nlopt
     ../tools/svgtools.hpp
 #   ../tools/libnfpglue.hpp
 #  ../tools/libnfpglue.cpp
-    ../tools/printer_parts.h
+    ../tools/printer_parts.hpp
     ../tools/printer_parts.cpp
 )
 

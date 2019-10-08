@@ -94,14 +94,12 @@ int main(int argc, const char* argv[]) {
     input.insert(input.end(), input2.begin(), input2.end());
 
     // Perform the nesting with a box shaped bin
-    auto result = nest(input, Box(150000000, 150000000));
+    size_t bins = nest(input, Box(150000000, 150000000));
 
     // Retrieve resulting geometries
-    for(auto& r : result) {
-        for(Item& item : r) {
-            auto polygon = item.transformedShape();
-            // render polygon...
-        }
+    for(Item& r : input) {
+        auto polygon = item.transformedShape();
+        // render polygon...
     }
 
     return EXIT_SUCCESS;

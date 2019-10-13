@@ -1,7 +1,7 @@
 #ifndef MEASURE_HPP
 #define MEASURE_HPP
 
-#include <libnest2d.h>
+#include <libnest2d/libnest2d.hpp>
 
 #ifdef LIBNEST2D_GEOMETRIES_clipper
 #define MM_IN_COORDTTYPE 1000000

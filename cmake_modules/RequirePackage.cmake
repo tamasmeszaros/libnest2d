@@ -1,3 +1,29 @@
+
+# RP Package manager default install dir will be set globally
+set(RP_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/dependencies CACHE STRING "Dependencies location")
+
+option(RP_DISABLE_DOWNLOADING "Disable downloading of packages effectively falling back to find_package functionality" OFF)
+
+# This variable is used to gather dependencies for export (find_dependency will be called for each package)
+# A list of the requested packages from all require_package calls.
+set(RP_USED_PACKAGES "" CACHE INTERNAL "")
+
+if (NOT CMAKE_PREFIX_PATH)
+    set(CMAKE_PREFIX_PATH "")
+endif()
+
+if (BUILD_SHARED_LIBS)
+    set(RP_INSTALL_SUBDIR shared)
+    set(RP_INSTALL_OTHER_SUBDIR static)
+else()
+    set(RP_INSTALL_SUBDIR static)
+    set(RP_INSTALL_OTHER_SUBDIR shared)
+endif()
+
+list(REMOVE_ITEM CMAKE_PREFIX_PATH ${RP_INSTALL_PREFIX}/${RP_INSTALL_OTHER_SUBDIR})
+file(REMOVE_RECURSE ${RP_INSTALL_PREFIX}/${RP_INSTALL_OTHER_SUBDIR})
+list(APPEND CMAKE_PREFIX_PATH ${RP_INSTALL_PREFIX}/${RP_INSTALL_SUBDIR})
+
 function(download_package)
 
     cmake_parse_arguments(RP_ARGS 
@@ -44,11 +70,12 @@ function(download_package)
     execute_process(
         COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" 
             -D "CMAKE_MAKE_PROGRAM:FILE=${CMAKE_MAKE_PROGRAM}" 
-            -D "RP_INSTALL_PREFIX:PATH=${RP_ARGS_INSTALL_PATH}"
+            -D "RP_INSTALL_PREFIX:PATH=${RP_ARGS_INSTALL_PATH}/${RP_INSTALL_SUBDIR}"
             -D "RP_PACKAGE:STRING=${RP_ARGS_PACKAGE}"
             -D "RP_${RP_ARGS_PACKAGE}_COMPONENTS=\"${RP_ARGS_COMPONENTS}\""
             -D "RP_${RP_ARGS_PACKAGE}_OPTIONAL_COMPONENTS=\"${RP_ARGS_OPTIONAL_COMPONENTS}\"" 
             -D "RP_${RP_ARGS_PACKAGE}_VERSION=\"${RP_ARGS_VERSION}\"" 
+            -D "BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}"
             ${RP_ARGS_REPOSITORY_PATH}
         
         RESULT_VARIABLE CONFIG_STEP_RESULT
@@ -81,7 +108,7 @@ function(download_package)
 endfunction()
 
 macro(require_package RP_ARGS_PACKAGE RP_ARGS_VERSION)    
-    set(options REQUIRED QUIET)
+    set(options REQUIRED QUIET NO_EXPORT)
     set(oneValueArgs "")
     set(multiValueArgs "")
     cmake_parse_arguments(RP_ARGS 
@@ -112,6 +139,11 @@ macro(require_package RP_ARGS_PACKAGE RP_ARGS_VERSION)
 
         find_package(${RP_ARGS_PACKAGE} ${RP_ARGS_VERSION} 
             ${_QUIET} ${_REQUIRED} ${RP_ARGS_UNPARSED_ARGUMENTS})
+    endif()
+    
+    if (NOT RP_ARGS_NO_EXPORT)
+        list(APPEND RP_USED_PACKAGES ${RP_ARGS_PACKAGE})
+        set(RP_USED_PACKAGES "${RP_USED_PACKAGES}" CACHE INTERNAL "")
     endif()
     
 endmacro()

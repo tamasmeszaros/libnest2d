@@ -9,8 +9,4 @@ add_executable(example     ${PROJECT_SOURCE_DIR}/examples/main.cpp
                        ${PROJECT_SOURCE_DIR}/tools/printer_parts.hpp
                        )
 
-if(NOT LIBNEST2D_HEADER_ONLY)
-target_link_libraries(example ${LIBNAME})
-else()
 target_link_libraries(example libnest2d)
-endif()

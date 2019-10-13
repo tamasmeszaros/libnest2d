@@ -1,0 +1,12 @@
+include(CMakeFindDependencyMacro)
+set(USED_PACKAGES @RP_USED_PACKAGES@)
+
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
+
+foreach(package ${USED_PACKAGES})
+    find_dependency(${package})
+endforeach()
+
+unset(USED_PACKAGES)
+
+include("${CMAKE_CURRENT_LIST_DIR}/Libnest2DTargets.cmake")

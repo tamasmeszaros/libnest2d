@@ -1,7 +1,5 @@
 add_library(tbbThreading INTERFACE)
 
-include(RequirePackage)
-
 # Now the library is downloaded, configured, built and installed and the find
 # command should not have any problem to find it. 
 set(TBB_STATIC ON)

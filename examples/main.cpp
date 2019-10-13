@@ -4,7 +4,7 @@
 #include <cstdint>
 //#define DEBUG_EXPORT_NFP
 
-#include <libnest2d.h>
+#include <libnest2d/libnest2d.hpp>
 
 #include "../tools/printer_parts.hpp"
 #include "../tools/benchmark.h"

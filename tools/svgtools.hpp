@@ -5,7 +5,7 @@
 #include <fstream>
 #include <string>
 
-#include <libnest2d/libnest2d.hpp>
+#include <libnest2d/nester.hpp>
 
 namespace libnest2d { namespace svg {
 

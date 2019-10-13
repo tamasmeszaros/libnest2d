@@ -20,7 +20,9 @@ macro(subdirlist result curdir)
   set(${result} ${dirlist})
 endmacro()
 
-subdirlist(RP_PACKAGES ${CMAKE_CURRENT_LIST_DIR})
+if (NOT RP_PACKAGES)
+    subdirlist(RP_PACKAGES ${CMAKE_CURRENT_LIST_DIR})
+endif()
 
 get_directory_property(hasParent PARENT_DIRECTORY)
 

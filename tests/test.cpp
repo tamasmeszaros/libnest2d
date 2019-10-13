@@ -3,7 +3,7 @@
 
 #include <fstream>
 
-#include <libnest2d.h>
+#include <libnest2d/libnest2d.hpp>
 #include "../tools/printer_parts.hpp"
 //#include <libnest2d/geometry_traits_nfp.hpp>
 #include "../tools/svgtools.hpp"

@@ -1,4 +1,4 @@
-require_package(Catch2 2.9.1 REQUIRED)
+require_package(Catch2 2.9.1 REQUIRED NO_EXPORT)
 
 add_executable(tests_clipper_nlopt
     test.cpp
@@ -10,11 +10,4 @@ add_executable(tests_clipper_nlopt
 )
 
 target_link_libraries(tests_clipper_nlopt libnest2d Catch2::Catch2)
-
-if(NOT LIBNEST2D_HEADER_ONLY)
-    target_link_libraries(tests_clipper_nlopt ${LIBNAME})
-else()
-    target_link_libraries(tests_clipper_nlopt libnest2d)
-endif()
-
 add_test(libnest2d_tests tests_clipper_nlopt)

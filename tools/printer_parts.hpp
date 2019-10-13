@@ -2,7 +2,7 @@
 #define PRINTER_PARTS_H
 
 #include <vector>
-#include <libnest2d.h>
+#include <libnest2d/libnest2d.hpp>
 
 using TestData = std::vector<libnest2d::PathImpl>;
 using TestDataEx = std::vector<libnest2d::PolygonImpl>;

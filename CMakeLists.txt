@@ -92,8 +92,10 @@ target_compile_definitions(libnest2d_common INTERFACE LIBNEST2D_OPTIMIZER_${LIBN
 target_include_directories(libnest2d_common INTERFACE $<BUILD_INTERFACE:${SRC_DIR}>)
 
 if(NOT LIBNEST2D_HEADER_ONLY)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
     set(LIBNAME libnest2d_${LIBNEST2D_GEOMETRIES}_${LIBNEST2D_OPTIMIZER})
     add_library(${LIBNAME} ${PROJECT_SOURCE_DIR}/src/libnest2d.cpp)
+    set_target_properties(${LIBNAME} PROPERTIES PREFIX "")
     target_link_libraries(${LIBNAME} PUBLIC libnest2d_common)
     target_compile_definitions(${LIBNAME} PUBLIC LIBNEST2D_STATIC)
     target_sources(${LIBNAME} PRIVATE ${LIBNEST2D_SRCFILES})

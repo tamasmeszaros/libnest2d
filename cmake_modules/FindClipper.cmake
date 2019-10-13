@@ -7,6 +7,9 @@
 #
 # It searches the environment variable $CLIPPER_PATH automatically.
 
+unset(CLIPPER_INCLUDE_DIRS CACHE)
+unset(CLIPPER_LIBRARIES CACHE)
+
 FIND_PATH(CLIPPER_INCLUDE_DIRS clipper.hpp
     $ENV{CLIPPER_PATH}
     $ENV{CLIPPER_PATH}/cpp/

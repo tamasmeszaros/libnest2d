@@ -22,8 +22,7 @@ option(LIBNEST2D_BUILD_EXAMPLES "If enabled, examples will be built." OFF)
 
 option(LIBNEST2D_HEADER_ONLY "If enabled static library will not be built." ON)
 
-include(CMakeDependentOption)
-cmake_dependent_option(BUILD_SHARED_LIBS "Build shared lib instead of static" ON "NOT LIBNEST2D_HEADER_ONLY" OFF)
+option(BUILD_SHARED_LIBS "Build shared libs instead of static (applies for dependencies as well)" OFF)
 
 set(GEOMETRY_BACKENDS clipper boost eigen)
 set(LIBNEST2D_GEOMETRIES clipper CACHE STRING "Geometry backend")
@@ -59,6 +58,7 @@ set(LIBNEST2D_SRCFILES
     include/libnest2d/geometry_traits.hpp
     include/libnest2d/geometry_traits_nfp.hpp
     include/libnest2d/common.hpp
+    include/libnest2d/parallel.hpp
     include/libnest2d/optimizer.hpp
     include/libnest2d/utils/metaloop.hpp
     include/libnest2d/utils/rotfinder.hpp

@@ -250,28 +250,27 @@ if(NOT TBB_FOUND)
     endif()
   endforeach()
 
-  unset(TBB_STATIC_SUFFIX)
-
   ##################################
   # Set compile flags and libraries
   ##################################
 
   set(TBB_DEFINITIONS_RELEASE "")
-  set(TBB_DEFINITIONS_DEBUG "-DTBB_USE_DEBUG=1")
+  set(TBB_DEFINITIONS_DEBUG "TBB_USE_DEBUG=1")
     
   if(TBB_LIBRARIES_${TBB_BUILD_TYPE})
-    set(TBB_DEFINITIONS "${TBB_DEFINITIONS_${TBB_BUILD_TYPE}}")
     set(TBB_LIBRARIES "${TBB_LIBRARIES_${TBB_BUILD_TYPE}}")
-  elseif(TBB_LIBRARIES_RELEASE)
-    set(TBB_DEFINITIONS "${TBB_DEFINITIONS_RELEASE}")
-    set(TBB_LIBRARIES "${TBB_LIBRARIES_RELEASE}")
-  elseif(TBB_LIBRARIES_DEBUG)
-    set(TBB_DEFINITIONS "${TBB_DEFINITIONS_DEBUG}")
-    set(TBB_LIBRARIES "${TBB_LIBRARIES_DEBUG}")
   endif()
 
+  if (MSVC AND TBB_STATIC)
+    set(TBB_DEFINITIONS __TBB_NO_IMPLICIT_LINKAGE)
+  endif ()
+
+  unset (TBB_STATIC_SUFFIX)
+
+  message(STATUS "tbb definitions: ${TBB_DEFINITIONS}")
   find_package_handle_standard_args(TBB 
       REQUIRED_VARS TBB_INCLUDE_DIRS TBB_LIBRARIES
+      FAIL_MESSAGE "TBB library cannot be found. Consider set TBBROOT environment variable."
       HANDLE_COMPONENTS
       VERSION_VAR TBB_VERSION)
 
@@ -280,24 +279,18 @@ if(NOT TBB_FOUND)
   ##################################
 
   if(NOT CMAKE_VERSION VERSION_LESS 3.0 AND TBB_FOUND)
-    add_library(TBB::tbb SHARED IMPORTED)
+    add_library(TBB::tbb UNKNOWN IMPORTED)
     set_target_properties(TBB::tbb PROPERTIES
+          INTERFACE_COMPILE_DEFINITIONS "${TBB_DEFINITIONS}"
           INTERFACE_INCLUDE_DIRECTORIES  ${TBB_INCLUDE_DIRS}
           IMPORTED_LOCATION              ${TBB_LIBRARIES})
     if(TBB_LIBRARIES_RELEASE AND TBB_LIBRARIES_DEBUG)
       set_target_properties(TBB::tbb PROPERTIES
-          INTERFACE_COMPILE_DEFINITIONS "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:TBB_USE_DEBUG=1>"
+          INTERFACE_COMPILE_DEFINITIONS "${TBB_DEFINITIONS};$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:${TBB_DEFINITIONS_DEBUG}>;$<$<CONFIG:Release>:${TBB_DEFINITIONS_RELEASE}>"
           IMPORTED_LOCATION_DEBUG          ${TBB_LIBRARIES_DEBUG}
-          IMPORTED_LOCATION_RELWITHDEBINFO ${TBB_LIBRARIES_DEBUG}
+          IMPORTED_LOCATION_RELWITHDEBINFO ${TBB_LIBRARIES_RELEASE}
           IMPORTED_LOCATION_RELEASE        ${TBB_LIBRARIES_RELEASE}
           IMPORTED_LOCATION_MINSIZEREL     ${TBB_LIBRARIES_RELEASE}
-          )
-    elseif(TBB_LIBRARIES_RELEASE)
-      set_target_properties(TBB::tbb PROPERTIES IMPORTED_LOCATION ${TBB_LIBRARIES_RELEASE})
-    else()
-      set_target_properties(TBB::tbb PROPERTIES
-          INTERFACE_COMPILE_DEFINITIONS "${TBB_DEFINITIONS_DEBUG}"
-          IMPORTED_LOCATION              ${TBB_LIBRARIES_DEBUG}
           )
     endif()
   endif()
@@ -310,6 +303,7 @@ if(NOT TBB_FOUND)
   unset(TBB_DEFAULT_SEARCH_DIR)
 
   if(TBB_DEBUG)
+    message(STATUS "  TBB_FOUND               = ${TBB_FOUND}")
     message(STATUS "  TBB_INCLUDE_DIRS        = ${TBB_INCLUDE_DIRS}")
     message(STATUS "  TBB_DEFINITIONS         = ${TBB_DEFINITIONS}")
     message(STATUS "  TBB_LIBRARIES           = ${TBB_LIBRARIES}")

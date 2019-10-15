@@ -9,6 +9,6 @@ ExternalProject_Add(
     CONFIGURE_COMMAND  ""
     BUILD_COMMAND      ""
     BUILD_IN_SOURCE    ON
-    INSTALL_COMMAND    ${CMAKE_COMMAND} -E copy_directory boost ${RP_INSTALL_PREFIX}/include/boost
+    INSTALL_COMMAND    ${CMAKE_COMMAND} -E copy_directory boost ${CMAKE_INSTALL_PREFIX}/include/boost
     TEST_COMMAND       ""
 )

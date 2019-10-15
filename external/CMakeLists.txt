@@ -2,10 +2,6 @@ cmake_minimum_required(VERSION 3.0)
 
 project(RequiredPackages)
 
-set(RP_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/rp_packages CACHE STRING "Package install location")
-set(RP_REPOSITORY_DIR ${PROJECT_SOURCE_DIR}/external CACHE STRING "Package repository location")
-set(RP_DEBUG_POSTFIX "d" CACHE STRING "Preferred postfix for libraries built in Debug mode")
-
 macro(subdirlist result curdir)
   file(GLOB children RELATIVE ${curdir} ${curdir}/*)
   set(dirlist "")
@@ -34,7 +30,6 @@ endif()
 add_custom_target(rp ${DEPS_ALL})
 
 foreach(PACKAGE IN ITEMS ${RP_PACKAGES})
-    option(RP_ENABLE_${PACKAGE} "Enable package ${PACKAGE}" ON)
     add_subdirectory("+${PACKAGE}" EXCLUDE_FROM_ALL)
     add_dependencies(rp rp_${PACKAGE})
 endforeach()

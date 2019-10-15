@@ -1,15 +1,11 @@
 add_library(tbbThreading INTERFACE)
 
-# Now the library is downloaded, configured, built and installed and the find
-# command should not have any problem to find it. 
-set(TBB_STATIC ON)
-
-require_package(TBB REQUIRED)
-
-if(MSVC)
-    # Suppress implicit linking of the TBB libraries by the Visual Studio compiler.
-    target_compile_definitions(tbbThreading INTERFACE -D__TBB_NO_IMPLICIT_LINKAGE)
+if(NOT BUILD_SHARED_LIBS)
+    set(TBB_STATIC TRUE)
 endif()
+require_package(TBB 1.0 REQUIRED)
 
 target_link_libraries(tbbThreading INTERFACE TBB::tbb)
 target_compile_definitions(tbbThreading INTERFACE -DTBB_USE_CAPTURED_EXCEPTION=0)
+
+install(TARGETS tbbThreading EXPORT Libnest2DTargets INCLUDES DESTINATION include)

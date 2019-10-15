@@ -17,7 +17,7 @@ ExternalProject_Add(
         -DTBB_BUILD_STATIC=${_TBB_BUILD_STATIC}
         -DTBB_BUILD_SHARED=${BUILD_SHARED_LIBS}
         -DTBB_BUILD_TESTS=OFF
-        $<$<CONFIG:Debug>:-DCMAKE_DEBUG_POSTFIX=_debug>
+        -DCMAKE_DEBUG_POSTFIX=_debug
 )
 
 get_property(_is_multi GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)

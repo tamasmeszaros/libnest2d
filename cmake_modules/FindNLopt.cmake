@@ -13,6 +13,12 @@ unset(NLopt_LIBRARIES CACHE)
 unset(NLopt_LIBRARIES_RELEASE CACHE)
 unset(NLopt_LIBRARIES_DEBUG CACHE)
 
+if(CMAKE_BUILD_TYPE MATCHES "(Debug|DEBUG|debug)")
+    set(NLopt_BUILD_TYPE DEBUG)
+else()
+    set(NLopt_BUILD_TYPE RELEASE)
+endif()
+
 FIND_PATH(NLopt_INCLUDE_DIRS nlopt.hpp
     $ENV{NLopt_PATH}
     $ENV{NLopt_PATH}/cpp/
@@ -46,11 +52,8 @@ set(_deb_postfix "d")
 FIND_LIBRARY(NLopt_LIBRARIES_RELEASE nlopt ${LIB_SEARCHDIRS})
 FIND_LIBRARY(NLopt_LIBRARIES_DEBUG nlopt${_deb_postfix} ${LIB_SEARCHDIRS})
 
-set(NLopt_LIBRARIES "")
-if(NLopt_LIBRARIES_RELEASE)
-    list(APPEND NLopt_LIBRARIES ${NLopt_LIBRARIES_RELEASE})
-else()
-    list(APPEND NLopt_LIBRARIES ${NLopt_LIBRARIES_DEBUG})
+if(NLopt_LIBRARIES_${NLopt_BUILD_TYPE})
+    set(NLopt_LIBRARIES "${NLopt_LIBRARIES_${NLopt_BUILD_TYPE}}")
 endif()
 
 include(FindPackageHandleStandardArgs)
@@ -67,10 +70,12 @@ if(NLopt_FOUND)
     add_library(NLopt::nlopt UNKNOWN IMPORTED)
     set_target_properties(NLopt::nlopt PROPERTIES IMPORTED_LOCATION ${NLopt_LIBRARIES})
     set_target_properties(NLopt::nlopt PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${NLopt_INCLUDE_DIRS})
-    set_target_properties(NLopt::nlopt PROPERTIES
-        IMPORTED_LOCATION_DEBUG          ${NLopt_LIBRARIES_DEBUG}
-        IMPORTED_LOCATION_RELWITHDEBINFO ${NLopt_LIBRARIES_RELEASE}
-        IMPORTED_LOCATION_RELEASE        ${NLopt_LIBRARIES_RELEASE}
-        IMPORTED_LOCATION_MINSIZEREL     ${NLopt_LIBRARIES_RELEASE}
-    )
+    if(NLopt_LIBRARIES_RELEASE AND NLopt_LIBRARIES_DEBUG)
+        set_target_properties(NLopt::nlopt PROPERTIES
+            IMPORTED_LOCATION_DEBUG          ${NLopt_LIBRARIES_DEBUG}
+            IMPORTED_LOCATION_RELWITHDEBINFO ${NLopt_LIBRARIES_RELEASE}
+            IMPORTED_LOCATION_RELEASE        ${NLopt_LIBRARIES_RELEASE}
+            IMPORTED_LOCATION_MINSIZEREL     ${NLopt_LIBRARIES_RELEASE}
+        )
+    endif()
 endif()

@@ -101,6 +101,8 @@ unset(TBB_LIBRARIES_RELEASE)
 
 include(FindPackageHandleStandardArgs)
 
+find_package(Threads QUIET REQUIRED)
+
 if(NOT TBB_FOUND)
 
   ##################################
@@ -291,6 +293,7 @@ if(NOT TBB_FOUND)
     add_library(TBB::tbb UNKNOWN IMPORTED)
     set_target_properties(TBB::tbb PROPERTIES
           INTERFACE_COMPILE_DEFINITIONS "${TBB_DEFINITIONS}"
+          INTERFACE_LINK_LIBRARIES  "Threads::Threads;${CMAKE_DL_LIBS}"
           INTERFACE_INCLUDE_DIRECTORIES  ${TBB_INCLUDE_DIRS}
           IMPORTED_LOCATION              ${TBB_LIBRARIES})
     if(TBB_LIBRARIES_RELEASE AND TBB_LIBRARIES_DEBUG)

@@ -60,4 +60,4 @@ inline void enumerate(
 
 }}
 
-#endif LIBNEST2D_PARALLEL_HPP
+#endif //LIBNEST2D_PARALLEL_HPP

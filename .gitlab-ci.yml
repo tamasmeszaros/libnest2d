@@ -1,7 +1,7 @@
 # use the official gcc image, based on debian
 # can use verions as well, like gcc:5.2
 # see https://hub.docker.com/_/gcc/
-image: ubuntu_clang
+image: meszarosq/phoenix:latest
 
 build:
   stage: build

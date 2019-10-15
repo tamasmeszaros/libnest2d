@@ -2,11 +2,6 @@ cmake_minimum_required(VERSION 3.0)
 
 project(Libnest2D)
 
-# if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-#     # Update if necessary
-#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long ")
-# endif()
-
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED)
 
@@ -19,8 +14,6 @@ option(LIBNEST2D_BUILD_UNITTESTS "If enabled, googletest framework will be downl
     and the provided unit tests will be included in the build." OFF)
 
 option(LIBNEST2D_BUILD_EXAMPLES "If enabled, examples will be built." OFF)
-
-option(LIBNEST2D_HEADER_ONLY "If enabled static library will not be built." ON)
 
 option(BUILD_SHARED_LIBS "Build shared libs instead of static (applies for dependencies as well)" OFF)
 
@@ -48,7 +41,7 @@ if(${THREADING_TYPE} EQUAL -1)
     message(FATAL_ERROR "Option ${LIBNEST2D_THREADING} not supported, valid entries are ${THREADING}")
 endif()
 
-add_library(libnest2d_common INTERFACE)
+add_library(libnest2d_headeronly INTERFACE)
 
 set(SRC_DIR ${PROJECT_SOURCE_DIR}/include)
 
@@ -77,35 +70,31 @@ set(LIBNEST2D_SRCFILES
 
 if(NOT ${LIBNEST2D_THREADING} STREQUAL "none")
     include(threading_${LIBNEST2D_THREADING})
-    target_link_libraries(libnest2d_common INTERFACE ${LIBNEST2D_THREADING}Threading)
-    target_compile_definitions(libnest2d_common INTERFACE LIBNEST2D_THREADING_${LIBNEST2D_THREADING})
+    target_link_libraries(libnest2d_headeronly INTERFACE ${LIBNEST2D_THREADING}Threading)
+    target_compile_definitions(libnest2d_headeronly INTERFACE LIBNEST2D_THREADING_${LIBNEST2D_THREADING})
 endif()
 
 add_subdirectory(${SRC_DIR}/libnest2d/backends/${LIBNEST2D_GEOMETRIES})
-target_link_libraries(libnest2d_common INTERFACE ${LIBNEST2D_GEOMETRIES}Backend)
-target_compile_definitions(libnest2d_common INTERFACE LIBNEST2D_GEOMETRIES_${LIBNEST2D_GEOMETRIES})
+target_link_libraries(libnest2d_headeronly INTERFACE ${LIBNEST2D_GEOMETRIES}Backend)
+target_compile_definitions(libnest2d_headeronly INTERFACE LIBNEST2D_GEOMETRIES_${LIBNEST2D_GEOMETRIES})
 
 add_subdirectory(${SRC_DIR}/libnest2d/optimizers/${LIBNEST2D_OPTIMIZER})
-target_link_libraries(libnest2d_common INTERFACE ${LIBNEST2D_OPTIMIZER}Optimizer)
-target_compile_definitions(libnest2d_common INTERFACE LIBNEST2D_OPTIMIZER_${LIBNEST2D_OPTIMIZER})
+target_link_libraries(libnest2d_headeronly INTERFACE ${LIBNEST2D_OPTIMIZER}Optimizer)
+target_compile_definitions(libnest2d_headeronly INTERFACE LIBNEST2D_OPTIMIZER_${LIBNEST2D_OPTIMIZER})
 
-target_include_directories(libnest2d_common INTERFACE $<BUILD_INTERFACE:${SRC_DIR}>)
+target_include_directories(libnest2d_headeronly INTERFACE $<BUILD_INTERFACE:${SRC_DIR}>)
 
-if(NOT LIBNEST2D_HEADER_ONLY)
-    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-    set(LIBNAME libnest2d_${LIBNEST2D_GEOMETRIES}_${LIBNEST2D_OPTIMIZER})
-    add_library(${LIBNAME} ${PROJECT_SOURCE_DIR}/src/libnest2d.cpp)
-    set_target_properties(${LIBNAME} PROPERTIES PREFIX "")
-    target_link_libraries(${LIBNAME} PUBLIC libnest2d_common)
-    target_compile_definitions(${LIBNAME} PUBLIC LIBNEST2D_STATIC)
-    target_sources(${LIBNAME} PRIVATE ${LIBNEST2D_SRCFILES})
-    add_library(libnest2d INTERFACE)
-    target_link_libraries(libnest2d INTERFACE ${LIBNAME})
-else()
-    add_library(libnest2d INTERFACE)
-    target_link_libraries(libnest2d INTERFACE libnest2d_common)
-    set(LIBNAME "")
-endif()
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
+set(LIBNAME libnest2d_${LIBNEST2D_GEOMETRIES}_${LIBNEST2D_OPTIMIZER})
+add_library(${LIBNAME} ${PROJECT_SOURCE_DIR}/src/libnest2d.cpp)
+set_target_properties(${LIBNAME} PROPERTIES PREFIX "")
+set_target_properties(${LIBNAME} PROPERTIES DEBUG_POSTFIX "d")
+target_link_libraries(${LIBNAME} PUBLIC libnest2d_headeronly)
+target_compile_definitions(${LIBNAME} PUBLIC LIBNEST2D_STATIC)
+target_sources(${LIBNAME} PRIVATE ${LIBNEST2D_SRCFILES})
+add_library(libnest2d INTERFACE)
+target_link_libraries(libnest2d INTERFACE ${LIBNAME})
 
 if(LIBNEST2D_BUILD_EXAMPLES)
     add_subdirectory(${PROJECT_SOURCE_DIR}/examples)
@@ -124,13 +113,17 @@ write_basic_package_version_file(
     COMPATIBILITY AnyNewerVersion
 )
 
-install(TARGETS libnest2d libnest2d_common ${LIBNAME} 
+install(TARGETS libnest2d libnest2d_headeronly ${LIBNAME} 
   EXPORT Libnest2DTargets
   RUNTIME DESTINATION bin 
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   INCLUDES DESTINATION include)
-export(EXPORT Libnest2DTargets FILE "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/Libnest2DTargets.cmake" NAMESPACE Libnest2D::)
+
+export(EXPORT Libnest2DTargets 
+       FILE "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/Libnest2DTargets.cmake" 
+       NAMESPACE Libnest2D::)
+
 configure_file(cmake_modules/Config.cmake.in
   "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/Libnest2DConfig.cmake"
   @ONLY

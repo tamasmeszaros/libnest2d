@@ -3,6 +3,8 @@ set(USED_PACKAGES @RP_USED_PACKAGES@)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 
+set(TBB_STATIC @TBB_STATIC@)
+
 foreach(package ${USED_PACKAGES})
     find_dependency(${package} ${${package}_VERSION})
 endforeach()

@@ -267,7 +267,6 @@ if(NOT TBB_FOUND)
 
   unset (TBB_STATIC_SUFFIX)
 
-  message(STATUS "tbb definitions: ${TBB_DEFINITIONS}")
   find_package_handle_standard_args(TBB 
       REQUIRED_VARS TBB_INCLUDE_DIRS TBB_LIBRARIES
       FAIL_MESSAGE "TBB library cannot be found. Consider set TBBROOT environment variable."

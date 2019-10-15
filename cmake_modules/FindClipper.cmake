@@ -7,8 +7,11 @@
 #
 # It searches the environment variable $CLIPPER_PATH automatically.
 
+unset(CLIPPER_FOUND CACHE)
 unset(CLIPPER_INCLUDE_DIRS CACHE)
 unset(CLIPPER_LIBRARIES CACHE)
+unset(CLIPPER_LIBRARIES_RELEASE CACHE)
+unset(CLIPPER_LIBRARIES_DEBUG CACHE)
 
 FIND_PATH(CLIPPER_INCLUDE_DIRS clipper.hpp
     $ENV{CLIPPER_PATH}
@@ -26,7 +29,7 @@ FIND_PATH(CLIPPER_INCLUDE_DIRS clipper.hpp
     /usr/include
     /usr/include/polyclipping/)
 
-FIND_LIBRARY(CLIPPER_LIBRARIES polyclipping
+set(LIB_SEARCHDIRS 
     $ENV{CLIPPER_PATH}
     $ENV{CLIPPER_PATH}/cpp/
     $ENV{CLIPPER_PATH}/cpp/build/
@@ -40,7 +43,20 @@ FIND_LIBRARY(CLIPPER_LIBRARIES polyclipping
     /opt/local/lib/polyclipping/
     /usr/local/lib/
     /usr/local/lib/polyclipping/
-    /usr/lib/polyclipping)
+    /usr/lib/polyclipping
+)
+
+set(_deb_postfix "d")
+
+FIND_LIBRARY(CLIPPER_LIBRARIES_RELEASE polyclipping ${LIB_SEARCHDIRS})
+FIND_LIBRARY(CLIPPER_LIBRARIES_DEBUG polyclipping${_deb_postfix} ${LIB_SEARCHDIRS})
+
+set(CLIPPER_LIBRARIES "")
+if(CLIPPER_LIBRARIES_RELEASE)
+    list(APPEND CLIPPER_LIBRARIES ${CLIPPER_LIBRARIES_RELEASE})
+else()
+    list(APPEND CLIPPER_LIBRARIES ${CLIPPER_LIBRARIES_DEBUG})
+endif()
 
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(Clipper
@@ -53,9 +69,15 @@ MARK_AS_ADVANCED(
     CLIPPER_LIBRARIES)
 
 if(CLIPPER_FOUND)
-    add_library(Clipper::Clipper INTERFACE IMPORTED)
+    add_library(Clipper::Clipper UNKNOWN IMPORTED)
     set_target_properties(Clipper::Clipper PROPERTIES INTERFACE_LINK_LIBRARIES ${CLIPPER_LIBRARIES})
     set_target_properties(Clipper::Clipper PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${CLIPPER_INCLUDE_DIRS})
+    set_target_properties(Clipper::Clipper PROPERTIES
+        IMPORTED_LOCATION_DEBUG          ${CLIPPER_LIBRARIES_DEBUG}
+        IMPORTED_LOCATION_RELWITHDEBINFO ${CLIPPER_LIBRARIES_RELEASE}
+        IMPORTED_LOCATION_RELEASE        ${CLIPPER_LIBRARIES_RELEASE}
+        IMPORTED_LOCATION_MINSIZEREL     ${CLIPPER_LIBRARIES_RELEASE}
+    )
     #target_link_libraries(Clipper::Clipper INTERFACE ${CLIPPER_LIBRARIES})
     #target_include_directories(Clipper::Clipper INTERFACE ${CLIPPER_INCLUDE_DIRS})
 endif()

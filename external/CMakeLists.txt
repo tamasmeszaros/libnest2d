@@ -22,14 +22,12 @@ endif()
 
 get_directory_property(hasParent PARENT_DIRECTORY)
 
-unset(DEPS_ALL)
-if(NOT hasParent)
-   set(DEPS_ALL "ALL")
+if (NOT RP_PACKAGE)
+  add_custom_target(rp ALL)
+  foreach(PACKAGE IN ITEMS ${RP_PACKAGES})
+      add_subdirectory("+${PACKAGE}" EXCLUDE_FROM_ALL)
+      add_dependencies(rp rp_${PACKAGE})
+  endforeach()
+else()
+  add_subdirectory("+${RP_PACKAGE}")
 endif()
-
-add_custom_target(rp ${DEPS_ALL})
-
-foreach(PACKAGE IN ITEMS ${RP_PACKAGES})
-    add_subdirectory("+${PACKAGE}" EXCLUDE_FROM_ALL)
-    add_dependencies(rp rp_${PACKAGE})
-endforeach()

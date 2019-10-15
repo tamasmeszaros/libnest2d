@@ -70,7 +70,7 @@ MARK_AS_ADVANCED(
 
 if(CLIPPER_FOUND)
     add_library(Clipper::Clipper UNKNOWN IMPORTED)
-    set_target_properties(Clipper::Clipper PROPERTIES INTERFACE_LINK_LIBRARIES ${CLIPPER_LIBRARIES})
+    set_target_properties(Clipper::Clipper PROPERTIES IMPORTED_LOCATION ${CLIPPER_LIBRARIES})
     set_target_properties(Clipper::Clipper PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${CLIPPER_INCLUDE_DIRS})
     set_target_properties(Clipper::Clipper PROPERTIES
         IMPORTED_LOCATION_DEBUG          ${CLIPPER_LIBRARIES_DEBUG}

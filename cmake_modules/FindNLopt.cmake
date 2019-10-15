@@ -1,133 +1,76 @@
-#///////////////////////////////////////////////////////////////////////////
-#//-------------------------------------------------------------------------
-#//
-#// Description:
-#//      cmake module for finding NLopt installation
-#//      NLopt installation location is defined by environment variable $NLOPT
-#//
-#//      following variables are defined:
-#//      NLopt_DIR              - NLopt installation directory
-#//      NLopt_INCLUDE_DIR      - NLopt header directory
-#//      NLopt_LIBRARY_DIR      - NLopt library directory
-#//      NLopt_LIBS             - NLopt library files
-#//
-#//      Example usage:
-#//          find_package(NLopt 1.4 REQUIRED)
-#//
-#//
-#//-------------------------------------------------------------------------
+# Find NLopt library.
+# The following variables are set
+#
+# NLopt_FOUND
+# NLopt_INCLUDE_DIRS
+# NLopt_LIBRARIES
+#
+# It searches the environment variable $NLopt_PATH automatically.
 
+unset(NLopt_FOUND CACHE)
+unset(NLopt_INCLUDE_DIRS CACHE)
+unset(NLopt_LIBRARIES CACHE)
+unset(NLopt_LIBRARIES_RELEASE CACHE)
+unset(NLopt_LIBRARIES_DEBUG CACHE)
 
-set(NLopt_FOUND        FALSE)
-set(NLopt_ERROR_REASON "")
-set(NLopt_DEFINITIONS  "")
-unset(NLopt_LIBS CACHE)
+FIND_PATH(NLopt_INCLUDE_DIRS nlopt.hpp
+    $ENV{NLopt_PATH}
+    $ENV{NLopt_PATH}/cpp/
+    $ENV{NLopt_PATH}/include/
+    ${CMAKE_PREFIX_PATH}/include/nlopt
+    ${CMAKE_PREFIX_PATH}/include/
+    /opt/local/include/
+    /opt/local/include/nlopt/
+    /usr/local/include/
+    /usr/local/include/nlopt/
+    /usr/include
+    /usr/include/nlopt/)
 
+set(LIB_SEARCHDIRS 
+    $ENV{NLopt_PATH}
+    $ENV{NLopt_PATH}/cpp/
+    $ENV{NLopt_PATH}/cpp/build/
+    $ENV{NLopt_PATH}/lib/
+    $ENV{NLopt_PATH}/lib/nlopt/
+    ${CMAKE_PREFIX_PATH}/lib/
+    ${CMAKE_PREFIX_PATH}/lib/nlopt/
+    /opt/local/lib/
+    /opt/local/lib/nlopt/
+    /usr/local/lib/
+    /usr/local/lib/nlopt/
+    /usr/lib/nlopt
+)
 
-set(NLopt_DIR $ENV{NLOPT})
-if(NOT NLopt_DIR)
+set(_deb_postfix "d")
 
-	set(NLopt_FOUND TRUE)
+FIND_LIBRARY(NLopt_LIBRARIES_RELEASE nlopt ${LIB_SEARCHDIRS})
+FIND_LIBRARY(NLopt_LIBRARIES_DEBUG nlopt${_deb_postfix} ${LIB_SEARCHDIRS})
 
-	set(_NLopt_LIB_NAMES "nlopt")
-	find_library(NLopt_LIBS
-		NAMES ${_NLopt_LIB_NAMES})
-	if(NOT NLopt_LIBS)
-		set(NLopt_FOUND FALSE)
-		set(NLopt_ERROR_REASON "${NLopt_ERROR_REASON} Cannot find NLopt library '${_NLopt_LIB_NAMES}'.")
-	else()
-		get_filename_component(NLopt_DIR ${NLopt_LIBS} PATH)
-	endif()
-	unset(_NLopt_LIB_NAMES)
-
-	set(_NLopt_HEADER_FILE_NAME "nlopt.hpp")
-	find_file(_NLopt_HEADER_FILE
-		NAMES ${_NLopt_HEADER_FILE_NAME})
-	if(NOT _NLopt_HEADER_FILE)
-		set(NLopt_FOUND FALSE)
-		set(NLopt_ERROR_REASON "${NLopt_ERROR_REASON} Cannot find NLopt header file '${_NLopt_HEADER_FILE_NAME}'.")
-	endif()
-	unset(_NLopt_HEADER_FILE_NAME)
-	
-	if(NOT NLopt_FOUND)
-		set(NLopt_ERROR_REASON "${NLopt_ERROR_REASON} NLopt not found in system directories (and environment variable NLOPT is not set).")
-	else()
-	get_filename_component(NLopt_INCLUDE_DIR ${_NLopt_HEADER_FILE} DIRECTORY )
-	endif()
-
-    unset(_NLopt_HEADER_FILE CACHE)
-
+set(NLopt_LIBRARIES "")
+if(NLopt_LIBRARIES_RELEASE)
+    list(APPEND NLopt_LIBRARIES ${NLopt_LIBRARIES_RELEASE})
 else()
-
-	set(NLopt_FOUND TRUE)
-
-	set(NLopt_INCLUDE_DIR "${NLopt_DIR}/include")
-	if(NOT EXISTS "${NLopt_INCLUDE_DIR}")
-		set(NLopt_FOUND FALSE)
-		set(NLopt_ERROR_REASON "${NLopt_ERROR_REASON} Directory '${NLopt_INCLUDE_DIR}' does not exist.")
-	endif()
-
-	set(NLopt_LIBRARY_DIR "${NLopt_DIR}/lib")
-	if(NOT EXISTS "${NLopt_LIBRARY_DIR}")
-		set(NLopt_FOUND FALSE)
-		set(NLopt_ERROR_REASON "${NLopt_ERROR_REASON} Directory '${NLopt_LIBRARY_DIR}' does not exist.")
-	endif()
-
-	set(_NLopt_LIB_NAMES "nlopt_cxx")
-	find_library(NLopt_LIBS
-		NAMES ${_NLopt_LIB_NAMES}
-		PATHS ${NLopt_LIBRARY_DIR}
-		NO_DEFAULT_PATH)
-	if(NOT NLopt_LIBS)
-		set(NLopt_FOUND FALSE)
-		set(NLopt_ERROR_REASON "${NLopt_ERROR_REASON} Cannot find NLopt library '${_NLopt_LIB_NAMES}' in '${NLopt_LIBRARY_DIR}'.")
-	endif()
-	unset(_NLopt_LIB_NAMES)
-
-	set(_NLopt_HEADER_FILE_NAME "nlopt.hpp")
-	find_file(_NLopt_HEADER_FILE
-		NAMES ${_NLopt_HEADER_FILE_NAME}
-		PATHS ${NLopt_INCLUDE_DIR}
-		NO_DEFAULT_PATH)
-	if(NOT _NLopt_HEADER_FILE)
-		set(NLopt_FOUND FALSE)
-		set(NLopt_ERROR_REASON "${NLopt_ERROR_REASON} Cannot find NLopt header file '${_NLopt_HEADER_FILE_NAME}' in '${NLopt_INCLUDE_DIR}'.")
-	endif()
-	unset(_NLopt_HEADER_FILE_NAME)
-	unset(_NLopt_HEADER_FILE CACHE)
-
+    list(APPEND NLopt_LIBRARIES ${NLopt_LIBRARIES_DEBUG})
 endif()
 
+include(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(NLopt
+    "NLopt library cannot be found. Consider set NLopt_PATH environment variable"
+    NLopt_INCLUDE_DIRS
+    NLopt_LIBRARIES)
 
-# make variables changeable
-mark_as_advanced(
-	NLopt_INCLUDE_DIR
-	NLopt_LIBRARY_DIR
-	NLopt_LIBS
-	NLopt_DEFINITIONS
-	)
+MARK_AS_ADVANCED(
+    NLopt_INCLUDE_DIRS
+    NLopt_LIBRARIES)
 
-
-# report result
 if(NLopt_FOUND)
-	if (NOT NLopt_FIND_QUIETLY)
-		message(STATUS "Found NLopt in '${NLopt_DIR}'.")
-		message(STATUS "Using NLopt include directory '${NLopt_INCLUDE_DIR}'.")
-		message(STATUS "Using NLopt library '${NLopt_LIBS}'.")
-	endif()
-	add_library(Nlopt::nlopt INTERFACE IMPORTED)
-	set_target_properties(Nlopt::nlopt PROPERTIES INTERFACE_LINK_LIBRARIES ${NLopt_LIBS})
-	set_target_properties(Nlopt::nlopt PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${NLopt_INCLUDE_DIR})
-	set_target_properties(Nlopt::nlopt PROPERTIES INTERFACE_COMPILE_DEFINITIONS "${NLopt_DEFINITIONS}")
-	# target_link_libraries(Nlopt::Nlopt INTERFACE ${NLopt_LIBS})
-	# target_include_directories(Nlopt::Nlopt INTERFACE ${NLopt_INCLUDE_DIR})
-    # target_compile_definitions(Nlopt::Nlopt INTERFACE ${NLopt_DEFINITIONS})
-else()
-	if(NLopt_FIND_REQUIRED)
-		message(FATAL_ERROR "Unable to find requested NLopt installation:${NLopt_ERROR_REASON}")
-	else()
-		if(NOT NLopt_FIND_QUIETLY)
-			message(STATUS "NLopt was not found:${NLopt_ERROR_REASON}")
-		endif()
-	endif()
+    add_library(NLopt::nlopt UNKNOWN IMPORTED)
+    set_target_properties(NLopt::nlopt PROPERTIES IMPORTED_LOCATION ${NLopt_LIBRARIES})
+    set_target_properties(NLopt::nlopt PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${NLopt_INCLUDE_DIRS})
+    set_target_properties(NLopt::nlopt PROPERTIES
+        IMPORTED_LOCATION_DEBUG          ${NLopt_LIBRARIES_DEBUG}
+        IMPORTED_LOCATION_RELWITHDEBINFO ${NLopt_LIBRARIES_RELEASE}
+        IMPORTED_LOCATION_RELEASE        ${NLopt_LIBRARIES_RELEASE}
+        IMPORTED_LOCATION_MINSIZEREL     ${NLopt_LIBRARIES_RELEASE}
+    )
 endif()

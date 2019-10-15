@@ -5,6 +5,9 @@ image: ubuntu_clang
 
 build:
   stage: build
+  tags:
+    - linux
+    - clang
   # instead of calling g++ directly you can also use some build toolkit like make
   # install the necessary build tools when needed
   before_script:
@@ -22,6 +25,8 @@ build:
 # run tests using the binary built before
 test:
   stage: test
+  tags:
+    - linux
   #before_script:
    # - apt update && apt -y install libpolyclipping22 libnlopt-cxx0 libnlopt0
   script:

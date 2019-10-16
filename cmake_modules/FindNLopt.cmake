@@ -54,6 +54,8 @@ FIND_LIBRARY(NLopt_LIBRARIES_DEBUG nlopt${_deb_postfix} ${LIB_SEARCHDIRS})
 
 if(NLopt_LIBRARIES_${NLopt_BUILD_TYPE})
     set(NLopt_LIBRARIES "${NLopt_LIBRARIES_${NLopt_BUILD_TYPE}}")
+else()
+    set(NLopt_LIBRARIES "${NLopt_LIBRARIES_RELEASE}")
 endif()
 
 include(FindPackageHandleStandardArgs)

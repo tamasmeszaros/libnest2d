@@ -108,34 +108,34 @@ endif()
 include(CMakePackageConfigHelpers)
 
 write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/Libnest2DConfigVersion.cmake"     
+    "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/${PROJECT_NAME}ConfigVersion.cmake"     
     VERSION 1.0
     COMPATIBILITY AnyNewerVersion
 )
 
 install(TARGETS libnest2d libnest2d_headeronly ${LIBNAME} 
-  EXPORT Libnest2DTargets
+  EXPORT ${PROJECT_NAME}Targets
   RUNTIME DESTINATION bin 
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   INCLUDES DESTINATION include)
 
-export(EXPORT Libnest2DTargets 
-       FILE "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/Libnest2DTargets.cmake" 
-       NAMESPACE Libnest2D::)
+export(EXPORT ${PROJECT_NAME}Targets 
+       FILE "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/${PROJECT_NAME}Targets.cmake" 
+       NAMESPACE ${PROJECT_NAME}::)
 
 configure_file(cmake_modules/Config.cmake.in
-  "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/Libnest2DConfig.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/${PROJECT_NAME}Config.cmake"
   @ONLY
 )
 
-set(ConfigPackageLocation lib/cmake/Libnest2D)
+set(ConfigPackageLocation lib/cmake/${PROJECT_NAME})
 
-install(EXPORT Libnest2DTargets
+install(EXPORT ${PROJECT_NAME}Targets
   FILE
-    Libnest2DTargets.cmake
+    ${PROJECT_NAME}Targets.cmake
   NAMESPACE
-    Libnest2D::
+    ${PROJECT_NAME}::
   DESTINATION
     ${ConfigPackageLocation}
 )
@@ -154,8 +154,8 @@ endforeach()
 
 install(
   FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/Libnest2DConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/Libnest2DConfigVersion.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/${PROJECT_NAME}Config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/${PROJECT_NAME}ConfigVersion.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindClipper.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindNLopt.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindTBB.cmake"
@@ -165,5 +165,7 @@ install(
     Devel
 )
 
-message(STATUS "RP_USED_PACKAGES: ${RP_USED_PACKAGES}")
+rp_install_versions_file(${ConfigPackageLocation})
+
+message(STATUS "Configuration depends on packages:${_pkgstr}")
 

@@ -20,8 +20,6 @@ if (NOT RP_PACKAGES)
     subdirlist(RP_PACKAGES ${CMAKE_CURRENT_LIST_DIR})
 endif()
 
-get_directory_property(hasParent PARENT_DIRECTORY)
-
 if (NOT RP_PACKAGE)
   add_custom_target(rp ALL)
   foreach(PACKAGE IN ITEMS ${RP_PACKAGES})

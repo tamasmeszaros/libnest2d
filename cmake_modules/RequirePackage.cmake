@@ -1,8 +1,12 @@
 # RP Package manager default install dir will be set globally
 set(RP_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/dependencies CACHE STRING "Dependencies location")
 set(RP_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "Build configuration for the dependencies for single config generators")
-option(RP_DISABLE_DOWNLOADING "Disable downloading of packages effectively falling back to find_package functionality" OFF)
+option(RP_ENABLE_DOWNLOADING "Enable downloading of bundled packages if not found in system." OFF)
 set(RP_REPOSITORY_DIR ${PROJECT_SOURCE_DIR}/external CACHE STRING "Package repository location")
+
+set(RP_BUILD_PATH ${CMAKE_BINARY_DIR}/rp_packages_build CACHE STRING "Binary dir for downloaded package builds")
+
+mark_as_advanced(RP_BUILD_PATH)
 
 # This variable is used to gather dependencies for export (find_dependency will be called for each package)
 # A list of the requested packages from all require_package calls.
@@ -44,8 +48,6 @@ function(download_package)
     if(NOT RP_ARGS_VERSION)
         set(RP_ARGS_VERSION ${ARGV1})
     endif()
-
-    set(RP_BUILD_PATH ${CMAKE_BINARY_DIR}/rp_packages_build)
 
     file(MAKE_DIRECTORY ${RP_BUILD_PATH})
 
@@ -135,7 +137,7 @@ macro(require_package RP_ARGS_PACKAGE RP_ARGS_VERSION)
     endif ()
     
     if(NOT ${RP_ARGS_PACKAGE}_FOUND )
-        if (NOT RP_DISABLE_DOWNLOADING)
+        if (RP_ENABLE_DOWNLOADING)
             download_package(${RP_ARGS_PACKAGE} ${RP_ARGS_VERSION} 
                          ${_QUIET}
                          ${RP_ARGS_UNPARSED_ARGUMENTS} )
@@ -148,6 +150,17 @@ macro(require_package RP_ARGS_PACKAGE RP_ARGS_VERSION)
     if (NOT RP_ARGS_NO_EXPORT)
         list(APPEND RP_USED_PACKAGES ${RP_ARGS_PACKAGE})
         set(RP_USED_PACKAGES "${RP_USED_PACKAGES}" CACHE INTERNAL "")
+        set(RP_${RP_ARGS_PACKAGE}_VERSION ${RP_ARGS_VERSION} CACHE INTERNAL "")
     endif()
     
 endmacro()
+
+function(rp_install_versions_file dest)
+    set(_out "")
+    set(_fname ${RP_BUILD_PATH}/RPPackageVersions.cmake)
+    foreach(p ${RP_USED_PACKAGES})
+        set(_out "${_out}set(${p}_VERSION ${RP_${p}_VERSION})\n")
+    endforeach()
+    file(WRITE ${_fname} ${_out})
+    install(FILES ${_fname} DESTINATION ${dest})
+endfunction()

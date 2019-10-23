@@ -3,7 +3,11 @@
 # see https://hub.docker.com/_/gcc/
 image: meszarosq/phoenix:latest
 
-build:
+stages:
+  - build
+  - test
+
+build-clang:
   stage: build
   tags:
     - linux
@@ -11,26 +15,63 @@ build:
   # instead of calling g++ directly you can also use some build toolkit like make
   # install the necessary build tools when needed
   before_script:
-    - apt update && apt -y install cmake ninja-build # libpolyclipping-dev libnlopt-cxx-dev libboost-dev
+    - apt update && apt -y install cmake ninja-build git subversion clang-7 # libpolyclipping-dev libnlopt-cxx-dev libboost-dev
   script:
-    - mkdir -p build && cd build && cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DLIBNEST2D_BUILD_EXAMPLES=ON -DLIBNEST2D_BUILD_UNITTESTS=ON && cmake --build . --target all
+    - mkdir -p build-clang
+    - cd build-clang
+    - cmake .. -GNinja -DCMAKE_CXX_COMPILER=clang++-7 -DCMAKE_C_COMPILER=clang-7 -DCMAKE_BUILD_TYPE=Release -DLIBNEST2D_BUILD_EXAMPLES=ON -DLIBNEST2D_BUILD_UNITTESTS=ON -DRP_ENABLE_DOWNLOADING=ON
+    - cmake --build . --target all
   artifacts:
     paths:
-      - build/tests/tests_clipper_nlopt
+      - build-clang/tests/tests_clipper_nlopt
   # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
   cache:
     paths:
-      - "build/dependencies/*"
+      - "build-clang/dependencies/*"
+
+build-gcc:
+  stage: build
+  tags:
+    - linux
+    - gcc
+  # instead of calling g++ directly you can also use some build toolkit like make
+  # install the necessary build tools when needed
+  before_script:
+    - apt update && apt -y install cmake ninja-build git subversion g++ # libpolyclipping-dev libnlopt-cxx-dev libboost-dev
+  script:
+    - mkdir -p build-gcc
+    - cd build-gcc
+    - cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DLIBNEST2D_BUILD_EXAMPLES=ON -DLIBNEST2D_BUILD_UNITTESTS=ON -DRP_ENABLE_DOWNLOADING=ON
+    - cmake --build . --target all
+  artifacts:
+    paths:
+      - build-gcc/tests/tests_clipper_nlopt
+  # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
+  cache:
+    paths:
+      - "build-gcc/dependencies/*"
 
 # run tests using the binary built before
-test:
+test-clang:
   stage: test
   tags:
     - linux
   #before_script:
    # - apt update && apt -y install libpolyclipping22 libnlopt-cxx0 libnlopt0
   script:
-    - cd build/tests && ./tests_clipper_nlopt -r "junit" --out report.xml
+    - cd build-clang/tests && ./tests_clipper_nlopt -r "junit" --out report-clang.xml
   artifacts:
     reports:
-      junit: build/tests/report.xml
+      junit: build-clang/tests/report-clang.xml
+
+test-gcc:
+  stage: test
+  tags:
+    - linux
+  #before_script:
+   # - apt update && apt -y install libpolyclipping22 libnlopt-cxx0 libnlopt0
+  script:
+    - cd build-gcc/tests && ./tests_clipper_nlopt -r "junit" --out report-gcc.xml
+  artifacts:
+    reports:
+      junit: build-gcc/tests/report-gcc.xml

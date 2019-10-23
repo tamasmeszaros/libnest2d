@@ -1,4 +1,9 @@
 include(CMakeFindDependencyMacro)
+
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/RPPackageVersions.cmake)
+    include(${CMAKE_CURRENT_LIST_DIR}/RPPackageVersions.cmake)
+endif()
+
 set(USED_PACKAGES @RP_USED_PACKAGES@)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
@@ -6,6 +11,12 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 set(TBB_STATIC @TBB_STATIC@)
 
 foreach(package ${USED_PACKAGES})
+    if(NOT ${CMAKE_FIND_PACKAGE_NAME}_FIND_QUIETLY)
+        if(${${package}_VERSION})
+            set(_verstr "requested version: ${${package}_VERSION}")
+        endif()
+        message(STATUS "Using dependent package: ${package} ${_verstr}")
+    endif()
     find_dependency(${package} ${${package}_VERSION})
 endforeach()
 

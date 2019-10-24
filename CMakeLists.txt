@@ -17,6 +17,8 @@ option(LIBNEST2D_BUILD_EXAMPLES "If enabled, examples will be built." OFF)
 
 option(BUILD_SHARED_LIBS "Build shared libs instead of static (applies for dependencies as well)" OFF)
 
+option(LIBNEST2D_HEADER_ONLY "If enabled static library will not be built." ON)
+
 set(GEOMETRY_BACKENDS clipper boost eigen)
 set(LIBNEST2D_GEOMETRIES clipper CACHE STRING "Geometry backend")
 set_property(CACHE LIBNEST2D_GEOMETRIES PROPERTY STRINGS ${GEOMETRY_BACKENDS})
@@ -86,15 +88,21 @@ target_include_directories(libnest2d_headeronly INTERFACE $<BUILD_INTERFACE:${SR
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-set(LIBNAME libnest2d_${LIBNEST2D_GEOMETRIES}_${LIBNEST2D_OPTIMIZER})
-add_library(${LIBNAME} ${PROJECT_SOURCE_DIR}/src/libnest2d.cpp)
-set_target_properties(${LIBNAME} PROPERTIES PREFIX "")
-set_target_properties(${LIBNAME} PROPERTIES DEBUG_POSTFIX "d")
-target_link_libraries(${LIBNAME} PUBLIC libnest2d_headeronly)
-target_compile_definitions(${LIBNAME} PUBLIC LIBNEST2D_STATIC)
-target_sources(${LIBNAME} PRIVATE ${LIBNEST2D_SRCFILES})
 add_library(libnest2d INTERFACE)
-target_link_libraries(libnest2d INTERFACE ${LIBNAME})
+
+if(NOT LIBNEST2D_HEADER_ONLY)
+    set(LIBNAME libnest2d_${LIBNEST2D_GEOMETRIES}_${LIBNEST2D_OPTIMIZER})
+    add_library(${LIBNAME} ${PROJECT_SOURCE_DIR}/src/libnest2d.cpp)
+    set_target_properties(${LIBNAME} PROPERTIES PREFIX "")
+    set_target_properties(${LIBNAME} PROPERTIES DEBUG_POSTFIX "d")
+    target_link_libraries(${LIBNAME} PUBLIC libnest2d_headeronly)
+    target_compile_definitions(${LIBNAME} PUBLIC LIBNEST2D_STATIC)
+    target_sources(${LIBNAME} PRIVATE ${LIBNEST2D_SRCFILES})
+    
+    target_link_libraries(libnest2d INTERFACE ${LIBNAME})
+else()
+    target_link_libraries(libnest2d INTERFACE libnest2d_headeronly)
+endif()
 
 if(LIBNEST2D_BUILD_EXAMPLES)
     add_subdirectory(${PROJECT_SOURCE_DIR}/examples)

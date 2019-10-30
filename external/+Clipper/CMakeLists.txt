@@ -3,10 +3,8 @@ include(ExternalProject)
 set(_SVN ${Subversion_SVN_EXECUTABLE})
 ExternalProject_Add(
     rp_Clipper
-    SVN_REPOSITORY      https://svn.code.sf.net/p/polyclipping/code/trunk/cpp
-    SVN_REVISION        -r540
+    GIT_REPOSITORY      https://github.com/tamasmeszaros/libpolyclipping.git
     INSTALL_DIR         ${CMAKE_INSTALL_PREFIX}
-    PATCH_COMMAND       ${_SVN} cleanup && ${_SVN} update && ${_SVN} patch ${CMAKE_CURRENT_LIST_DIR}/clipper_fix.patch
     CMAKE_ARGS
      -DBUILD_SHARED_LIBS:BOOL=${BUILD_SHARED_LIBS}
      -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} 

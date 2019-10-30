@@ -26,6 +26,7 @@ build-clang:
       - build-clang/tests/tests_clipper_nlopt
   # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
   cache:
+    key: "$CI_JOB_ID"
     paths:
       - "build-clang/dependencies/*"
 
@@ -48,6 +49,7 @@ build-gcc:
       - build-gcc/tests/tests_clipper_nlopt
   # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
   cache:
+    key: "$CI_JOB_ID"
     paths:
       - "build-gcc/dependencies/*"
 

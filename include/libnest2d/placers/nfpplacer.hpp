@@ -190,7 +190,7 @@ template<class RawShape> class EdgeCache {
         using std::round;
         using std::pow;
 
-        return static_cast<Coord>(
+        return static_cast<size_t>(
                     round(N/pow(N, pow(accuracy_, 1.0/3.0)))
                 );
     }

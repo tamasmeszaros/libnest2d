@@ -26,7 +26,10 @@ template<> struct ShapeTag<PointImpl>   { using Type = PointTag; };
 
 // Type of coordinate units used by Clipper. Enough to specialize for point,
 // the rest of the types will work (Path, Polygon)
-template<> struct CoordType<PointImpl> { using Type = ClipperLib::cInt; };
+template<> struct CoordType<PointImpl> { 
+    using Type = ClipperLib::cInt;
+    static const constexpr ClipperLib::cInt MM_IN_COORDS = 1000000;  
+};
 
 // Enough to specialize for path, it will work for multishape and Polygon
 template<> struct PointType<PathImpl> { using Type = PointImpl; };

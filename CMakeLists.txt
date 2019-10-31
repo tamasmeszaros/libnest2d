@@ -167,9 +167,10 @@ install(
     Devel
 )
 
-export(PACKAGE Libnest2D)
-
 rp_install_versions_file(${ConfigPackageLocation})
 
-message(STATUS "Configuration depends on packages:${_pkgstr}")
+foreach(p ${RP_USED_PACKAGES})
+    set(_pkgstr "${_pkgstr} ${p}")
+endforeach()
+message(STATUS "Installed Libnest2DConfig.cmake will require packages:${_pkgstr}")
 

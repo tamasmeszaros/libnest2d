@@ -4,31 +4,13 @@
 #include <cstdint>
 
 #include <libnest2d/libnest2d.hpp>
-#include <libnest2d/utils/measure.hpp>
 
 #include "../tools/printer_parts.hpp"
 #include "../tools/svgtools.hpp"
 
-#include <boost/rational.hpp>
-
-#if ! defined(_MSC_VER) && defined(__SIZEOF_INT128__)
-namespace libnest2d { namespace nfp {
-template<class RawShape>
-struct NfpImpl<RawShape, NfpLevel::CONVEX_ONLY> {
-    NfpResult<RawShape> operator()(const RawShape& sh, const RawShape& other)
-    {
-        return nfpConvexOnly<RawShape, boost::rational<__int128>>(sh, other);
-    }
-};
-} // namespace nfp
-} // namespace libnest2d
-#endif
-
 using namespace libnest2d;
 
-namespace  {
-
-const std::vector<Item>& _parts(std::vector<Item>& ret, const TestData& data)
+static const std::vector<Item>& _parts(std::vector<Item>& ret, const TestData& data)
 {
     if(ret.empty()) {
         ret.reserve(data.size());
@@ -39,11 +21,9 @@ const std::vector<Item>& _parts(std::vector<Item>& ret, const TestData& data)
     return ret;
 }
 
-const std::vector<Item>& prusaParts() {
+static const std::vector<Item>& prusaParts() {
     static std::vector<Item> ret;
     return _parts(ret, PRINTER_PART_POLYGONS);
-}
-
 }
 
 int main(void /*int argc, char **argv*/) {

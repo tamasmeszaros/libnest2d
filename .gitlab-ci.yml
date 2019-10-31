@@ -19,8 +19,12 @@ build-clang:
   script:
     - mkdir -p build-clang
     - cd build-clang
-    - cmake .. -GNinja -DCMAKE_CXX_COMPILER=clang++-7 -DCMAKE_C_COMPILER=clang-7 -DCMAKE_BUILD_TYPE=Release -DLIBNEST2D_BUILD_EXAMPLES=ON -DLIBNEST2D_BUILD_UNITTESTS=ON -DRP_ENABLE_DOWNLOADING=ON -DLIBNEST2D_HEADER_ONLY=OFF
-    - cmake --build . --target all
+    - cmake .. -GNinja -DCMAKE_CXX_COMPILER=clang++-7 -DCMAKE_C_COMPILER=clang-7 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./dist -DLIBNEST2D_BUILD_UNITTESTS=ON -DRP_ENABLE_DOWNLOADING=ON -DLIBNEST2D_HEADER_ONLY=OFF
+    - cmake --build . --target install
+    - cd ..
+    - mkdir -p build_example_dist && cd build_example_dist
+    - cmake ../examples -GNinja -DCMAKE_CXX_COMPILER=clang++-7 -DCMAKE_C_COMPILER=clang-7 -DCMAKE_PREFIX_PATH="../build-clang/dist;../build-clang/dependencies"
+    - cmake --build .
   artifacts:
     paths:
       - build-clang/tests/tests_clipper_nlopt
@@ -42,8 +46,12 @@ build-gcc:
   script:
     - mkdir -p build-gcc
     - cd build-gcc
-    - cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DLIBNEST2D_BUILD_EXAMPLES=ON -DLIBNEST2D_BUILD_UNITTESTS=ON -DRP_ENABLE_DOWNLOADING=ON -DLIBNEST2D_HEADER_ONLY=OFF
-    - cmake --build . --target all
+    - cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./dist -DLIBNEST2D_BUILD_UNITTESTS=ON -DRP_ENABLE_DOWNLOADING=ON -DLIBNEST2D_HEADER_ONLY=OFF
+    - cmake --build . --target install
+    - cd ..
+    - mkdir -p build_example_dist && cd build_example_dist
+    - cmake ../examples -GNinja -DCMAKE_PREFIX_PATH="../build-gcc/dist;../build-gcc/dependencies"
+    - cmake --build .
   artifacts:
     paths:
       - build-gcc/tests/tests_clipper_nlopt

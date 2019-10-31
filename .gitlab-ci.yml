@@ -15,7 +15,7 @@ build-clang:
   # instead of calling g++ directly you can also use some build toolkit like make
   # install the necessary build tools when needed
   before_script:
-    - apt update && apt -y install cmake ninja-build git subversion clang-7 # libpolyclipping-dev libnlopt-cxx-dev libboost-dev
+    - apt update && apt -y install cmake ninja-build git clang-7 # libpolyclipping-dev libnlopt-cxx-dev libboost-dev
   script:
     - mkdir -p build-clang
     - cd build-clang
@@ -38,7 +38,7 @@ build-gcc:
   # instead of calling g++ directly you can also use some build toolkit like make
   # install the necessary build tools when needed
   before_script:
-    - apt update && apt -y install cmake ninja-build git subversion g++ # libpolyclipping-dev libnlopt-cxx-dev libboost-dev
+    - apt update && apt -y install cmake ninja-build git g++ # libpolyclipping-dev libnlopt-cxx-dev libboost-dev
   script:
     - mkdir -p build-gcc
     - cd build-gcc

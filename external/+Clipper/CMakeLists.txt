@@ -1,6 +1,4 @@
-find_package(Subversion QUIET REQUIRED)
 include(ExternalProject)
-set(_SVN ${Subversion_SVN_EXECUTABLE})
 ExternalProject_Add(
     rp_Clipper
     GIT_REPOSITORY      https://github.com/tamasmeszaros/libpolyclipping.git

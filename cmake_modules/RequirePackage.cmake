@@ -1,10 +1,12 @@
 # RP Package manager default install dir will be set globally
-set(RP_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/dependencies CACHE STRING "Dependencies location")
+set(RP_INSTALL_PREFIX ${PROJECT_BINARY_DIR}/dependencies CACHE STRING "Dependencies location")
 set(RP_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "Build configuration for the dependencies for single config generators")
 option(RP_ENABLE_DOWNLOADING "Enable downloading of bundled packages if not found in system." OFF)
+include(CMakeDependentOption)
+cmake_dependent_option(RP_FORCE_DOWNLOADING "Force downloading packages even if found." OFF "RP_ENABLE_DOWNLOADING" OFF)
 set(RP_REPOSITORY_DIR ${PROJECT_SOURCE_DIR}/external CACHE STRING "Package repository location")
 
-set(RP_BUILD_PATH ${CMAKE_BINARY_DIR}/rp_packages_build CACHE STRING "Binary dir for downloaded package builds")
+set(RP_BUILD_PATH ${PROJECT_BINARY_DIR}/rp_packages_build CACHE STRING "Binary dir for downloaded package builds")
 
 mark_as_advanced(RP_BUILD_PATH)
 
@@ -37,7 +39,7 @@ function(download_package)
         if(RP_INSTALL_PREFIX)
             set(RP_ARGS_INSTALL_PATH ${RP_INSTALL_PREFIX})
         else()
-            set(RP_ARGS_INSTALL_PATH ${CMAKE_BINARY_DIR}/rp_packages)
+            set(RP_ARGS_INSTALL_PATH ${PROJECT_BINARY_DIR}/rp_packages)
         endif()
     endif()
 
@@ -136,7 +138,7 @@ macro(require_package RP_ARGS_PACKAGE RP_ARGS_VERSION)
         set(_QUIET "QUIET")
     endif ()
     
-    if(NOT ${RP_ARGS_PACKAGE}_FOUND )
+    if(NOT ${RP_ARGS_PACKAGE}_FOUND OR RP_FORCE_DOWNLOADING)
         if (RP_ENABLE_DOWNLOADING)
             download_package(${RP_ARGS_PACKAGE} ${RP_ARGS_VERSION} 
                          ${_QUIET}

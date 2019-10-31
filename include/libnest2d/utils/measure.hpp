@@ -10,8 +10,8 @@
 #endif
 
 namespace libnest2d {
-template<class T = double> inline BP2D_CONSTEXPR 
-Coord mm(enable_if_t<std::is_arithmetic<T>::value, T> val = T(1)) BP2D_NOEXCEPT 
+template<class T = double> inline constexpr 
+Coord mm(enable_if_t<std::is_arithmetic<T>::value, T> val = T(1)) noexcept 
 {
     return Coord(val * MM_IN_COORDTTYPE); 
 }

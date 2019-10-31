@@ -22,4 +22,6 @@ endforeach()
 
 unset(USED_PACKAGES)
 
-include("${CMAKE_CURRENT_LIST_DIR}/Libnest2DTargets.cmake")
+if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/Libnest2DTargets.cmake)
+    include("${CMAKE_CURRENT_LIST_DIR}/Libnest2DTargets.cmake")
+endif()

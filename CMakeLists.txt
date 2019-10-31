@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.1)
 
 project(Libnest2D)
 
@@ -12,8 +12,6 @@ include(RequirePackage)
 
 option(LIBNEST2D_BUILD_UNITTESTS "If enabled, googletest framework will be downloaded
     and the provided unit tests will be included in the build." OFF)
-
-option(LIBNEST2D_BUILD_EXAMPLES "If enabled, examples will be built." OFF)
 
 option(BUILD_SHARED_LIBS "Build shared libs instead of static (applies for dependencies as well)" OFF)
 
@@ -104,10 +102,6 @@ else()
     target_link_libraries(libnest2d INTERFACE libnest2d_headeronly)
 endif()
 
-if(LIBNEST2D_BUILD_EXAMPLES)
-    add_subdirectory(${PROJECT_SOURCE_DIR}/examples)
-endif()
-
 if(LIBNEST2D_BUILD_UNITTESTS)
     enable_testing()
     add_subdirectory(${PROJECT_SOURCE_DIR}/tests)
@@ -116,10 +110,14 @@ endif()
 include(CMakePackageConfigHelpers)
 
 write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/${PROJECT_NAME}ConfigVersion.cmake"     
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"     
     VERSION 1.0
     COMPATIBILITY AnyNewerVersion
 )
+
+export(EXPORT ${PROJECT_NAME}Targets 
+       FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake" 
+       NAMESPACE ${PROJECT_NAME}::)
 
 install(TARGETS libnest2d libnest2d_headeronly ${LIBNAME} 
   EXPORT ${PROJECT_NAME}Targets
@@ -128,12 +126,8 @@ install(TARGETS libnest2d libnest2d_headeronly ${LIBNAME}
   LIBRARY DESTINATION lib
   INCLUDES DESTINATION include)
 
-export(EXPORT ${PROJECT_NAME}Targets 
-       FILE "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/${PROJECT_NAME}Targets.cmake" 
-       NAMESPACE ${PROJECT_NAME}::)
-
 configure_file(cmake_modules/Config.cmake.in
-  "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/${PROJECT_NAME}Config.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
   @ONLY
 )
 
@@ -162,8 +156,8 @@ endforeach()
 
 install(
   FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/${PROJECT_NAME}Config.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/${PROJECT_NAME}ConfigVersion.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindClipper.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindNLopt.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/FindTBB.cmake"
@@ -172,6 +166,8 @@ install(
   COMPONENT
     Devel
 )
+
+export(PACKAGE Libnest2D)
 
 rp_install_versions_file(${ConfigPackageLocation})
 

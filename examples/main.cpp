@@ -2,19 +2,14 @@
 #include <string>
 #include <fstream>
 #include <cstdint>
-//#define DEBUG_EXPORT_NFP
 
 #include <libnest2d/libnest2d.hpp>
+#include <libnest2d/utils/measure.hpp>
 
 #include "../tools/printer_parts.hpp"
-#include "../tools/benchmark.h"
 #include "../tools/svgtools.hpp"
-#include "../tools/measure.hpp"
 
 #include <boost/rational.hpp>
-
-//#include "tools/libnfpglue.hpp"
-//#include "tools/nfp_svgnest_glue.hpp"
 
 #if ! defined(_MSC_VER) && defined(__SIZEOF_INT128__)
 namespace libnest2d { namespace nfp {

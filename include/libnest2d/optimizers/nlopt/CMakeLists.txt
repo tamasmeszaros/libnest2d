@@ -13,4 +13,5 @@ include/libnest2d/optimizers/nlopt/nlopt_boilerplate.hpp
 set(LIBNEST2D_SRCFILES ${LIBNEST2D_SRCFILES} PARENT_SCOPE)
 
 install(TARGETS nloptOptimizer EXPORT Libnest2DTargets INCLUDES DESTINATION include)
+set(LIBNEST2D_PUBLIC_PACKAGES "${LIBNEST2D_PUBLIC_PACKAGES};NLopt" CACHE INTERNAL "")
 

@@ -20,3 +20,4 @@ include/libnest2d/backends/clipper/clipper_polygon.hpp
 set(LIBNEST2D_SRCFILES ${LIBNEST2D_SRCFILES} PARENT_SCOPE)
 
 install(TARGETS clipperBackend EXPORT Libnest2DTargets INCLUDES DESTINATION include)
+set(LIBNEST2D_PUBLIC_PACKAGES "${LIBNEST2D_PUBLIC_PACKAGES};Boost;Clipper" CACHE INTERNAL "")

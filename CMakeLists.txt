@@ -68,6 +68,8 @@ set(LIBNEST2D_SRCFILES
     include/libnest2d/selections/djd_heuristic.hpp
     )
 
+set(LIBNEST2D_PUBLIC_PACKAGES "" CACHE INTERNAL "")
+
 if(NOT ${LIBNEST2D_THREADING} STREQUAL "none")
     include(threading_${LIBNEST2D_THREADING})
     target_link_libraries(libnest2d_headeronly INTERFACE ${LIBNEST2D_THREADING}Threading)
@@ -169,7 +171,7 @@ install(
 
 rp_install_versions_file(${ConfigPackageLocation})
 
-foreach(p ${RP_USED_PACKAGES})
+foreach(p ${LIBNEST2D_PUBLIC_PACKAGES})
     set(_pkgstr "${_pkgstr} ${p}")
 endforeach()
 message(STATUS "Installed Libnest2DConfig.cmake will require packages:${_pkgstr}")

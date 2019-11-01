@@ -11,6 +11,7 @@ ExternalProject_Add(
     GIT_REPOSITORY      https://github.com/wjakob/tbb.git
     GIT_TAG             b066def
     INSTALL_DIR         ${CMAKE_INSTALL_PREFIX}
+    BINARY_DIR          ${RP_PACKAGE_BUILD_DIR}
     CMAKE_ARGS         
         -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
         -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} 
@@ -18,9 +19,6 @@ ExternalProject_Add(
         -DTBB_BUILD_SHARED=${BUILD_SHARED_LIBS}
         -DTBB_BUILD_TESTS=OFF
         -DCMAKE_DEBUG_POSTFIX=_debug
+    UPDATE_COMMAND ""
 )
 
-get_property(_is_multi GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-if (_is_multi)
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/configs.txt "Release;Debug")
-endif()

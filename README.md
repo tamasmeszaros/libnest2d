@@ -40,7 +40,7 @@ Using libnest2d in its current state implies the following dependencies:
 
 Integrating the library can be done in at least two ways. Use whichever suits your project the most.
 
-1. The project source tree can be used as a subdirectory (or git submodule) in any other CMake based C++ project by using ```add_subdirectory()``` command in the parent level ```CMakeLists.txt``` file. This method ensures that the appropriate dependencies are detected or (optionally) downloaded and built if not found. This means that by default, if Clipper and NLopt are not installed, they will be downloaded into the CMake binary directory, built there and linked statically with your project if RP_ENABLE_DOWNLOAD is ON. Just add the ```target_link_library(<your_target> libnest2d_headeronly)``` line to your CMake build script. You can also compile the library with the selected dependencies into a static or shared library. To do this just disable the ```LIBNEST2D_HEADER_ONLY``` option in the CMake config. 
+1. The project source tree can be used as a subdirectory (or git submodule) in any other CMake based C++ project by using ```add_subdirectory()``` command in the parent level ```CMakeLists.txt``` file. This method ensures that the appropriate dependencies are detected or (optionally) downloaded and built if not found. This means that by default, if Clipper and NLopt are not installed, they will be downloaded into the CMake binary directory, built there and linked with your project if `RP_ENABLE_DOWNLOADING` is ON. Just add the ```target_link_library(<your_target> libnest2d_headeronly)``` line to your CMake build script. You can also compile the library with the selected dependencies into a static or shared library. To do this just disable the ```LIBNEST2D_HEADER_ONLY``` option in the CMake config. 
 
 2. Copying source files directly into a target project: The library can be header 
 only and it is enough to just copy the content of the ```include``` directory or  specify the location of these headers to the compiler. Be aware that in this case you are on your own regarding the geometry backend and optimizer selection. To keep things simple just define ```LIBNEST2D_GEOMETRIES_clipper``` and ```LIBNEST2D_OPTIMIZER_nlopt``` before including ```libnest2d.hpp```. You will also need to link to these libraries manually. 
@@ -54,7 +54,7 @@ An example how to do this in a bash command line in the checked out source dir:
     cmake --build . --target install
     ```
     Substitute `<installdir>` with your preferred location. If you don't have the 
-    required dependencies installed, you can add `-DRP_ENABLE_DOWNLOAD=ON` and make it download
+    required dependencies installed, you can add `-DRP_ENABLE_DOWNLOADING=ON` and make it download
     and build everything in the configure step. The built dependencies will be shared or static depending on `BUILD_SHARED_LIBS`. You can also specify the install location of the dependencies by setting `RP_INSTALL_PREFIX` variable. Alternatively you can (and should) install the dependencies first e.g. on Ubuntu:
     ```
     sudo apt install libboost-dev libpolyclipping-dev libnlopt-dev

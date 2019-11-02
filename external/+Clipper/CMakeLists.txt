@@ -1,4 +1,7 @@
 include(ExternalProject)
+
+require_dependency(Boost)
+
 ExternalProject_Add(
     rp_Clipper
     GIT_REPOSITORY      https://github.com/tamasmeszaros/libpolyclipping.git

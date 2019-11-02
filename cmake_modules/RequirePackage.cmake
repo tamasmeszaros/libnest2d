@@ -52,21 +52,42 @@ function(download_package)
 
     if(NOT RP_ARGS_QUIET AND NOT EXISTS ${RP_BUILD_PATH})
         message(STATUS "\n--------------------------------------------------------------------------------")
-        message(STATUS   "- Downloading required packages")
+        message(STATUS   "- Initializing RequirePackage cache")
         message(STATUS   "--------------------------------------------------------------------------------\n")
+
+        file(MAKE_DIRECTORY ${RP_BUILD_PATH})
+
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" -A "${CMAKE_GENERATOR_PLATFORM}" 
+                -D "CMAKE_MAKE_PROGRAM:FILE=${CMAKE_MAKE_PROGRAM}"
+                -D "CMAKE_INSTALL_PREFIX:PATH=${RP_ARGS_INSTALL_PATH}"
+                -D "RP_FORCE_DOWNLOADING:BOOL=${RP_FORCE_DOWNLOADING}"
+                -D "BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}"
+                ${RP_ARGS_REPOSITORY_PATH}
+            RESULT_VARIABLE CONFIG_STEP_RESULT
+            ${OUTPUT_QUIET}
+            WORKING_DIRECTORY "${RP_BUILD_PATH}"
+        )
+
+        if(CONFIG_STEP_RESULT)
+            if(NOT RP_ARGS_QUIET OR RP_ARGS_REQUIRED)    
+                message(${_err_type} "CMake step for ${RP_ARGS_PACKAGE} failed: ${CONFIG_STEP_RESULT}")
+            endif()
+        endif()
+
     endif()
     
-    file(MAKE_DIRECTORY ${RP_BUILD_PATH})
-
     # Hide output if requested
     if (RP_ARGS_QUIET)
         set(OUTPUT_QUIET "OUTPUT_QUIET")
     else()
         unset(OUTPUT_QUIET)
-        message(STATUS "Downloading/updating ${RP_ARGS_PACKAGE}")
+        message(STATUS "\n--------------------------------------------------------------------------------")
+        message(STATUS   "- Downloading/updating ${RP_ARGS_PACKAGE}")
+        message(STATUS   "--------------------------------------------------------------------------------\n")
     endif()
 
-    set(_err_type "ERROR")
+    set(_err_type "SEND_ERROR")
     if(RP_ARGS_REQUIRED)
         set(_err_type "FATAL_ERROR")
     endif()
@@ -87,28 +108,24 @@ function(download_package)
     set(_configured FALSE)
     get_property(_is_multi GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
     
-    set(RP_PACKAGE_BUILD_DIR "rp_${RP_ARGS_PACKAGE}-build")
     foreach(_conf IN ITEMS ${_CONFIGS})
     
         if(NOT RP_ARGS_QUIET)
-            message(STATUS "Building config: ${_conf}")
+            message(STATUS "Building config: ${_conf} of package ${RP_ARGS_PACKAGE}\n")
         endif()
 
         if(NOT _configured OR NOT _is_multi)
-            if(NOT _is_multi)
-                set(RP_PACKAGE_BUILD_DIR "rp_${RP_ARGS_PACKAGE}-build/${_conf}")
-            endif()
             execute_process(
                 COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" -A "${CMAKE_GENERATOR_PLATFORM}" 
                     -D "CMAKE_MAKE_PROGRAM:FILE=${CMAKE_MAKE_PROGRAM}"
                     -D "CMAKE_BUILD_TYPE:STRING=${_conf}" 
                     -D "CMAKE_INSTALL_PREFIX:PATH=${RP_ARGS_INSTALL_PATH}"
                     -D "RP_PACKAGE:STRING=${RP_ARGS_PACKAGE}"
+                    -D "RP_FORCE_DOWNLOADING:BOOL=${RP_FORCE_DOWNLOADING}"
                     -D "RP_${RP_ARGS_PACKAGE}_COMPONENTS=\"${RP_ARGS_COMPONENTS}\""
                     -D "RP_${RP_ARGS_PACKAGE}_OPTIONAL_COMPONENTS=\"${RP_ARGS_OPTIONAL_COMPONENTS}\""
                     -D "RP_${RP_ARGS_PACKAGE}_VERSION=\"${RP_ARGS_VERSION}\""
                     -D "BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}"
-                    -D "RP_PACKAGE_BUILD_DIR=${RP_PACKAGE_BUILD_DIR}"
                     ${RP_ARGS_REPOSITORY_PATH}
                 
                 RESULT_VARIABLE CONFIG_STEP_RESULT
@@ -146,16 +163,16 @@ function(download_package)
 
 endfunction()
 
-macro(require_package RP_ARGS_PACKAGE RP_ARGS_VERSION)    
+macro(require_package RP_ARGS_PACKAGE)    
     set(options REQUIRED QUIET)
-    set(oneValueArgs "")
+    set(oneValueArgs "VERSION")
     set(multiValueArgs "")
     cmake_parse_arguments(RP_ARGS 
         "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    if(NOT RP_ARGS_VERSION)
-        set(RP_ARGS_VERSION ${ARGV1})
-    endif()
+    # if(NOT RP_ARGS_VERSION)
+    #     set(RP_ARGS_VERSION ${ARGV1})
+    # endif()
 
     if(NOT RP_FORCE_DOWNLOADING)
         find_package(${RP_ARGS_PACKAGE} ${RP_ARGS_VERSION} QUIET ${RP_ARGS_UNPARSED_ARGUMENTS})

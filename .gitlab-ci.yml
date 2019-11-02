@@ -30,10 +30,10 @@ build-clang:
     paths:
       - build-clang/tests/tests_clipper_nlopt
   # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
-  cache:
-    key: "$CI_JOB_ID"
-    paths:
-      - "build-clang/dependencies/*"
+  # cache:
+  #   key: "$CI_JOB_ID"
+  #   paths:
+  #     - "build-clang/dependencies/*"
 
 build-gcc:
   image: registry.gitlab.com/meszaros.q/libnest2d/ubuntu-gcc
@@ -58,10 +58,10 @@ build-gcc:
     paths:
       - build-gcc/tests/tests_clipper_nlopt
   # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
-  cache:
-    key: "$CI_JOB_ID"
-    paths:
-      - "build-gcc/dependencies/*"
+  # cache:
+  #   key: "$CI_JOB_ID"
+  #   paths:
+  #     - "build-gcc/dependencies/*"
 
 # run tests using the binary built before
 test-clang:

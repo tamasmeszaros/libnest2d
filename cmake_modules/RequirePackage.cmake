@@ -34,6 +34,17 @@ function(download_package)
         endif()
     endif()
 
+    set(_err_type "WARNING")
+    if(RP_ARGS_REQUIRED)
+        set(_err_type "FATAL_ERROR")
+    endif()
+
+    if(NOT EXISTS ${RP_ARGS_REPOSITORY_PATH}/+rp_${RP_ARGS_PACKAGE})
+        if(NOT RP_ARGS_QUIET OR RP_ARGS_REQUIRED)
+            message(${_err_type} "No package definition exists for ${RP_ARGS_PACKAGE}")
+        endif()
+    endif()
+
     if(NOT RP_ARGS_INSTALL_PATH)
         if(RP_INSTALL_PREFIX)
             set(RP_ARGS_INSTALL_PATH ${RP_INSTALL_PREFIX})
@@ -50,11 +61,17 @@ function(download_package)
         set(RP_ARGS_VERSION ${ARGV1})
     endif()
 
-    if(NOT RP_ARGS_QUIET AND NOT EXISTS ${RP_BUILD_PATH})
-        message(STATUS "\n--------------------------------------------------------------------------------")
-        message(STATUS   "- Initializing RequirePackage cache")
-        message(STATUS   "--------------------------------------------------------------------------------\n")
+    if (RP_ARGS_QUIET)
+        set(OUTPUT_QUIET "OUTPUT_QUIET")
+    else()
+        unset(OUTPUT_QUIET)
+    endif()
 
+    if(NOT RP_ARGS_QUIET AND NOT EXISTS ${RP_BUILD_PATH})
+        message(STATUS "\n--------------------------------------------------------------------------------\n"
+                        "- Initializing RequirePackage repository cache\n"
+                        "--------------------------------------------------------------------------------\n")
+                    
         file(MAKE_DIRECTORY ${RP_BUILD_PATH})
 
         execute_process(
@@ -78,18 +95,10 @@ function(download_package)
     endif()
     
     # Hide output if requested
-    if (RP_ARGS_QUIET)
-        set(OUTPUT_QUIET "OUTPUT_QUIET")
-    else()
-        unset(OUTPUT_QUIET)
-        message(STATUS "\n--------------------------------------------------------------------------------")
-        message(STATUS   "- Downloading/updating ${RP_ARGS_PACKAGE}")
-        message(STATUS   "--------------------------------------------------------------------------------\n")
-    endif()
-
-    set(_err_type "SEND_ERROR")
-    if(RP_ARGS_REQUIRED)
-        set(_err_type "FATAL_ERROR")
+    if (NOT RP_ARGS_QUIET)
+        message(STATUS  "\n--------------------------------------------------------------------------------\n"
+                          "- Downloading/updating ${RP_ARGS_PACKAGE}\n"
+                          "--------------------------------------------------------------------------------\n")
     endif()
 
     set(_CONFIGS "${RP_CONFIGURATION_TYPES}")
@@ -149,17 +158,19 @@ function(download_package)
             COMMAND ${CMAKE_COMMAND} --build . --target rp_${RP_ARGS_PACKAGE} --config ${_conf} --clean-first
             RESULT_VARIABLE BUILD_STEP_RESULT
             #OUTPUT_VARIABLE BUILD_STEP_OUTP
-            #ERROR_VARIABLE  BUILD_STEP_OUTP
+            ERROR_VARIABLE  BUILD_STEP_OUTP
             ${OUTPUT_QUIET}
             WORKING_DIRECTORY "${RP_BUILD_PATH}"
         )
-    endforeach(_conf IN ${_CONFIGS})
 
-    if(BUILD_STEP_RESULT)
-        if(NOT RP_ARGS_QUIET OR RP_ARGS_REQUIRED)
-            message(${_err_type} "Build step for ${RP_ARGS_PACKAGE} failed: ${BUILD_STEP_RESULT}")
+        if(BUILD_STEP_RESULT)
+            if(NOT RP_ARGS_QUIET OR RP_ARGS_REQUIRED)
+                message(${_err_type} "Build step (${_conf}) for ${RP_ARGS_PACKAGE} failed: ${BUILD_STEP_OUTP}")
+            endif()if(NOT RP_ARGS_QUIET OR RP_ARGS_REQUIRED)
+            message(${_err_type} "Build step (${_conf}) for ${RP_ARGS_PACKAGE} failed: ${BUILD_STEP_OUTP}")
         endif()
-    endif()
+        endif()
+    endforeach(_conf IN ${_CONFIGS})
 
 endfunction()
 
@@ -190,9 +201,7 @@ macro(require_package RP_ARGS_PACKAGE)
     
     if(NOT ${RP_ARGS_PACKAGE}_FOUND)
         if (RP_ENABLE_DOWNLOADING)
-            download_package(${RP_ARGS_PACKAGE} ${RP_ARGS_VERSION} 
-                         ${_QUIET}
-                         ${RP_ARGS_UNPARSED_ARGUMENTS} )
+            download_package(${RP_ARGS_PACKAGE} ${RP_ARGS_VERSION} ${_QUIET} ${RP_ARGS_UNPARSED_ARGUMENTS} )
         endif()
 
         find_package(${RP_ARGS_PACKAGE} ${RP_ARGS_VERSION} 
@@ -202,6 +211,7 @@ macro(require_package RP_ARGS_PACKAGE)
     list(APPEND RP_USED_PACKAGES ${RP_ARGS_PACKAGE})
     set(RP_USED_PACKAGES "${RP_USED_PACKAGES}" CACHE INTERNAL "")
     set(RP_${RP_ARGS_PACKAGE}_VERSION ${RP_ARGS_VERSION} CACHE INTERNAL "")
+    set(ignoreMe "RP_${RP_ARGS_PACKAGE}_VERSION")
     
 endmacro()
 

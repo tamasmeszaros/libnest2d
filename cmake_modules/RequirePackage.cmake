@@ -38,8 +38,12 @@ function(download_package)
     if(RP_ARGS_REQUIRED)
         set(_err_type "FATAL_ERROR")
     endif()
+    
+    if(NOT RP_ARGS_PACKAGE)
+        set(RP_ARGS_PACKAGE ${ARGV0})
+    endif()
 
-    if(NOT EXISTS ${RP_ARGS_REPOSITORY_PATH}/+rp_${RP_ARGS_PACKAGE})
+    if(NOT EXISTS ${RP_ARGS_REPOSITORY_PATH}/+${RP_ARGS_PACKAGE})
         if(NOT RP_ARGS_QUIET OR RP_ARGS_REQUIRED)
             message(${_err_type} "No package definition exists for ${RP_ARGS_PACKAGE}")
         endif()
@@ -53,10 +57,6 @@ function(download_package)
         endif()
     endif()
 
-    if(NOT RP_ARGS_PACKAGE)
-        set(RP_ARGS_PACKAGE ${ARGV0})
-    endif()
-
     if(NOT RP_ARGS_VERSION)
         set(RP_ARGS_VERSION ${ARGV1})
     endif()
@@ -68,9 +68,9 @@ function(download_package)
     endif()
 
     if(NOT RP_ARGS_QUIET AND NOT EXISTS ${RP_BUILD_PATH})
-        message(STATUS "\n--------------------------------------------------------------------------------\n"
-                        "- Initializing RequirePackage repository cache\n"
-                        "--------------------------------------------------------------------------------\n")
+        message(STATUS "-----------------------------------------------------------------------------")
+        message(STATUS "Initializing RequirePackage repository cache")
+        message(STATUS "-----------------------------------------------------------------------------")
                     
         file(MAKE_DIRECTORY ${RP_BUILD_PATH})
 
@@ -96,9 +96,9 @@ function(download_package)
     
     # Hide output if requested
     if (NOT RP_ARGS_QUIET)
-        message(STATUS  "\n--------------------------------------------------------------------------------\n"
-                          "- Downloading/updating ${RP_ARGS_PACKAGE}\n"
-                          "--------------------------------------------------------------------------------\n")
+        message(STATUS "------------------------------------------------------------------------------")
+        message(STATUS "Downloading/updating ${RP_ARGS_PACKAGE}")
+        message(STATUS "------------------------------------------------------------------------------")
     endif()
 
     set(_CONFIGS "${RP_CONFIGURATION_TYPES}")
@@ -120,7 +120,7 @@ function(download_package)
     foreach(_conf IN ITEMS ${_CONFIGS})
     
         if(NOT RP_ARGS_QUIET)
-            message(STATUS "Building config: ${_conf} of package ${RP_ARGS_PACKAGE}\n")
+            message(STATUS "Building config: ${_conf} of package ${RP_ARGS_PACKAGE}")
         endif()
 
         if(NOT _configured OR NOT _is_multi)

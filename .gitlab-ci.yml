@@ -1,21 +1,22 @@
 # use the official gcc image, based on debian
 # can use verions as well, like gcc:5.2
 # see https://hub.docker.com/_/gcc/
-image: meszarosq/phoenix:latest
+# image: meszarosq/phoenix:latest
 
 stages:
   - build
   - test
 
 build-clang:
+  image: registry.gitlab.com/meszaros.q/libnest2d/ubuntu-clang
   stage: build
   tags:
     - linux
     - clang
   # instead of calling g++ directly you can also use some build toolkit like make
   # install the necessary build tools when needed
-  before_script:
-    - apt update && apt -y install cmake ninja-build git clang-7 # libpolyclipping-dev libnlopt-cxx-dev libboost-dev
+  # before_script:
+    # - apt update && apt -y install cmake ninja-build git clang-7 # libpolyclipping-dev libnlopt-cxx-dev libboost-dev
   script:
     - mkdir -p build-clang
     - cd build-clang
@@ -35,14 +36,15 @@ build-clang:
       - "build-clang/dependencies/*"
 
 build-gcc:
+  image: registry.gitlab.com/meszaros.q/libnest2d/ubuntu-gcc
   stage: build
   tags:
     - linux
     - gcc
   # instead of calling g++ directly you can also use some build toolkit like make
   # install the necessary build tools when needed
-  before_script:
-    - apt update && apt -y install cmake ninja-build git g++ # libpolyclipping-dev libnlopt-cxx-dev libboost-dev
+  # before_script:
+    #- apt update && apt -y install cmake ninja-build git g++ # libpolyclipping-dev libnlopt-cxx-dev libboost-dev
   script:
     - mkdir -p build-gcc
     - cd build-gcc
@@ -63,6 +65,7 @@ build-gcc:
 
 # run tests using the binary built before
 test-clang:
+  image: registry.gitlab.com/meszaros.q/libnest2d/ubuntu-clang
   stage: test
   tags:
     - linux
@@ -75,6 +78,7 @@ test-clang:
       junit: build-clang/tests/report-clang.xml
 
 test-gcc:
+  image: registry.gitlab.com/meszaros.q/libnest2d/ubuntu-gcc
   stage: test
   tags:
     - linux

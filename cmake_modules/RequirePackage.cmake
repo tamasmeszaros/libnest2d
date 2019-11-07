@@ -73,13 +73,15 @@ function(download_package)
         message(STATUS "-----------------------------------------------------------------------------")
                     
         file(MAKE_DIRECTORY ${RP_BUILD_PATH})
-
+        
         execute_process(
-            COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" -A "${CMAKE_GENERATOR_PLATFORM}" 
-                -D "CMAKE_MAKE_PROGRAM:FILE=${CMAKE_MAKE_PROGRAM}"
-                -D "CMAKE_INSTALL_PREFIX:PATH=${RP_ARGS_INSTALL_PATH}"
-                -D "RP_FORCE_DOWNLOADING:BOOL=${RP_FORCE_DOWNLOADING}"
-                -D "BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}"
+            COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" -A "${CMAKE_GENERATOR_PLATFORM}"
+                    -D "CMAKE_MAKE_PROGRAM:FILE=${CMAKE_MAKE_PROGRAM}"
+                    -D "CMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}"
+                    -D "CMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}"
+                    -D "CMAKE_INSTALL_PREFIX:PATH=${RP_ARGS_INSTALL_PATH}"
+                    -D "RP_FORCE_DOWNLOADING:BOOL=${RP_FORCE_DOWNLOADING}"
+                    -D "BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}" 
                 ${RP_ARGS_REPOSITORY_PATH}
             RESULT_VARIABLE CONFIG_STEP_RESULT
             ${OUTPUT_QUIET}
@@ -125,18 +127,13 @@ function(download_package)
 
         if(NOT _configured OR NOT _is_multi)
             execute_process(
-                COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" -A "${CMAKE_GENERATOR_PLATFORM}" 
-                    -D "CMAKE_MAKE_PROGRAM:FILE=${CMAKE_MAKE_PROGRAM}"
-                    -D "CMAKE_BUILD_TYPE:STRING=${_conf}" 
-                    -D "CMAKE_INSTALL_PREFIX:PATH=${RP_ARGS_INSTALL_PATH}"
+                COMMAND ${CMAKE_COMMAND}
                     -D "RP_PACKAGE:STRING=${RP_ARGS_PACKAGE}"
-                    -D "RP_FORCE_DOWNLOADING:BOOL=${RP_FORCE_DOWNLOADING}"
                     -D "RP_${RP_ARGS_PACKAGE}_COMPONENTS=\"${RP_ARGS_COMPONENTS}\""
                     -D "RP_${RP_ARGS_PACKAGE}_OPTIONAL_COMPONENTS=\"${RP_ARGS_OPTIONAL_COMPONENTS}\""
                     -D "RP_${RP_ARGS_PACKAGE}_VERSION=\"${RP_ARGS_VERSION}\""
-                    -D "BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}"
-                    ${RP_ARGS_REPOSITORY_PATH}
-                
+                    -D "CMAKE_BUILD_TYPE:STRING=${_conf}" 
+                    ${RP_ARGS_REPOSITORY_PATH}                
                 RESULT_VARIABLE CONFIG_STEP_RESULT
                 #OUTPUT_VARIABLE CONFIG_STEP_OUTP
                 #ERROR_VARIABLE  CONFIG_STEP_OUTP

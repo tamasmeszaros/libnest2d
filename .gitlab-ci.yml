@@ -20,7 +20,7 @@ build-clang:
   script:
     - mkdir -p build-clang
     - cd build-clang
-    - cmake .. -GNinja -DCMAKE_CXX_COMPILER=clang++-7 -DCMAKE_C_COMPILER=clang-7 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./dist -DLIBNEST2D_BUILD_UNITTESTS=ON -DRP_ENABLE_DOWNLOADING=ON -DLIBNEST2D_HEADER_ONLY=OFF
+    - cmake .. -GNinja -DCMAKE_CXX_COMPILER=clang++-7 -DCMAKE_C_COMPILER=clang-7 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./dist -DLIBNEST2D_BUILD_UNITTESTS=ON -DRP_ENABLE_DOWNLOADING=ON -DLIBNEST2D_HEADER_ONLY=OFF -DLIBNEST2D_THREADING=tbb
     - cmake --build . --target install
     - cd ..
     - mkdir -p build_example_dist && cd build_example_dist

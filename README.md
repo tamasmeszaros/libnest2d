@@ -113,7 +113,7 @@ int main(int argc, const char* argv[]) {
 
     // Retrieve resulting geometries
     for(Item& r : input) {
-        auto polygon = item.transformedShape();
+        auto polygon = r.transformedShape();
         // render polygon...
     }
 

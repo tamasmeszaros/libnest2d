@@ -1,26 +1,20 @@
-include(ExternalProject)
-
+set (_tbb_confs "")
 if (BUILD_SHARED_LIBS)
-    set(_TBB_BUILD_STATIC OFF)
+    set(_tbb_confs -DTBB_BUILD_STATIC:BOOL=OFF -DTBB_BUILD_SHARED:BOOL=ON)
 else()
-    set(_TBB_BUILD_STATIC ON)
+    set(_tbb_confs -DTBB_BUILD_STATIC:BOOL=ON -DTBB_BUILD_SHARED:BOOL=OFF)
 endif()
 
-ExternalProject_Add(
-    rp_TBB
-    GIT_REPOSITORY      https://github.com/wjakob/tbb.git
-    GIT_TAG             b066def
-    INSTALL_DIR         ${CMAKE_INSTALL_PREFIX}
-    BINARY_DIR          ${RP_PACKAGE_BUILD_DIR}
-    CMAKE_ARGS         
-        -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} 
-        -DTBB_BUILD_STATIC=${_TBB_BUILD_STATIC}
-        -DTBB_BUILD_SHARED=${BUILD_SHARED_LIBS}
+rp_add_cmake_project(
+    TBB
+    #GIT_REPOSITORY      https://github.com/wjakob/tbb.git
+    #GIT_TAG             20357d83871e4cb93b2c724fe0c337cd999fd14f
+    URL "https://github.com/wjakob/tbb/archive/a0dc9bf76d0120f917b641ed095360448cabc85b.tar.gz"
+    URL_HASH SHA256=0545cb6033bd1873fcae3ea304def720a380a88292726943ae3b9b207f322efe
+    CMAKE_ARGS          
+        ${_tbb_confs}
         -DTBB_BUILD_TESTS=OFF
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DCMAKE_DEBUG_POSTFIX=_debug
-    UPDATE_COMMAND ""
 )
 

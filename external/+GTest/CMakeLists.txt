@@ -1,18 +1,7 @@
-include(ExternalProject)
-ExternalProject_Add(
-    rp_GTest
+rp_add_cmake_project(GTest
     GIT_REPOSITORY      https://github.com/google/googletest.git
-    GIT_TAG             release-1.8.0
-    INSTALL_DIR         ${CMAKE_INSTALL_PREFIX}
-    BINARY_DIR          ${RP_PACKAGE_BUILD_DIR}
-    CMAKE_ARGS         
-        -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-        -DBUILD_SHARED_LIBS:BOOL=${BUILD_SHARED_LIBS} 
-        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} 
-        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+    GIT_TAG             release-1.10.0
+    CMAKE_ARGS
         -DBUILD_GTEST:BOOL=ON
         -DBUILD_GMOCK:BOOL=OFF
-        -DCMAKE_DEBUG_POSTFIX=d
-    UPDATE_COMMAND ""
 )

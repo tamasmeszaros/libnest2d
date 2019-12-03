@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 
 project(Libnest2D_example)
 
+message(STATUS "PREFIX PATH = ${CMAKE_PREFIX_PATH}")
 find_package(Libnest2D QUIET)
 
 if(NOT Libnest2D_FOUND)

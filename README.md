@@ -1,3 +1,9 @@
+# Notice
+
+## This library was developed as part of the [PrusaSlicer](https://github.com/prusa3d/PrusaSlicer) project. 
+**You can find the original version [here](https://github.com/prusa3d/PrusaSlicer/tree/master/src/libnest2d).**
+This repository is a continuation of the original project (effectively a fork) that contains backported stable changes and is open to experimental new features.
+
 # Introduction
 
 Libnest2D is a library and framework for the 2D bin packaging problem. 

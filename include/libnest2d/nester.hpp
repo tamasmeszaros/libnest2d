@@ -143,12 +143,13 @@ public:
     {
         fixed_ = binid >= 0;
         binid_ = binid;
+        disallowed_ = false;
     }
     inline void markAsDisallowedAreaInBin(int binid)
     {
         fixed_ = binid >= 0;
         binid_ = binid;
-        disallowed_ = true;
+        disallowed_ = fixed_;
     }
 
     inline void binId(int idx) { binid_ = idx; }

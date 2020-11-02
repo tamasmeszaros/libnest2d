@@ -98,6 +98,9 @@ inline void offset(PolygonImpl& sh, TCoord<PointImpl> distance, const PolygonTag
     // Offsetting reverts the orientation and also removes the last vertex
     // so boost will not have a closed polygon.
 
+    // we plan to replace contours
+    sh.Holes.clear();
+
     bool found_the_contour = false;
     for(auto& r : result) {
         if(ClipperLib::Orientation(r)) {

@@ -124,9 +124,7 @@ export(EXPORT ${PROJECT_NAME}Targets
 install(TARGETS libnest2d libnest2d_headeronly ${LIBNAME} 
   EXPORT ${PROJECT_NAME}Targets
   RUNTIME DESTINATION bin 
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  INCLUDES DESTINATION include)
+)
 
 configure_file(cmake_modules/Config.cmake.in
   "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"

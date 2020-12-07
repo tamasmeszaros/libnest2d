@@ -56,7 +56,7 @@ An example how to do this in a bash command line in the checked out source dir:
     required dependencies installed, you can add `-DRP_ENABLE_DOWNLOADING=ON` and make it download
     and build everything in the configure step. The built dependencies will be shared or static depending on `BUILD_SHARED_LIBS`. You can also specify the install location of the dependencies by setting `RP_INSTALL_PREFIX` variable. Alternatively you can (and should) install the dependencies first e.g. on Ubuntu:
     ```
-    sudo apt install libboost-dev libpolyclipping-dev libnlopt-dev
+    sudo apt install libboost-dev libpolyclipping-dev libnlopt-cxx-dev
     ```
 
 Please note that the clipper backend still uses some algorithms from ```boost::geometry``` (header only). Later releases will probably get rid of the direct dependency. 

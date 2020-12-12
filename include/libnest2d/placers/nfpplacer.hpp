@@ -736,9 +736,14 @@ private:
         }
 
         if(items_.empty()) {
-            setInitialPosition(item);
-            best_overfit = overfit(item.transformedShape(), bin_);
-            can_pack = best_overfit <= 0;
+            const auto initial_rot = item.rotation();
+            for (auto rot : config_.rotations) {
+                item.rotation(initial_rot + rot);
+                setInitialPosition(item);
+                best_overfit = overfit(item.transformedShape(), bin_);
+                can_pack |= best_overfit <= 0;
+                if (can_pack) break;
+            }
         } else {
 
             double global_score = std::numeric_limits<double>::max();

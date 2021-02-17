@@ -7,7 +7,7 @@ This repository is a continuation of the original project (effectively a fork) t
 # Introduction
 
 Libnest2D is a library and framework for the 2D bin packaging problem. 
-Inspired from the [SVGNest](svgnest.com) Javascript library the project is built from scratch in C++11. The library is written with a policy that it should
+Inspired from the [SVGNest](https://svgnest.com) Javascript library the project is built from scratch in C++11. The library is written with a policy that it should
 be usable out of the box with a very simple interface but has to be customizable
 to the very core as well. The algorithms are defined in a header only fashion 
 with templated geometry types. These geometries can have custom or already 

@@ -124,6 +124,8 @@ export(EXPORT ${PROJECT_NAME}Targets
 
 install(TARGETS libnest2d libnest2d_headeronly ${LIBNAME} 
   EXPORT ${PROJECT_NAME}Targets
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin 
 )
 

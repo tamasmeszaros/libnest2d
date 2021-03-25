@@ -20,42 +20,14 @@ else()
 endif()
 
 FIND_PATH(CLIPPER_INCLUDE_DIRS clipper.hpp
-    $ENV{CLIPPER_PATH}
-    $ENV{CLIPPER_PATH}/cpp/
-    $ENV{CLIPPER_PATH}/include/
-    $ENV{CLIPPER_PATH}/include/polyclipping/
-    ${PROJECT_SOURCE_DIR}/python/pymesh/third_party/include/
-    ${PROJECT_SOURCE_DIR}/python/pymesh/third_party/include/polyclipping/
-    ${CMAKE_PREFIX_PATH}/include/polyclipping
-    ${CMAKE_PREFIX_PATH}/include/
-    /opt/local/include/
-    /opt/local/include/polyclipping/
-    /usr/local/include/
-    /usr/local/include/polyclipping/
-    /usr/include
-    /usr/include/polyclipping/)
-
-set(LIB_SEARCHDIRS 
-    $ENV{CLIPPER_PATH}
-    $ENV{CLIPPER_PATH}/cpp/
-    $ENV{CLIPPER_PATH}/cpp/build/
-    $ENV{CLIPPER_PATH}/lib/
-    $ENV{CLIPPER_PATH}/lib/polyclipping/
-    ${PROJECT_SOURCE_DIR}/python/pymesh/third_party/lib/
-    ${PROJECT_SOURCE_DIR}/python/pymesh/third_party/lib/polyclipping/
-    ${CMAKE_PREFIX_PATH}/lib/
-    ${CMAKE_PREFIX_PATH}/lib/polyclipping/
-    /opt/local/lib/
-    /opt/local/lib/polyclipping/
-    /usr/local/lib/
-    /usr/local/lib/polyclipping/
-    /usr/lib/polyclipping
-)
+    PATH_SUFFIXES polyclipping 
+    PATHS include/polyclipping ENV CLIPPER_PATH
+    )
 
 set(_deb_postfix "d")
 
-FIND_LIBRARY(CLIPPER_LIBRARIES_RELEASE polyclipping ${LIB_SEARCHDIRS})
-FIND_LIBRARY(CLIPPER_LIBRARIES_DEBUG polyclipping${_deb_postfix} ${LIB_SEARCHDIRS})
+FIND_LIBRARY(CLIPPER_LIBRARIES_RELEASE polyclipping)
+FIND_LIBRARY(CLIPPER_LIBRARIES_DEBUG polyclipping${_deb_postfix})
 
 if(CLIPPER_LIBRARIES_${CLIPPER_BUILD_TYPE})
     set(CLIPPER_LIBRARIES "${CLIPPER_LIBRARIES_${CLIPPER_BUILD_TYPE}}")

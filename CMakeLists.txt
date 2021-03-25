@@ -10,6 +10,8 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules/)
 
 include(RequirePackage)
 
+set(RP_REPOSITORY_DIR ${CMAKE_SOURCE_DIR}/external CACHE PATH "" FORCE)
+
 option(LIBNEST2D_BUILD_UNITTESTS "If enabled, googletest framework will be downloaded
     and the provided unit tests will be included in the build." OFF)
 

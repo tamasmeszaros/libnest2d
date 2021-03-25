@@ -13,13 +13,16 @@ option(RP_ENABLE_DOWNLOADING "Enable downloading of bundled packages if not foun
 include(CMakeDependentOption)
 cmake_dependent_option(RP_FORCE_DOWNLOADING "Force downloading packages even if found." OFF "RP_ENABLE_DOWNLOADING" OFF)
 
-set(RP_REPOSITORY_DIR ${CMAKE_CURRENT_LIST_DIR}/../external CACHE STRING "Package repository location")
+set(RP_REPOSITORY_DIR ${CMAKE_CURRENT_LIST_DIR}/../packages CACHE STRING "Package repository location")
 set(RP_BUILD_PATH ${PROJECT_BINARY_DIR}/rp_packages_build CACHE STRING "Binary dir for downloaded package builds")
 option(RP_BUILD_SHARED_LIBS "Build dependencies as shared libraries" ${BUILD_SHARED_LIBS})
 
 mark_as_advanced(RP_BUILD_PATH)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/overrides)
+if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/overrides)
+    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/overrides)
+endif ()
+
 list(REMOVE_DUPLICATES CMAKE_MODULE_PATH)
 
 # Packages for which require_package is called are gathered in this list.
@@ -29,7 +32,7 @@ if (NOT CMAKE_PREFIX_PATH)
     set(CMAKE_PREFIX_PATH "")
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH ${RP_INSTALL_PREFIX})
+list(INSERT CMAKE_PREFIX_PATH 0 ${RP_INSTALL_PREFIX})
 
 function(download_package)
 
@@ -176,9 +179,9 @@ function(download_package)
             execute_process(
                 COMMAND ${CMAKE_COMMAND}
                     -D "RP_PACKAGE:STRING=${RP_ARGS_PACKAGE}"
-                    -D "RP_${RP_ARGS_PACKAGE}_COMPONENTS=\"${RP_ARGS_COMPONENTS}\""
-                    -D "RP_${RP_ARGS_PACKAGE}_OPTIONAL_COMPONENTS=\"${RP_ARGS_OPTIONAL_COMPONENTS}\""
-                    -D "RP_${RP_ARGS_PACKAGE}_VERSION=\"${RP_ARGS_VERSION}\""
+                    -D "RP_${RP_ARGS_PACKAGE}_COMPONENTS=${RP_ARGS_COMPONENTS}"
+                    -D "RP_${RP_ARGS_PACKAGE}_OPTIONAL_COMPONENTS=${RP_ARGS_OPTIONAL_COMPONENTS}"
+                    -D "RP_${RP_ARGS_PACKAGE}_VERSION=${RP_ARGS_VERSION}"
                     -D "AS_RP_PROCESS:INTERNAL=ON"
                     -D "RP_FIND_QUIETLY:BOOL=${RP_ARGS_QUIET}"
                     -D "RP_FIND_REQUIRED:BOOL=${RP_ARGS_REQUIRED}"

@@ -122,13 +122,11 @@ write_basic_package_version_file(
 
 export(EXPORT ${PROJECT_NAME}Targets 
        FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake" 
-       NAMESPACE ${PROJECT_NAME}::)
+       NAMESPACE ${PROJECT_NAME}::
+)
 
 install(TARGETS libnest2d libnest2d_headeronly ${LIBNAME} 
-  EXPORT ${PROJECT_NAME}Targets
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin 
+        EXPORT ${PROJECT_NAME}Targets
 )
 
 configure_file(cmake_modules/Config.cmake.in

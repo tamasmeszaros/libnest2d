@@ -101,7 +101,7 @@ struct NfpPConfig {
      * alignment with the candidate item or do anything else.
      *
      * \param remaining A container with the remaining items waiting to be
-     * placed. You can use some features about the remaining items to alter to
+     * placed. You can use some features about the remaining items to alter the
      * score of the current placement. If you know that you have to leave place
      * for other items as well, that might influence your decision about where
      * the current candidate should be placed. E.g. imagine three big circles
@@ -735,7 +735,8 @@ private:
             remlist.insert(remlist.end(), remaining.from, remaining.to);
         }
 
-        if(items_.empty()) {
+        if(std::all_of(items_.begin(), items_.end(),
+                [](const Item& item) { return item.isDisallowedArea(); })) {
             setInitialPosition(item);
             best_overfit = overfit(item.transformedShape(), bin_);
             can_pack = best_overfit <= 0;

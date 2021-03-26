@@ -71,6 +71,15 @@ class _Item {
     int binid_{BIN_ID_UNSET}, priority_{0};
     bool fixed_{false};
 
+    /**
+     * \brief If this is a fixed area, indicates whether it is a disallowed area
+     * or a previously placed item.
+     *
+     * If this is a disallowed area, other objects will not get packed close
+     * together with this item. It only blocks other items in its area.
+     */
+    bool disallowed_{false};
+
 public:
 
     /// The type of the shape which was handed over as the template argument.
@@ -129,10 +138,18 @@ public:
         sh_(sl::create<RawShape>(std::move(contour), std::move(holes))) {}
     
     inline bool isFixed() const noexcept { return fixed_; }
+    inline bool isDisallowedArea() const noexcept { return disallowed_; }
     inline void markAsFixedInBin(int binid)
     {
         fixed_ = binid >= 0;
         binid_ = binid;
+        disallowed_ = false;
+    }
+    inline void markAsDisallowedAreaInBin(int binid)
+    {
+        fixed_ = binid >= 0;
+        binid_ = binid;
+        disallowed_ = fixed_;
     }
 
     inline void binId(int idx) { binid_ = idx; }

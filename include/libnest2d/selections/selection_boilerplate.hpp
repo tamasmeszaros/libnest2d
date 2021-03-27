@@ -2,7 +2,7 @@
 #define SELECTION_BOILERPLATE_HPP
 
 #include <atomic>
-#include <libnest2d/libnest2d.hpp>
+#include <libnest2d/nester.hpp>
 
 namespace libnest2d { namespace selections {
 
@@ -18,6 +18,8 @@ public:
         return packed_bins_;
     }
 
+    inline int lastPackedBinId() const { return last_packed_bin_id_; }
+
     inline void progressIndicator(ProgressFunction fn) { progress_ = fn; }
 
     inline void stopCondition(StopCondition cond) { stopcond_ = cond; }
@@ -25,7 +27,7 @@ public:
     inline void clear() { packed_bins_.clear(); }
 
 protected:
-    
+
     template<class Placer, class Container, class Bin, class PCfg>
     void remove_unpackable_items(Container &c, const Bin &bin, const PCfg& pcfg)
     {
@@ -33,17 +35,20 @@ protected:
         // then it should be removed from the list
         auto it = c.begin();
         while (it != c.end() && !stopcond_()) {
-            
+
             // WARNING: The copy of itm needs to be created before Placer.
             // Placer is working with references and its destructor still
             // manipulates the item this is why the order of stack creation
-            // matters here.            
+            // matters here.
             const Item& itm = *it;
             Item cpy{itm};
-            
+
             Placer p{bin};
             p.configure(pcfg);
-            if (itm.area() <= 0 || !p.pack(cpy)) it = c.erase(it);
+            if (itm.area() <= 0 || !p.pack(cpy)) {
+                static_cast<Item&>(*it).binId(BIN_ID_UNSET);
+                it = c.erase(it);
+            }
             else it++;
         }
     }
@@ -51,6 +56,7 @@ protected:
     PackGroup packed_bins_;
     ProgressFunction progress_ = [](unsigned){};
     StopCondition stopcond_ = [](){ return false; };
+    int last_packed_bin_id_ = -1;
 };
 
 }

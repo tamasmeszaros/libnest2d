@@ -31,7 +31,13 @@ jobs:
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DLIBNEST2D_BUILD_UNITTESTS=ON -DRP_ENABLE_DOWNLOADING=ON -DRP_FORCE_DOWNLOADING=ON
-
+    
+    - name: Cache dependencies
+      uses: actions/cache@v2.1.4
+      with: 
+        path: ${{github.workspace}}/build/dependencies
+        key: ${{ runner.os }}-build
+    
     - name: Build
       working-directory: ${{github.workspace}}/build
       shell: bash
@@ -64,7 +70,13 @@ jobs:
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DLIBNEST2D_BUILD_UNITTESTS=ON -DRP_ENABLE_DOWNLOADING=ON -DRP_FORCE_DOWNLOADING=ON
-      
+    
+    - name: Cache dependencies
+      uses: actions/cache@v2.1.4
+      with: 
+        path: ${{github.workspace}}/build/dependencies
+        key: ${{ runner.os }}-build
+        
     - name: Build
       working-directory: ${{github.workspace}}/build
       shell: bash

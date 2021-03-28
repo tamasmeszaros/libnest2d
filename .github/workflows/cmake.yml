@@ -21,7 +21,7 @@ jobs:
       uses: actions/cache@v2.1.4
       with: 
         path: ${{github.workspace}}/build/dependencies
-        key: ${{ runner.os }}-build
+        key:  ${{job.container}}-build
 
     - name: Create Build Environment
       # Some projects don't allow in-source building, so create a separate build directory
@@ -38,7 +38,7 @@ jobs:
       # Note the current convention is to use the -S and -B options here to specify source 
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/dist -DLIBNEST2D_BUILD_UNITTESTS=ON -DRP_ENABLE_DOWNLOADING=ON
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/dist -DLIBNEST2D_HEADER_ONLY=OFF -DLIBNEST2D_BUILD_UNITTESTS=ON -DRP_ENABLE_DOWNLOADING=ON
     
     - name: Build
       working-directory: ${{github.workspace}}/build
@@ -51,13 +51,67 @@ jobs:
       shell: bash
       # Execute tests defined by the CMake configuration.  
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C $BUILD_TYPE
+      run: ctest --verbose
       
     - name: Build and run example
       working-directory: ${{github.workspace}}/build-example
       shell: bash
       run: | 
         cmake ${{github.workspace}}/examples -DCMAKE_PREFIX_PATH="${{github.workspace}}/build/dist;${{github.workspace}}/build/dependencies"
+        cmake --build .
+        ./example
+        
+  build-mac:
+    # The CMake configure and build commands are platform agnostic and should work equally
+    # well on Windows or Mac.  You can convert this to a matrix build if you need
+    # cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Cache dependencies
+      uses: actions/cache@v2.1.4
+      with: 
+        path: ${{github.workspace}}/build/dependencies
+        key:  ${{job.container}}-build
+
+    - name: Create Build Environment
+      # Some projects don't allow in-source building, so create a separate build directory
+      # We'll use this as our working directory for all subsequent commands
+      run: |
+        cmake -E make_directory ${{github.workspace}}/build
+        cmake -E make_directory ${{github.workspace}}/build-example
+
+    - name: Configure CMake
+      # Use a bash shell so we can use the same syntax for environment variable
+      # access regardless of the host operating system
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      # Note the current convention is to use the -S and -B options here to specify source 
+      # and build directories, but this is only available with CMake 3.13 and higher.  
+      # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/dist -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DLIBNEST2D_HEADER_ONLY=OFF -DLIBNEST2D_BUILD_UNITTESTS=ON -DRP_ENABLE_DOWNLOADING=ON
+    
+    - name: Build
+      working-directory: ${{github.workspace}}/build
+      shell: bash
+      # Execute the build.  You can specify a specific target with "--target <NAME>"
+      run: cmake --build . --config $BUILD_TYPE --target install
+      
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      shell: bash
+      # Execute tests defined by the CMake configuration.  
+      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+      run: ctest --verbose
+      
+    - name: Build and run example
+      working-directory: ${{github.workspace}}/build-example
+      shell: bash
+      run: | 
+        cmake ${{github.workspace}}/examples -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DCMAKE_PREFIX_PATH="${{github.workspace}}/build/dist;${{github.workspace}}/build/dependencies"
         cmake --build .
         ./example
       
@@ -88,7 +142,7 @@ jobs:
       # Note the current convention is to use the -S and -B options here to specify source 
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_INSTALL_PREFIX="${{github.workspace}}\build\dist" -DLIBNEST2D_BUILD_UNITTESTS=ON -DRP_ENABLE_DOWNLOADING=ON
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_INSTALL_PREFIX="${{github.workspace}}\build\dist" -DLIBNEST2D_BUILD_UNITTESTS=ON -DLIBNEST2D_HEADER_ONLY=OFF -DRP_ENABLE_DOWNLOADING=ON
         
     - name: Build
       working-directory: ${{github.workspace}}/build
@@ -103,7 +157,7 @@ jobs:
       shell: bash
       # Execute tests defined by the CMake configuration.  
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C $BUILD_TYPE
+      run: ctest -C $BUILD_TYPE --verbose
       
     - name: Build and run example
       working-directory: ${{github.workspace}}/build-example
@@ -114,5 +168,3 @@ jobs:
         $GITHUB_WORKSPACE/build-example/Release/example
         cmake --build . --config Debug
         $GITHUB_WORKSPACE/build-example/Debug/example
-        cmake --build . --config RelWithDebInfo
-        $GITHUB_WORKSPACE/build-example/RelWithDebInfo/example

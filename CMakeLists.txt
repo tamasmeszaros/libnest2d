@@ -90,6 +90,11 @@ target_include_directories(libnest2d_headeronly INTERFACE $<BUILD_INTERFACE:${SR
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
+# require C++14
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 add_library(libnest2d INTERFACE)
 
 if(NOT LIBNEST2D_HEADER_ONLY)

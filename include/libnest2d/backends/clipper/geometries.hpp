@@ -290,12 +290,13 @@ inline TMultiShape<PolygonImpl> clipper_execute(
         poly.Holes.emplace_back(std::move(pptr->Contour));
 
         assert(pptr->IsHole());
-        
-        if(!poly.Contour.empty() ) {
-            auto front_p = poly.Contour.front();
-            auto &back_p  = poly.Contour.back();
-            if(front_p.X != back_p.X || front_p.Y != back_p.X) 
-                poly.Contour.emplace_back(front_p);
+
+        if (!poly.Holes.back().empty())
+        {
+            auto front_p = poly.Holes.back().front();
+            auto &back_p = poly.Holes.back().back();
+            if (front_p.X != back_p.X || front_p.Y != back_p.X)
+                poly.Holes.back().emplace_back(front_p);
         }
 
         for(auto c : pptr->Childs) processPoly(c);

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 
 project(Libnest2D_example)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED)
 
 message(STATUS "PREFIX PATH = ${CMAKE_PREFIX_PATH}")

@@ -162,9 +162,6 @@ function(rp_add_cmake_project projectname)
   set(RP_MINSIZEREL_POSTFIX "_msr" CACHE STRING "")
   
   if (_is_multi)
-    #string(REPLACE ";" " " _configs "${CMAKE_CONFIGURATION_TYPES}")
-    #set(_configs_line "-DCMAKE_CONFIGURATION_TYPES:STRING=${_configs}")
-    set(_configs_line "")
     set(_configs ${CMAKE_CONFIGURATION_TYPES})
     foreach(_Conf ${_configs})
       string(TOUPPER "${_Conf}" _CONF)
@@ -172,6 +169,9 @@ function(rp_add_cmake_project projectname)
         list(APPEND _postfix_line -DCMAKE_${_CONF}_POSTFIX:STRING=${RP_${_CONF}_POSTFIX})
       endif ()
     endforeach()
+
+    string(REPLACE ";" "|" _configs_ "${CMAKE_CONFIGURATION_TYPES}")
+    set(_configs_line "-DCMAKE_CONFIGURATION_TYPES:STRING=${_configs_}")
   else ()
     set(_configs_line -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE})
       string(TOUPPER "${CMAKE_BUILD_TYPE}" _CONF)
@@ -181,16 +181,22 @@ function(rp_add_cmake_project projectname)
       endif ()
   endif ()
   
+  string(REPLACE ";" "|" _module_paths "${CMAKE_MODULE_PATH}")
+
   ExternalProject_Add(
       rp_${projectname}
       INSTALL_DIR         ${CMAKE_INSTALL_PREFIX}
       BINARY_DIR          ${RP_PACKAGE_BUILD_DIR}
+      DOWNLOAD_EXTRACT_TIMESTAMP ON
+      LIST_SEPARATOR |
       CMAKE_ARGS         
           -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
           -DCMAKE_PREFIX_PATH:STRING=${CMAKE_INSTALL_PREFIX}
           -DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}
           -DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}
           -DBUILD_SHARED_LIBS:BOOL=${BUILD_SHARED_LIBS}
+          # -DCMAKE_CONFIGURATION_TYPES:STRING=${}
+          -DCMAKE_MODULE_PATH:STRING=${_module_paths}
           -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
           "${_configs_line}"
           "${_postfix_line}"

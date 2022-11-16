@@ -32,7 +32,7 @@ if (NOT CMAKE_PREFIX_PATH)
     set(CMAKE_PREFIX_PATH "")
 endif()
 
-list(INSERT CMAKE_PREFIX_PATH 0 ${RP_INSTALL_PREFIX})
+list(APPEND CMAKE_PREFIX_PATH ${RP_INSTALL_PREFIX})
 
 function(download_package)
 

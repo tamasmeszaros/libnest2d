@@ -5,7 +5,7 @@ target_link_libraries(clipperBackend INTERFACE Clipper::Clipper)
 
 # Clipper backend is not enough on its own, it still need some functions
 # from Boost geometry
-require_package(Boost VERSION 1.58 REQUIRED COMPONENTS headers)
+require_package(Boost VERSION 1.58 REQUIRED)
 
 if(TARGET Boost::boost)
     target_link_libraries(clipperBackend INTERFACE Boost::boost )
